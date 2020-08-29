@@ -1,0 +1,19 @@
+{
+  "name": "fflate",
+  "version": "0.0.1",
+  "description": "Native performance decompression in a 3 kB package",
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "types": "lib/index.d.ts",
+  "repository": "https://github.com/101arrowz/fflate",
+  "author": "Arjun Barrett",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc && tsc --project tsconfig.esm.json",
+    "test": "node test.js",
+    "prepublish": "yarn build"
+  },
+  "devDependencies": {
+    "typescript": "^4.0.2"
+  }
+}
