@@ -6,3 +6,8 @@ typescript@^4.0.2:
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.0.2.tgz#7ea7c88777c723c681e33bf7988be5d008d05ac2"
   integrity sha512-e4ERvRV2wb+rRZ/IQeb3jm2VxBsirQLpQhdxplZ2MEzGvDkkMmPglecnNDfSUBivMjP93vRbngYYDQqQ/78bcQ==
+
+uzip@^0.20200905.0:
+  version "0.20200905.0"
+  resolved "https://registry.yarnpkg.com/uzip/-/uzip-0.20200905.0.tgz#d23ba62d775ee81a2b768584db25dd14c20db1a6"
+  integrity sha512-gFDRsTJ2zJsPiZzO48J245DC+75GnpfKg2eLZis3G0VY6zt0z1dvdR5eARZBs+dIz8elKm9XciVdPosPJjV0Cw==
