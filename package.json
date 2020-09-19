@@ -1,7 +1,7 @@
 {
   "name": "fflate",
   "version": "0.0.1",
-  "description": "Native performance (de)compression in a 5kB package",
+  "description": "Native performance (de)compression in a 3kB package",
   "main": "lib/index.js",
   "module": "esm/index.js",
   "types": "lib/index.d.ts",
@@ -14,7 +14,8 @@
     "prepublish": "yarn build"
   },
   "devDependencies": {
+    "pako": "^1.0.11",
     "typescript": "^4.0.2",
-    "uzip": "^0.20200905.0"
+    "uzip": "^0.20200919.0"
   }
 }

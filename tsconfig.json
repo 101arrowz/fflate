@@ -3,5 +3,5 @@
     "declaration": true,
     "outDir": "lib/"
   },
-  "files": ["index.ts"]
+  "files": ["src/index.ts"]
 }

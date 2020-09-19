@@ -307,33 +307,34 @@ const hTree = (d: Uint16Array, mb: number) => {
   // Need extra info to make a tree
   const t: HuffNode[] = [];
   for (let i = 0; i < d.length; ++i) {
-    if (d[i]) {
-      t.push({ s: i, f: d[i] });
-    }
+    if (d[i]) t.push({ s: i, f: d[i] });
   }
   const s = t.length;
   const t2 = t.slice();
-  // after i2 reaches last ind, will be stopped
-  t.push({ s: -1, f: 32768 });
   if (s == 0) return [new u8(0), 0] as const;
-  if (s == 1) return [new u8([!t[0].s as unknown as number]), 1] as const;
+  if (s == 1) {
+    const v = new u8(t[0].s + 1);
+    v[t[0].s] = 1;
+    return [v, 1] as const;
+  }
   t.sort((a, b) => a.f - b.f);
+  // after i2 reaches last ind, will be stopped
+  // freq must be greater than largest possible number of symbols
+  t.push({ s: -1, f: 25001 });
   let l = t[0], r = t[1], i0 = 0, i1 = 1, i2 = 2;
   t[0] = { s: -1, f: l.f + r.f, l, r };
-  // complex algorithm from UZIP.js
+  // efficient algorithm from UZIP.js
   // i0 is lookbehind, i2 is lookahead - after processing two low-freq
   // symbols that combined have high freq, will start processing i2 (high-freq,
   // non-composite) symbols instead
   // see https://reddit.com/r/photopea/comments/ikekht/uzipjs_questions/
 	while (i1 != s - 1) {
-    if (t[i0].f < t[i2].f) l = t[i0++];
-    else l = t[i2++];
-    if (i0 != i1 && t[i0].f < t[i2].f) r = t[i0++];
-    else r = t[i2++];
+    l = t[t[i0].f < t[i2].f ? i0++ : i2++];
+    r = t[i0 != i1 && t[i0].f < t[i2].f ? i0++ : i2++];
     t[i1++] = { s: -1, f: l.f + r.f, l, r };
   }
   let maxSym = t2[0].s;
-  for (let i = 0; i < s; ++i) {
+  for (let i = 1; i < s; ++i) {
     if (t2[i].s > maxSym) maxSym = t2[i].s;
   }
   // code lengths
@@ -345,8 +346,8 @@ const hTree = (d: Uint16Array, mb: number) => {
     // TODO: find out how this code works (debt)
     //  ind    debt
     let i = 0, dt = 0;
-    // cost
-    const cst = 1 << (mbt - mb);
+    //    left            cost
+    const lft = mbt - mb, cst = 1 << lft;
     t2.sort((a, b) => tr[b.s] - tr[a.s] || a.f - b.f);
     for (; i < s; ++i) {
       const i2 = t2[i].s;
@@ -355,13 +356,13 @@ const hTree = (d: Uint16Array, mb: number) => {
         tr[i2] = mb;
       } else break;
     }
-    dt >>>= (mbt - mb);
+    dt >>>= lft;
     while (dt > 0) {
       const i2 = t2[i].s;
       if (tr[i2] < mb) dt -= 1 << (mb - tr[i2]++ - 1);
       else ++i;
     }
-    for (; i >= 0 && !dt; --i) {
+    for (; i >= 0 && dt; --i) {
       const i2 = t2[i].s;
       if (tr[i2] == mb) {
         --tr[i2];
@@ -384,32 +385,30 @@ const lc = (c: Uint8Array) => {
   let s = c.length;
   // Note that the semicolon was intentional
   while (s && !c[--s]);
-  ++s;
-  const cl = new u16(s);
-  //  ind      num      streak
+  const cl = new u16(++s);
+  //  ind      num         streak
   let cli = 0, cln = c[0], cls = 1;
   const w = (v: number) => { cl[cli++] = v; }
-  for (let i = 1; i < s; ++i) {
-    if (c[i] == cln && i != s - 1)
+  for (let i = 1; i <= s; ++i) {
+    if (c[i] == cln && i != s)
       ++cls;
     else {
-      if (!cln && cls > 3) {
-        for (; cls > 138; cls -= 138) w(4082);
-        if (cls > 3) {
-          w(cls > 10 ? ((cls - 11) << 5) | 18 : ((cls - 3) << 5) | 17);
+      if (!cln && cls > 2) {
+        for (; cls > 138; cls -= 138) w(32754);
+        if (cls > 2) {
+          w(cls > 10 ? ((cls - 11) << 5) | 28690 : ((cls - 3) << 5) | 12305);
           cls = 0;
         }
-      } else if (cls > 4) {
+      } else if (cls > 3) {
         w(cln), --cls;
-        for (; cls > 6; cls -= 6) w(112);
-        if (cls > 3) w(((cls - 3) << 5) | 16), cls = 0;
+        for (; cls > 6; cls -= 6) w(8304);
+        if (cls > 2) w(((cls - 3) << 5) | 8208), cls = 0;
       }
-      cl.fill(cln, cli, cli += cls);
+      while (cls--) w(cln);
       cls = 1;
       cln = c[i];
     }
   }
-  w(cln);
   return [cl.slice(0, cli), s] as const;
 }
 
@@ -469,9 +468,7 @@ const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Uint32Array
       for (let i = 0; i < clct.length; ++i) {
         const len = clct[i] & 31;
         wbits(out, p, llm[len]), p += lct[len];
-        if (len > 15) {
-          wbits(out, p, clct[i] >>> 5), p += len == 16 ? 2 : len == 17 ? 3 : 7;
-        }
+        if (len > 15) wbits(out, p, (clct[i] >>> 5) & 127), p += clct[i] >>> 12;
       }
     }
   } else {
@@ -479,12 +476,12 @@ const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Uint32Array
   }
   for (let i = 0; i < li; ++i) {
     if (syms[i] > 255) {
-      const len = syms[i] & 31;
+      const len = (syms[i] >>> 18) & 31;
       wbits16(out, p, lm[len + 257]), p += ll[len + 257];
-      if (len > 7) wbits(out, p, (syms[i] >>> 5) & 31), p += fleb[len];
-      const dst = (syms[i] >>> 10) & 31;
+      if (len > 7) wbits(out, p, (syms[i] >>> 23) & 31), p += fleb[len];
+      const dst = syms[i] & 31;
       wbits16(out, p, dm[dst]), p += dl[dst];
-      if (dst > 3) wbits16(out, p, (syms[i] >>> 15) & 8191), p += fdeb[dst];
+      if (dst > 3) wbits16(out, p, (syms[i] >>> 5) & 8191), p += fdeb[dst];
     } else {
       wbits16(out, p, lm[syms[i]]), p += ll[syms[i]];
     }
@@ -497,9 +494,9 @@ const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Uint32Array
 const deo = new u32([65540, 131080, 131088, 131104, 262176, 1048704, 1048832, 2114560, 2117632]);
 
 // compresses data into a raw DEFLATE buffer
-const deflate = (dat: Uint8Array, lvl: number, pre = 0, post = 0) => {
+const deflate = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: number) => {
   const s = dat.length;
-  const o = new u8(pre + s + 5 * Math.ceil(s / 16384) + post);
+  const o = new u8(pre + s + 5 * Math.ceil(s / 17000) + post);
   // writing to this writes to the output buffer
   const w = o.subarray(pre, o.length - post);
   if (!lvl || dat.length < 4) {
@@ -519,76 +516,77 @@ const deflate = (dat: Uint8Array, lvl: number, pre = 0, post = 0) => {
   }
   const opt = deo[lvl - 1];
   const n = opt >>> 13, c = opt & 8191;
+  const msk = (1 << plvl) - 1;
   //    prev 2-byte val map    curr 2-byte val map
-  const prev = new u16(32768), head = new u16(32768);
-  // 12288 is an arbitrary choice for max num of symbols per block
-  // 112 extra to never need to create a tiny huffman block near the end
-  const syms = new u32(12400);
+  const prev = new u16(32768), head = new u16(msk + 1);
+  const hsh = (i: number) => (dat[i] | (dat[i + 1] << 8) | (dat[i + 2] << 16)) & msk;
+  // 24576 is an arbitrary number of maximum symbols per block
+  // 423 buffer for last block
+  const syms = new u32(25000);
   // length/literal freq   distance freq
   const lf = new u16(286), df = new u16(30);
-  // punishment for missing a value
-  const pnsh = Math.floor(lvl / 2)
   //  l/lcnt  exbits  index  l/lind  waitdx  bitpos
-  let lc = 0, eb = 0, i = 0, li = 0, wi = 0, bs = 0, pos = 0;
+  let eb = 0, i = 0, li = 0, wi = 0, bs = 0, pos = 0;
   for (; i < s; ++i) {
-    // first 2 bytes
-    const b2 = dat[i] | (dat[i + 1] << 8);
+    // hash value
+    const hv = hsh(i);
     // index mod 32768
     let imod = i & 32767;
     // previous index with this value
-    let pimod = head[b2];
+    let pimod = head[hv];
     prev[imod] = pimod;
-    head[b2] = imod;
+    head[hv] = imod;
     // We always should modify head and prev, but only add symbols if
     // this data is not yet processed ("wait" for wait index)
     if (wi <= i) {
-      // 24573 arbitrary: 24576 - 3
-      if ((li > 12288 || lc > 24573) && s - i > 111) {
+      // bytes remaining
+      const rem = s - i;
+      if (li > 24576 && rem > 423) {
         pos = wblk(dat, w, 0, syms, lf, df, eb, li, bs, i - bs, pos);
-        li = lc = eb = 0, bs = i;
+        li = eb = 0, bs = i;
         for (let j = 0; j < 286; ++j) lf[j] = 0;
         for (let j = 0; j < 30; ++j) df[j] = 0;
       }
-      // bytes remaining
-      const rem = s - i;
       //  len    dist   chain
-      let l = 2, d = 0, ch = c, dif = (imod - pimod + 32768) & 32767;
-      const maxn = Math.min(n, rem);
-      const maxd = Math.min(32767, i);
-      // max possible max length
-      const ml = Math.min(258, rem);
-      while (dif <= maxd && --ch && imod != pimod) {
-        if (dat[i + l] == dat[i + l - dif]) {
-          let nl = 0;
-          // const ml = Math.min(mml, dif);
-          for (; nl < ml && dat[i + nl] == dat[i + nl - dif]; ++nl);
-          if (nl > l) {
-            l = nl;
-            d = dif;
-            // break out early when we reach "nice" (we are satisfied enough)
-            if (nl >= maxn) break;
-            // now, find the rarest 2-byte sequence within this
-            // length of literals and search for that instead.
-            // Much faster than just using the start
-            const mmd = nl - 2;
-            let md = 0;
-            for (let j = 0; j < mmd; ++j) {
-              const ti = (i - dif + j + 32768) & 32767;
-              const pti = prev[ti];
-              const cd = (ti - pti + 32768) & 32767;
-              if (cd > md) md = cd, pimod = ti;
+      let l = 0, d = 0, ch = c, dif = (i - pimod) & 32767;
+      if (rem > 2 && hv == hsh(i - dif)) {
+        const maxn = Math.min(n, rem);
+        const maxd = Math.min(32767, i);
+        // max possible max length
+        // not capped at dif because decompressors implement "rolling" index population
+        const ml = Math.min(258, rem);
+        while (dif <= maxd && --ch && imod != pimod) {
+          if (dat[i + l] == dat[i + l - dif]) {
+            let nl = 0;
+            for (; nl < ml && dat[i + nl] == dat[i + nl - dif]; ++nl);
+            if (nl > l) {
+              l = nl;
+              d = dif;
+              // break out early when we reach "nice" (we are satisfied enough)
+              if (nl >= maxn) break;
+              // now, find the rarest 2-byte sequence within this
+              // length of literals and search for that instead.
+              // Much faster than just using the start
+              const mmd = Math.min(dif, nl - 2);
+              let md = 0;
+              for (let j = 0; j < mmd; ++j) {
+                const ti = (i - dif + j + 32768) & 32767;
+                const pti = prev[ti];
+                const cd = (ti - pti + 32768) & 32767;
+                if (cd > md) md = cd, pimod = ti;
+              }
             }
-          } else if (nl < 2) ch >>>= pnsh; // this is cheating, but we need performance :/
+          }
+          // check the previous match
+          imod = pimod, pimod = prev[imod];
+          dif += (imod - pimod + 32768) & 32767;
         }
-        // check the previous match
-        imod = pimod, pimod = prev[pimod];
-        dif += (imod - pimod + 32768) & 32767;
       }
-      // d will be nonzero only when a match was found
-      if (d) {
+      // l will be nonzero only when a match was found
+      if (l) {
         // store both dist and len data in one Uint32
         // Make sure this is recognized as a len/dist with 28th bit (2^28)
-        syms[li++] = 268435456 | (revfd[d] << 10) | revfl[l];
+        syms[li++] = 268435456 | (revfl[l] << 18) | revfd[d];
         const lin = revfl[l] & 31, din = revfd[d] & 31;
         eb += fleb[lin] + fdeb[din];
         ++lf[257 + lin];
@@ -598,11 +596,10 @@ const deflate = (dat: Uint8Array, lvl: number, pre = 0, post = 0) => {
         syms[li++] = dat[i];
         ++lf[dat[i]];
       }
-      ++lc;
     }
   }
   if (bs != i) pos = wblk(dat, w, 1, syms, lf, df, eb, li, bs, i - bs, pos);
-  return o.subarray(0, (pos >>> 3) + 1 + post);
+  return o.slice(0, (pos >>> 3) + 1 + post);
 }
 
 
