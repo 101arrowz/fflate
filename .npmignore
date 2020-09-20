@@ -1,4 +1,5 @@
 *
 !lib/
+!esm/
 !package.json
 !README.md

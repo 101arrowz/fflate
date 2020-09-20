@@ -1,7 +1,4 @@
 node_modules/
 lib/
 esm/
-# following two are temporary before official tests
-tmp/
-test.js
 .DS_STORE
