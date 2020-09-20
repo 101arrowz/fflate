@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "build": "tsc && tsc --project tsconfig.esm.json && typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none",
-    "prepublish": "yarn build"
+    "prepare": "yarn build"
   },
   "devDependencies": {
     "pako": "^1.0.11",

@@ -39,8 +39,7 @@ const freb = (eb: Uint8Array, start: number) => {
 
 const [fl, revfl] = freb(fleb, 2);
 // we can ignore the fact that the other numbers are wrong; they never happen anyway
-fl[28] = 258;
-revfl[258] = 28;
+fl[28] = 258, revfl[258] = 28;
 const [fd, revfd] = freb(fdeb, 0);
 
 // map of value to reverse (assuming 16 bits)

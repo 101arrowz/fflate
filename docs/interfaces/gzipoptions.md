@@ -23,7 +23,7 @@ Options for compressing data into a GZIP format
 
 • `Optional` **filename**: string
 
-*Defined in [index.ts:658](https://github.com/101arrowz/fflate/blob/3362e39/src/index.ts#L658)*
+*Defined in [index.ts:658](https://github.com/101arrowz/fflate/blob/fcabaac/src/index.ts#L658)*
 
 The filename of the data. If the `gunzip` command is used to decompress the data, it will output a file
 with this name instead of the name of the compressed file.
@@ -36,7 +36,7 @@ ___
 
 *Inherited from [DeflateOptions](deflateoptions.md).[level](deflateoptions.md#level)*
 
-*Defined in [index.ts:633](https://github.com/101arrowz/fflate/blob/3362e39/src/index.ts#L633)*
+*Defined in [index.ts:633](https://github.com/101arrowz/fflate/blob/fcabaac/src/index.ts#L633)*
 
 The level of compression to use, ranging from 0-9.
 
@@ -60,7 +60,7 @@ ___
 
 *Inherited from [DeflateOptions](deflateoptions.md).[mem](deflateoptions.md#mem)*
 
-*Defined in [index.ts:642](https://github.com/101arrowz/fflate/blob/3362e39/src/index.ts#L642)*
+*Defined in [index.ts:642](https://github.com/101arrowz/fflate/blob/fcabaac/src/index.ts#L642)*
 
 The memory level to use, ranging from 0-12. Increasing this increases speed and compression ratio at the cost of memory.
 
@@ -75,7 +75,7 @@ ___
 
 • `Optional` **mtime**: Date \| string \| number
 
-*Defined in [index.ts:653](https://github.com/101arrowz/fflate/blob/3362e39/src/index.ts#L653)*
+*Defined in [index.ts:653](https://github.com/101arrowz/fflate/blob/fcabaac/src/index.ts#L653)*
 
 When the file was last modified. Defaults to the current time.
 Set this to 0 to avoid specifying a modification date entirely.
