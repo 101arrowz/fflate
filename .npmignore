@@ -1,5 +1,7 @@
-*
-!lib/
-!esm/
-!package.json
-!README.md
+docs/
+src/
+.gitignore
+.npmignore
+tsconfig.esm.json
+tsconfig.json
+yarn.lock

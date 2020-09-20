@@ -1,6 +1,6 @@
 {
   "name": "fflate",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "High performance (de)compression in an 8kB package",
   "main": "lib/index.js",
   "module": "esm/index.js",
@@ -15,7 +15,8 @@
     "inflate",
     "compression",
     "decompression",
-    "zlib"
+    "zlib",
+    "pako"
   ],
   "scripts": {
     "build": "tsc && tsc --project tsconfig.esm.json && typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none",
