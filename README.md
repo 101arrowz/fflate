@@ -6,9 +6,9 @@ High performance (de)compression in an 8kB package
 
 |                           | `pako` | `tiny-inflate`       | `UZIP.js`             | `fflate`                       |
 |---------------------------|--------|----------------------|-----------------------|--------------------------------|
-| Decompression performance | 1x     | up to 10x slower     | **up to 40% faster**  | **up to 40% faster**           |
-| Compression performance   | 1x     | N/A                  | up to 5% faster       | **up to 50% faster**           |
-| Bundle size (minified)    | 44.5kB | **3 kB**             | 14.2kB                | 8kB **(3kB for only inflate)** |
+| Decompression performance | 1x     | Up to 40% slower     | **Up to 40% faster**  | **Up to 40% faster**           |
+| Compression performance   | 1x     | N/A                  | Up to 5% faster       | **Up to 50% faster**           |
+| Bundle size (minified)    | 44.5kB | **3kB**              | 14.2kB                | 8kB **(3kB for only inflate)** |
 | Compression support       | ✅     | ❌                    | ✅                    | ✅                             |
 | Thread/Worker safe        | ✅     | ✅                    | ❌                    | ✅                             |
 | GZIP/Zlib support         | ✅     | ❌                    | ❌                    | ✅                             |
@@ -100,7 +100,7 @@ See the [documentation](https://github.com/101arrowz/fflate/blob/master/docs/REA
 ## What makes `fflate` so fast?
 Many JavaScript compression/decompression libraries exist. However, the most popular one, [`pako`](https://npmjs.com/package/pako), is merely a clone of Zlib rewritten nearly line-for-line in JavaScript. Although it is by no means poorly made, `pako` doesn't recognize the many differences between JavaScript and C, and therefore is suboptimal for performance. Moreover, even when minified, the library is 45 kB; it may not seem like much, but for anyone concerned with optimizing bundle size (especially library authors), it's more weight than necessary.
 
-Note that there exist some small libraries like [`tiny-inflate`](https://npmjs.com/package/tiny-inflate) for solely decompression, and with a minified size of 3 kB, it can be appealing; however, its performance is extremely lackluster, up to 100x slower than `pako` for some larger files in my tests.
+Note that there exist some small libraries like [`tiny-inflate`](https://npmjs.com/package/tiny-inflate) for solely decompression, and with a minified size of 3 kB, it can be appealing; however, its performance is lackluster, typically 40% than `pako` in my tests.
 
 [`UZIP.js`](https://github.com/photopea/UZIP.js) is both faster (by up to 40%) and smaller (14 kB minified) than `pako`, and it contains a variety of innovations that make it excellent for both performance and compression ratio. However, the developer made a variety of tiny mistakes and inefficient design choices that make it imperfect. Moreover, it does not support GZIP or Zlib data directly; one must remove the headers manually to use `UZIP.js`.
 

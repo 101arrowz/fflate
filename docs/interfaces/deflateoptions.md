@@ -23,7 +23,7 @@ Options for compressing data into a DEFLATE format
 
 • `Optional` **level**: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9
 
-*Defined in [index.ts:632](https://github.com/101arrowz/fflate/blob/fe2a3b1/src/index.ts#L632)*
+*Defined in [index.ts:632](https://github.com/101arrowz/fflate/blob/5c43980/src/index.ts#L632)*
 
 The level of compression to use, ranging from 0-9.
 
@@ -45,7 +45,7 @@ ___
 
 • `Optional` **mem**: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9 \| 10 \| 11 \| 12
 
-*Defined in [index.ts:641](https://github.com/101arrowz/fflate/blob/fe2a3b1/src/index.ts#L641)*
+*Defined in [index.ts:641](https://github.com/101arrowz/fflate/blob/5c43980/src/index.ts#L641)*
 
 The memory level to use, ranging from 0-12. Increasing this increases speed and compression ratio at the cost of memory.
 

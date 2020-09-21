@@ -24,7 +24,7 @@
 
 ▸ **decompress**(`data`: Uint8Array, `out?`: Uint8Array): Uint8Array
 
-*Defined in [index.ts:774](https://github.com/101arrowz/fflate/blob/fe2a3b1/src/index.ts#L774)*
+*Defined in [index.ts:774](https://github.com/101arrowz/fflate/blob/5c43980/src/index.ts#L774)*
 
 Expands compressed GZIP, Zlib, or raw DEFLATE data, automatically detecting the format
 
@@ -43,7 +43,7 @@ ___
 
 ▸ **deflate**(`data`: Uint8Array, `opts`: [DeflateOptions](interfaces/deflateoptions.md)): Uint8Array
 
-*Defined in [index.ts:680](https://github.com/101arrowz/fflate/blob/fe2a3b1/src/index.ts#L680)*
+*Defined in [index.ts:680](https://github.com/101arrowz/fflate/blob/5c43980/src/index.ts#L680)*
 
 Compresses data with DEFLATE without any wrapper
 
@@ -62,7 +62,7 @@ ___
 
 ▸ **gunzip**(`data`: Uint8Array, `out?`: Uint8Array): Uint8Array
 
-*Defined in [index.ts:720](https://github.com/101arrowz/fflate/blob/fe2a3b1/src/index.ts#L720)*
+*Defined in [index.ts:720](https://github.com/101arrowz/fflate/blob/5c43980/src/index.ts#L720)*
 
 Expands GZIP data
 
@@ -81,7 +81,7 @@ ___
 
 ▸ **gzip**(`data`: Uint8Array, `opts`: [GZIPOptions](interfaces/gzipoptions.md)): Uint8Array
 
-*Defined in [index.ts:700](https://github.com/101arrowz/fflate/blob/fe2a3b1/src/index.ts#L700)*
+*Defined in [index.ts:700](https://github.com/101arrowz/fflate/blob/5c43980/src/index.ts#L700)*
 
 Compresses data with GZIP
 
@@ -100,7 +100,7 @@ ___
 
 ▸ **inflate**(`data`: Uint8Array, `out?`: Uint8Array): Uint8Array
 
-*Defined in [index.ts:690](https://github.com/101arrowz/fflate/blob/fe2a3b1/src/index.ts#L690)*
+*Defined in [index.ts:690](https://github.com/101arrowz/fflate/blob/5c43980/src/index.ts#L690)*
 
 Expands DEFLATE data with no wrapper
 
@@ -119,7 +119,7 @@ ___
 
 ▸ **unzlib**(`data`: Uint8Array, `out?`: Uint8Array): Uint8Array
 
-*Defined in [index.ts:758](https://github.com/101arrowz/fflate/blob/fe2a3b1/src/index.ts#L758)*
+*Defined in [index.ts:758](https://github.com/101arrowz/fflate/blob/5c43980/src/index.ts#L758)*
 
 Expands Zlib data
 
@@ -138,7 +138,7 @@ ___
 
 ▸ **zlib**(`data`: Uint8Array, `opts`: [ZlibOptions](interfaces/zliboptions.md)): Uint8Array
 
-*Defined in [index.ts:737](https://github.com/101arrowz/fflate/blob/fe2a3b1/src/index.ts#L737)*
+*Defined in [index.ts:737](https://github.com/101arrowz/fflate/blob/5c43980/src/index.ts#L737)*
 
 Compress data with Zlib
 
