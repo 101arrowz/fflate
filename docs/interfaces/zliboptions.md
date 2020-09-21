@@ -23,7 +23,7 @@ Options for compressing data into a Zlib format
 
 *Inherited from [DeflateOptions](deflateoptions.md).[level](deflateoptions.md#level)*
 
-*Defined in [index.ts:632](https://github.com/101arrowz/fflate/blob/8a52440/src/index.ts#L632)*
+*Defined in [index.ts:632](https://github.com/101arrowz/fflate/blob/fe2a3b1/src/index.ts#L632)*
 
 The level of compression to use, ranging from 0-9.
 
@@ -47,7 +47,7 @@ ___
 
 *Inherited from [DeflateOptions](deflateoptions.md).[mem](deflateoptions.md#mem)*
 
-*Defined in [index.ts:641](https://github.com/101arrowz/fflate/blob/8a52440/src/index.ts#L641)*
+*Defined in [index.ts:641](https://github.com/101arrowz/fflate/blob/fe2a3b1/src/index.ts#L641)*
 
 The memory level to use, ranging from 0-12. Increasing this increases speed and compression ratio at the cost of memory.
 
