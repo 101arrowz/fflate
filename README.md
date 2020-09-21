@@ -2,16 +2,17 @@
 High performance (de)compression in an 8kB package
 
 ## Why fflate?
-`fflate` (short for fast flate) is the **fastest, smallest, and most versatile** pure JavaScript compression and decompression library in existence, handily beating [`pako`](https://npmjs.com/package/pako), [`tiny-inflate`](https://npmjs.com/package/tiny-inflate), and [`UZIP.js`](https://github.com/photopea/UZIP.js) in performance benchmarks while being multiple times more lightweight. It includes support for DEFLATE, GZIP, and Zlib data. Data compressed by `fflate` can be decompressed by other tools, and vice versa.
+`fflate` (short for fast flate) is the **fastest, smallest, and most versatile** pure JavaScript compression and decompression library in existence, handily beating [`pako`](https://npmjs.com/package/pako), [`tiny-inflate`](https://npmjs.com/package/tiny-inflate), and [`UZIP.js`](https://github.com/photopea/UZIP.js) in performance benchmarks while being multiple times more lightweight. Its compression ratios are often better than even the original Zlib C library. It includes support for DEFLATE, GZIP, and Zlib data. Data compressed by `fflate` can be decompressed by other tools, and vice versa.
 
-|                        | `pako` | `tiny-inflate`       | `UZIP.js`         | `fflate`                       |
-|------------------------|--------|----------------------|-------------------|--------------------------------|
-| Relative performance   | 1x     | up to 10x slower     | up to 40% faster  | **Up to 60% faster**           |
-| Bundle size (minified) | 44.5kB | **3 kB**             | 14.2kB            | 8kB **(3kB for only inflate)** |
-| Compression support    | ✅     | ❌                    | ✅                | ✅                             |
-| Thread/Worker safe     | ✅     | ✅                    | ❌                | ✅                             |
-| GZIP/Zlib support      | ✅     | ❌                    | ❌                | ✅                             |
-| Uses ES Modules        | ❌     | ❌                    | ❌                | ✅                             |
+|                           | `pako` | `tiny-inflate`       | `UZIP.js`             | `fflate`                       |
+|---------------------------|--------|----------------------|-----------------------|--------------------------------|
+| Decompression performance | 1x     | up to 10x slower     | **up to 40% faster**  | **up to 40% faster**           |
+| Compression performance   | 1x     | N/A                  | up to 5% faster       | **up to 50% faster**           |
+| Bundle size (minified)    | 44.5kB | **3 kB**             | 14.2kB                | 8kB **(3kB for only inflate)** |
+| Compression support       | ✅     | ❌                    | ✅                    | ✅                             |
+| Thread/Worker safe        | ✅     | ✅                    | ❌                    | ✅                             |
+| GZIP/Zlib support         | ✅     | ❌                    | ❌                    | ✅                             |
+| Uses ES Modules           | ❌     | ❌                    | ❌                    | ✅                             |
 
 ## Usage
 
@@ -105,7 +106,7 @@ Note that there exist some small libraries like [`tiny-inflate`](https://npmjs.c
 
 So what makes `fflate` different? It takes the brilliant innovations of `UZIP.js` and optimizes them while adding direct support for GZIP and Zlib data. And unlike all of the above libraries, it uses ES Modules to allow for partial builds, meaning that it can rival even `tiny-inflate` in size while maintaining excellent performance. The end result is a library that, in total, weighs 8kB minified for the entire build (3kB for decompression only and 5kB for compression only), is about 15% faster than `UZIP.js` or up to 60% faster than `pako`, and achieves the same or better compression ratio than the rest.
 
-Before you decide that `fflate` is the end-all compression library, you should note that JavaScript simply cannot rival the performance of a compiled language. If you're willing to have 160 kB of extra weight and [much less browser support](https://caniuse.com/wasm), you can achieve around 30% more performance than `fflate` with a WASM build of Zlib like [`wasm-flate`](https://www.npmjs.com/package/wasm-flate). And if you're only using Node.js, just use the [native Zlib bindings](https://nodejs.org/api/zlib.html) that offer the best performance and compression ratios.
+Before you decide that `fflate` is the end-all compression library, you should note that JavaScript simply cannot rival the performance of a compiled language. If you're willing to have 160 kB of extra weight and [much less browser support](https://caniuse.com/wasm), you can achieve  more performance than `fflate` with a WASM build of Zlib like [`wasm-flate`](https://www.npmjs.com/package/wasm-flate). And if you're only using Node.js, just use the [native Zlib bindings](https://nodejs.org/api/zlib.html) that offer the best performance. Though note that even against these compiled libraries, `fflate` is only around 30% slower in decompression and 10% slower in compression, and can still achieve better compression ratios!
 
 ## Browser support
 `fflate` makes heavy use of typed arrays (`Uint8Array`, `Uint16Array`, etc.). Typed arrays can be polyfilled at the cost of performance, but the most recent browser that doesn't support them [is from 2011](https://caniuse.com/typedarrays), so I wouldn't bother.

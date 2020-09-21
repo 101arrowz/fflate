@@ -138,8 +138,8 @@ const bits16 = (d: Uint8Array, p: number) => {
 const inflt = (dat: Uint8Array, buf?: Uint8Array) => {
   // have to estimate size
   const noBuf = !buf;
-  // Slightly less than 2x - assumes ~60% compression ratio
-  if (noBuf) buf = new u8((dat.length >>> 2) << 3);
+  // 4x - assumes ~25% compression ratio
+  if (noBuf) buf = new u8(dat.length << 2);
   // ensure buffer can fit at least l elements
   const cbuf = (l: number) => {
     let bl = buf.length;
@@ -166,13 +166,13 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array) => {
     if (!type) {
       // go to end of byte boundary
       if (pos & 7) pos += 8 - (pos & 7);
-      const s = (pos >>> 3) + 4, l = dat[s - 4] | (dat[s - 3] << 8);
+      let s = (pos >>> 3) + 4, l = dat[s - 4] | (dat[s - 3] << 8);
       // ensure size
       if (noBuf) cbuf(bt + l);
       // Copy over uncompressed data
-      buf.set(dat.subarray(s, s + l), bt);
+      for (let m = s + l; s < m; ++s) buf[bt++] = dat[s];
       // Get new bitpos, update byte count
-      pos = (s + l) << 3, bt += l;
+      pos = s << 3;
       continue;
     }
     // Make sure the buffer can hold this + the largest possible addition
@@ -488,7 +488,7 @@ const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Uint32Array
 }
 
 // deflate options (nice << 13) | chain
-const deo = new u32([65540, 131080, 131088, 131104, 262176, 1048704, 1048832, 2114560, 2117632]);
+const deo = /*#__PURE__*/new u32([65540, 131080, 131088, 131104, 262176, 1048704, 1048832, 2114560, 2117632]);
 
 // compresses data into a raw DEFLATE buffer
 const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: number) => {
@@ -724,7 +724,7 @@ export function gunzip(data: Uint8Array, out?: Uint8Array) {
   let st = 10 + (flg & 2);
   if (flg & 4) st += data[10] | (data[11] << 8) + 2;
   for (let zs = (flg >> 3 & 1) + (flg >> 4 & 1); zs > 0; zs -= (data[st++] == 0) as unknown as number);
-  if (!out) out = new Uint8Array(data[l - 4] | data[l - 3] << 8 | data[l - 2] << 16 | data[l - 1] << 24);
+  if (!out) out = new u8(data[l - 4] | data[l - 3] << 8 | data[l - 2] << 16 | data[l - 1] << 24);
   return inflt(data.subarray(st, -8), out);
 }
 

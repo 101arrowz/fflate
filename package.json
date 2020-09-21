@@ -1,10 +1,11 @@
 {
   "name": "fflate",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "High performance (de)compression in an 8kB package",
   "main": "lib/index.js",
   "module": "esm/index.js",
   "types": "lib/index.d.ts",
+  "sideEffects": false,
   "repository": "https://github.com/101arrowz/fflate",
   "author": "Arjun Barrett",
   "license": "MIT",
@@ -16,7 +17,10 @@
     "compression",
     "decompression",
     "zlib",
-    "pako"
+    "pako",
+    "browser",
+    "node.js",
+    "tiny"
   ],
   "scripts": {
     "build": "tsc && tsc --project tsconfig.esm.json && typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none",
