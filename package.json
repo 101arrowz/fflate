@@ -1,6 +1,6 @@
 {
   "name": "fflate",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "High performance (de)compression in an 8kB package",
   "main": "lib/index.js",
   "module": "esm/index.js",
@@ -23,7 +23,9 @@
     "tiny"
   ],
   "scripts": {
-    "build": "tsc && tsc --project tsconfig.esm.json && typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none",
+    "build": "yarn build:lib && yarn build:docs",
+    "build:lib": "tsc && tsc --project tsconfig.esm.json",
+    "build:docs": "typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none --disableSources",
     "prepare": "yarn build"
   },
   "devDependencies": {

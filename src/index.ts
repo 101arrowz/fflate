@@ -147,7 +147,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array) => {
     if (l > bl) {
       // Double or set to necessary, whichever is greater
       const nbuf = new u8(Math.max(bl << 1, l));
-      nbuf.set(buf);
+      for (let i = 0; i < bl; ++i) nbuf[i] = buf[i];
       buf = nbuf;
     }
   }
@@ -426,7 +426,7 @@ const wfblk = (out: Uint8Array, pos: number, dat: Uint8Array) => {
   out[o + 2] = s >>> 8;
   out[o + 3] = out[o + 1] ^ 255;
   out[o + 4] = out[o + 2] ^ 255;
-  out.set(dat, o + 5);
+  for (let i = 0; i < s; ++i) out[o + i + 5] = dat[i];
   return (o + 4 + s) << 3;
 }
 
@@ -635,6 +635,7 @@ export interface DeflateOptions {
    * 
    * Note that this is exponential: while level 0 uses 4 kB, level 4 uses 64 kB, level 8 uses 1 MB, and level 12 uses 16 MB.
    * It is recommended not to lower the value below 4, since that tends to hurt performance.
+   * In addition, values above 8 tend to help very little on most data and can even hurt performance.
    * 
    * The default value is automatically determined based on the size of the input data.
    */
@@ -663,8 +664,8 @@ export interface GZIPOptions extends DeflateOptions {
 export interface ZlibOptions extends DeflateOptions {}
 
 // deflate with opts
-const dopt = (dat: Uint8Array, opt: DeflateOptions, pre: number, post: number) =>
-  dflt(dat, opt.level || 6, 12 + (opt.mem || 4), pre, post);
+const dopt = (dat: Uint8Array, opt: DeflateOptions = {}, pre: number, post: number) =>
+  dflt(dat, opt.level == null ? 6 : opt.level, opt.mem == null ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : (12 + opt.mem), pre, post);
 
 // write bytes
 const wbytes = (d: Uint8Array, b: number, v: number) => {
@@ -677,7 +678,7 @@ const wbytes = (d: Uint8Array, b: number, v: number) => {
  * @param opts The compression options
  * @returns The deflated version of the data
  */
-export function deflate(data: Uint8Array, opts: DeflateOptions = {}) {
+export function deflate(data: Uint8Array, opts?: DeflateOptions) {
   return dopt(data, opts, 0, 0);
 }
 
@@ -697,7 +698,7 @@ export function inflate(data: Uint8Array, out?: Uint8Array) {
  * @param opts The compression options
  * @returns The gzipped version of the data
  */
-export function gzip(data: Uint8Array, opts: GZIPOptions = {}) {
+export function gzip(data: Uint8Array, opts?: GZIPOptions) {
   const fn = opts.filename;
   const l = data.length, raw = dopt(data, opts, 10 + ((fn && fn.length + 1) || 0), 8), s = raw.length;
   raw[0] = 31, raw[1] = 139, raw[2] = 8, raw[8] = opts.level == 0 ? 4 : opts.level == 9 ? 2 : 3, raw[9] = 255;
@@ -734,7 +735,7 @@ export function gunzip(data: Uint8Array, out?: Uint8Array) {
  * @param opts The compression options
  * @returns The zlib-compressed version of the data
  */
-export function zlib(data: Uint8Array, opts: ZlibOptions) {
+export function zlib(data: Uint8Array, opts?: ZlibOptions) {
   const l = data.length, raw = dopt(data, opts, 2, 4), s = raw.length;
   const lv = opts.level, fl = lv == 0 ? 0 : lv < 6 ? 1 : lv == 9 ? 3 : 2;
   raw[0] = 120, raw[1] = (fl << 6) | (fl ? (32 - 2 * fl) : 1);

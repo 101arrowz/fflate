@@ -23,8 +23,6 @@ Options for compressing data into a GZIP format
 
 • `Optional` **filename**: string
 
-*Defined in [index.ts:657](https://github.com/101arrowz/fflate/blob/5c43980/src/index.ts#L657)*
-
 The filename of the data. If the `gunzip` command is used to decompress the data, it will output a file
 with this name instead of the name of the compressed file.
 
@@ -35,8 +33,6 @@ ___
 • `Optional` **level**: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9
 
 *Inherited from [DeflateOptions](deflateoptions.md).[level](deflateoptions.md#level)*
-
-*Defined in [index.ts:632](https://github.com/101arrowz/fflate/blob/5c43980/src/index.ts#L632)*
 
 The level of compression to use, ranging from 0-9.
 
@@ -60,12 +56,11 @@ ___
 
 *Inherited from [DeflateOptions](deflateoptions.md).[mem](deflateoptions.md#mem)*
 
-*Defined in [index.ts:641](https://github.com/101arrowz/fflate/blob/5c43980/src/index.ts#L641)*
-
 The memory level to use, ranging from 0-12. Increasing this increases speed and compression ratio at the cost of memory.
 
 Note that this is exponential: while level 0 uses 4 kB, level 4 uses 64 kB, level 8 uses 1 MB, and level 12 uses 16 MB.
 It is recommended not to lower the value below 4, since that tends to hurt performance.
+In addition, values above 8 tend to help very little on most data and can even hurt performance.
 
 The default value is automatically determined based on the size of the input data.
 
@@ -74,8 +69,6 @@ ___
 ### mtime
 
 • `Optional` **mtime**: Date \| string \| number
-
-*Defined in [index.ts:652](https://github.com/101arrowz/fflate/blob/5c43980/src/index.ts#L652)*
 
 When the file was last modified. Defaults to the current time.
 Set this to 0 to avoid specifying a modification date entirely.
