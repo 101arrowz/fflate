@@ -115,5 +115,8 @@ Before you decide that `fflate` is the end-all compression library, you should n
 
 Other than that, `fflate` is completely ES3, meaning you probably won't even need a bundler to use it.
 
+## Testing
+You can validate the performance of `fflate` with `npm`/`yarn`/`pnpm` `test`. It validates that the module is working as expected, ensures the outputs are no more than 5% larger than competitors at max compression, and outputs performance metrics to `test/results`.
+
 ## License
 MIT
