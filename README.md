@@ -1,4 +1,4 @@
-# fflate
+# fflate ![npm bundle size](https://img.shields.io/bundlephobia/min/fflate)
 High performance (de)compression in an 8kB package
 
 ## Why fflate?
