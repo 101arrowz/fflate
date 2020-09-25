@@ -138,8 +138,8 @@ const bits16 = (d: Uint8Array, p: number) => {
 const inflt = (dat: Uint8Array, buf?: Uint8Array) => {
   // have to estimate size
   const noBuf = !buf;
-  // 4x - assumes ~25% compression ratio
-  if (noBuf) buf = new u8(dat.length << 2);
+  // Assumes roughly 33% compression ratio average
+  if (noBuf) buf = new u8(dat.length * 3);
   // ensure buffer can fit at least l elements
   const cbuf = (l: number) => {
     let bl = buf.length;
@@ -268,7 +268,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array) => {
       }
     }
   }
-  return buf.slice(0, bt);
+  return bt == buf.length ? buf : buf.slice(0, bt);
 }
 
 // starting at p, write the minimum number of bits that can hold v to ds
@@ -497,7 +497,7 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
   // writing to this writes to the output buffer
   const w = o.subarray(pre, o.length - post);
   let pos = 0;
-  if (!lvl || dat.length < 4) {
+  if (!lvl) {
     for (let i = 0; i < s; i += 65535) {
       // end
       const e = i + 65535;
@@ -510,6 +510,8 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
         pos = wfblk(w, pos, dat.subarray(i, s));
       }
     }
+  } else if (s < 8) {
+    pos = wfblk(w, 0, dat);
   } else {
     const opt = deo[lvl - 1];
     const n = opt >>> 13, c = opt & 8191;

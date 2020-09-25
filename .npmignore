@@ -1,5 +1,6 @@
 docs/
 src/
+test/
 .gitignore
 .npmignore
 tsconfig.esm.json

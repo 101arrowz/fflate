@@ -55,8 +55,8 @@ const massiveAgain = fflate.unzlib(notSoMassive);
 const compressed = new Uint8Array(
   await fetch('/GZIPorZLIBorDEFLATE').then(res => res.arrayBuffer())
 );
-// Again, Node.js Buffers work too. For example, the above could instead be:
-// Buffer.from('H4sIAAAAAAAA//NIzcnJVyjPL8pJUQQAlRmFGwwAAAA=', 'base64');
+// Above example with Node.js Buffers:
+// Buffer.from('H4sIAAAAAAAAE8tIzcnJBwCGphA2BQAAAA==', 'base64');
 
 const decompressed = fflate.decompress(compressed);
 ```
@@ -114,5 +114,6 @@ Before you decide that `fflate` is the end-all compression library, you should n
 `fflate` makes heavy use of typed arrays (`Uint8Array`, `Uint16Array`, etc.). Typed arrays can be polyfilled at the cost of performance, but the most recent browser that doesn't support them [is from 2011](https://caniuse.com/typedarrays), so I wouldn't bother.
 
 Other than that, `fflate` is completely ES3, meaning you probably won't even need a bundler to use it.
+
 ## License
 MIT

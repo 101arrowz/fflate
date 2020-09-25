@@ -26,14 +26,18 @@
     "build": "yarn build:lib && yarn build:docs",
     "build:lib": "tsc && tsc --project tsconfig.esm.json",
     "build:docs": "typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none --disableSources",
-    "prepare": "yarn build"
+    "test": "TS_NODE_PROJECT=test/tsconfig.json uvu test -- -b -r ts-node/register",
+    "prepack": "yarn build"
   },
   "devDependencies": {
+    "@types/node": "^14.11.2",
     "pako": "^1.0.11",
     "tiny-inflate": "^1.0.3",
+    "ts-node": "^9.0.0",
     "typedoc": "^0.17.0-3",
     "typedoc-plugin-markdown": "^3.0.2",
     "typescript": "^4.0.2",
+    "uvu": "^0.3.3",
     "uzip": "^0.20200919.0"
   }
 }
