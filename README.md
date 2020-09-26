@@ -8,7 +8,7 @@ High performance (de)compression in an 8kB package
 |---------------------------|--------|----------------------|-----------------------|--------------------------------|
 | Decompression performance | 1x     | Up to 40% slower     | **Up to 40% faster**  | **Up to 40% faster**           |
 | Compression performance   | 1x     | N/A                  | Up to 5% faster       | **Up to 50% faster**           |
-| Bundle size (minified)    | 44.5kB | **3kB**              | 14.2kB                | 8kB **(3kB for only inflate)** |
+| Bundle size (minified)    | 45.6kB | **3kB**              | 14.2kB                | 8kB **(3kB for only inflate)** |
 | Compression support       | ✅     | ❌                    | ✅                    | ✅                             |
 | Thread/Worker safe        | ✅     | ✅                    | ❌                    | ✅                             |
 | GZIP/Zlib support         | ✅     | ❌                    | ❌                    | ✅                             |
@@ -18,7 +18,8 @@ High performance (de)compression in an 8kB package
 
 Install `fflate`:
 ```sh
-npm install --save fflate # or yarn add fflate, or pnpm add fflate
+npm i fflate 
+# or yarn add fflate, or pnpm add fflate
 ```
 
 Import:
@@ -89,8 +90,9 @@ const dts = data => {
 // string to data
 const std = str => {
   let result = new Uint8Array(str.length);
-  for (let i = 0; i < str.length; ++i)
+  for (let i = 0; i < str.length; ++i) {
     result[i] = str.charCodeAt(i);
+  }
   return result.
 }
 const compressedString = dts(fflate.compress(buf));
