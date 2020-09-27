@@ -1,29 +1,41 @@
-# Interface: DeflateOptions
+# Interface: AsyncDeflateOptions
 
-Options for compressing data into a DEFLATE format
+Options for compressing data asynchronously into a DEFLATE format
 
 ## Hierarchy
 
-* **DeflateOptions**
+* [DeflateOptions](deflateoptions.md)
 
-  ↳ [GzipOptions](gzipoptions.md)
+* AsyncOptions
 
-  ↳ [ZlibOptions](zliboptions.md)
-
-  ↳ [AsyncDeflateOptions](asyncdeflateoptions.md)
+  ↳ **AsyncDeflateOptions**
 
 ## Index
 
 ### Properties
 
-* [level](deflateoptions.md#level)
-* [mem](deflateoptions.md#mem)
+* [consume](asyncdeflateoptions.md#consume)
+* [level](asyncdeflateoptions.md#level)
+* [mem](asyncdeflateoptions.md#mem)
 
 ## Properties
+
+### consume
+
+• `Optional` **consume**: boolean
+
+*Inherited from [AsyncDeflateOptions](asyncdeflateoptions.md).[consume](asyncdeflateoptions.md#consume)*
+
+Whether or not to "consume" the source data. This will make the typed array/buffer you pass in
+unusable but will increase performance and reduce memory usage.
+
+___
 
 ### level
 
 • `Optional` **level**: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9
+
+*Inherited from [DeflateOptions](deflateoptions.md).[level](deflateoptions.md#level)*
 
 The level of compression to use, ranging from 0-9.
 
@@ -44,6 +56,8 @@ ___
 ### mem
 
 • `Optional` **mem**: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9 \| 10 \| 11 \| 12
+
+*Inherited from [DeflateOptions](deflateoptions.md).[mem](deflateoptions.md#mem)*
 
 The memory level to use, ranging from 0-12. Increasing this increases speed and compression ratio at the cost of memory.
 
