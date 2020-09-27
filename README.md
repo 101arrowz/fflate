@@ -96,39 +96,36 @@ const compressedString = dts(fflate.compressSync(buf));
 const decompressed = fflate.decompressSync(std(compressedString));
 ```
 As you may have guessed, there is an asynchronous version of every method as well. Unlike most libraries, this will cause the compression or decompression run in a separate thread entirely and automatically by using Web (or Node) Workers. This means that the processing will not block the main thread at all.
+
+Note that there is a significant initial overhead to using workers for both performance (about 70ms) and bundle size (about 5kB), so it's best to avoid the asynchronous API unless necessary.
+
+For data under about 2MB, the main thread is blocked for so short a time (under 100ms) during both compression and decompression that most users cannot notice it anyway, so using the synchronous API is better. However, if you're compressing multiple files at once, or are compressing large amounts of data, the callback APIs are an order of magnitude better.
 ```js
-import { gzip } from 'fflate';
+import { gzip, zlib } from 'fflate';
 
 // Workers will work in almost any browser (even IE10!)
-// However, they fail on Node below v12 without the `--experimental-worker`
+// However, they fail on Node below v12 without the --experimental-worker
 // CLI flag, and will fail entirely on Node below v10.
-
-// Note that there is a significant initial overhead to using workers for both
-// performance (about 70ms) and bundle size (about 5kB), so it's best to avoid
-// the asynchronous API unless necessary.
-
-// For data under about 2MB, the main thread is blocked for so short a time
-// (under 100ms) during both compression and decompression that most users
-// cannot notice it anyway, so using the synchronous API is better.
-
-// However, if you're compressing multiple files at once, or are compressing
-// large amounts of data, the callback APIs are an order of magnitude faster.
 
 // All of the async APIs use a node-style callback as so:
 gzip(aMassiveFile, (err, data) => {
   if (err) {
-    // Note that for now, this rarely, if ever, happens. Header validation
-    // throws an error synchronously, so you need to try-catch the entire
-    // block. This will only occur upon an exception in the worker (which
-    // is typically a bug.)
+    // Note that for now, this rarely, if ever, happens. This will only
+    // occur upon an exception in the worker (which is typically a bug).
     return;
   }
   // Use data however you like
   console.log(data.length);
 });
+
+// This will render the data inside aMassiveFile unusable, but can
+// dramatically improve performance and reduce memory usage.
+zlib(aMassiveFile, { consume: true }, (err, data) => {
+  // Use the data
+});
 ```
 
-Try not to use both the asynchronous and synchronous APIs. , they are about 9kB and 8kB respectively
+Try not to use *both* the asynchronous and synchronous APIs. They are about 9kB and 8kB individually, but using them both leads to a 16kB bundle (as you can see from [Bundlephobia](https://bundlephobia.com/result?p=fflate)).
 
 See the [documentation](https://github.com/101arrowz/fflate/blob/master/docs/README.md) for more detailed information about the API.
 
