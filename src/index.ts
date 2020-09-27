@@ -8,6 +8,8 @@
 // Sometimes 0 will appear where -1 would be more appropriate. This is because using a uint
 // is better for memory in most engines (I *think*).
 
+import wk from './node-worker';
+
 // aliases for shorter compressed code (most minifers don't do this)
 const u8 = Uint8Array, u16 = Uint16Array, u32 = Uint32Array;
 
@@ -99,14 +101,14 @@ const hMap = ((cd: Uint8Array, mb: number, r: 0 | 1) => {
 });
 
 // fixed length tree
-const flt = new u8(286);
+const flt = new u8(288);
 for (let i = 0; i < 144; ++i) flt[i] = 8;
 for (let i = 144; i < 256; ++i) flt[i] = 9;
 for (let i = 256; i < 280; ++i) flt[i] = 7;
-for (let i = 280; i < 286; ++i) flt[i] = 8;
+for (let i = 280; i < 288; ++i) flt[i] = 8;
 // fixed distance tree
-const fdt = new u8(30);
-for (let i = 0; i < 30; ++i) fdt[i] = 5;
+const fdt = new u8(32);
+for (let i = 0; i < 32; ++i) fdt[i] = 5;
 // fixed length map
 const flm = hMap(flt, 9, 0), flnm = hMap(flt, 9, 1);
 // fixed distance map
@@ -488,7 +490,7 @@ const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Uint32Array
 }
 
 // deflate options (nice << 13) | chain
-const deo = /*#__PURE__*/new u32([65540, 131080, 131088, 131104, 262176, 1048704, 1048832, 2114560, 2117632]);
+const deo = new u32([65540, 131080, 131088, 131104, 262176, 1048704, 1048832, 2114560, 2117632]);
 
 // compresses data into a raw DEFLATE buffer
 const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: number) => {
@@ -598,7 +600,7 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
         }
       }
     }
-    if (bs != i) pos = wblk(dat, w, 1, syms, lf, df, eb, li, bs, i - bs, pos);
+    pos = wblk(dat, w, 1, syms, lf, df, eb, li, bs, i - bs, pos);
   }
   return o.slice(0, pre + (pos >>> 3) + 1 + post);
 }
@@ -610,6 +612,24 @@ for (let i = 0; i < 256; ++i) {
   let c = i, k = 9;
   while (--k) c = ((c & 1) && 0xEDB88320) ^ (c >>> 1);
   crct[i] = c;
+}
+
+// CRC32
+const crc = (d: Uint8Array) => {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < d.length; ++i) c = crct[(c & 255) ^ d[i]] ^ (c >>> 8);
+  return c ^ 0xFFFFFFFF;
+}
+
+// Adler32
+const adler = (d: Uint8Array) => {
+  let a = 1, b = 0, l = d.length;
+  for (let i = 0; i != l;) {
+    const e = Math.min(i + 5552, l);
+    for (; i < e; ++i) a += d[i], b += a;
+    a %= 65521, b %= 65521;
+  }
+  return (a & 255) << 24 | (a >>> 8) << 16 | (b & 255) << 8 | (b >>> 8);
 }
 
 /**
@@ -647,7 +667,7 @@ export interface DeflateOptions {
 /**
  * Options for compressing data into a GZIP format
  */
-export interface GZIPOptions extends DeflateOptions {
+export interface GzipOptions extends DeflateOptions {
   /**
    * When the file was last modified. Defaults to the current time.
    * Set this to 0 to avoid specifying a modification date entirely.
@@ -665,13 +685,167 @@ export interface GZIPOptions extends DeflateOptions {
  */
 export interface ZlibOptions extends DeflateOptions {}
 
+/**
+ * Callback for asynchronous comrpession methods
+ * @param err Any error that occurred
+ * @param data The resulting data. Only present if `err` is null
+ */
+export type FlateCallback = (err: Error, data: Uint8Array) => unknown;
+
+// async callback-based compression
+interface AsyncOptions {
+  /**
+   * Whether or not to "consume" the source data. This will make the typed array/buffer you pass in
+   * unusable but will increase performance and reduce memory usage.
+   */
+  consume?: boolean;
+}
+
+/**
+ * Options for compressing data asynchronously into a DEFLATE format
+ */
+export interface AsyncDeflateOptions extends DeflateOptions, AsyncOptions {}
+
+/**
+ * Options for decompressing DEFLATE data asynchronously
+ */
+export interface AsyncInflateOptions extends AsyncOptions {
+  /**
+   * The original size of the data. Currently, the asynchronous API disallows
+   * writing into a buffer you provide; the best you can do is provide the
+   * size in bytes and be given back a new typed array.
+   */
+  size?: number;
+}
+
+/**
+ * Options for compressing data asynchronously into a GZIP format
+ */
+export interface AsyncGzipOptions extends GzipOptions, AsyncOptions {}
+
+/**
+ * Options for decompressing GZIP data asynchronously
+ */
+export interface AsyncGunzipOptions extends AsyncOptions {}
+
+/**
+ * Options for compressing data asynchronously into a Zlib format
+ */
+export interface AsyncZlibOptions extends ZlibOptions, AsyncOptions {}
+
+/**
+ * Options for decompressing Zlib data asynchronously
+ */
+export interface AsyncUnzlibOptions extends AsyncInflateOptions {}
+
+const gmem = (len: number, mem: number) => mem == null ? Math.ceil(Math.max(8, Math.min(13, Math.log(len))) * 1.5) : (12 + mem);
+
 // deflate with opts
 const dopt = (dat: Uint8Array, opt: DeflateOptions = {}, pre: number, post: number) =>
-  dflt(dat, opt.level == null ? 6 : opt.level, opt.mem == null ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : (12 + opt.mem), pre, post);
+  dflt(dat, opt.level == null ? 6 : opt.level, gmem(dat.length, opt.mem), pre, post);
+
+// use a worker to execute code
+const wrkr = (b: string, transfers: Record<string, Uint8Array | Uint16Array | Uint32Array>, dt: Uint8Array, ext: Record<string, unknown>, consume: boolean, cb: FlateCallback) => {
+  const transferList = Object.keys(transfers).map(k => (transfers[k] = transfers[k].slice()).buffer);
+  if (!consume) dt = new u8(dt);
+  transferList.push(dt.buffer);
+  transfers.dt = dt;
+  const vars: Record<string, unknown> = transfers;
+  for (let i = 0, keys = Object.keys(ext); i < keys.length; ++i) vars[keys[i]] = ext[keys[i]];
+  wk(b, vars, transferList, cb);
+}
+
+// I really, really wish there were a better way to do this than embedding terser'd JS as a string,
+// but I can't find a way to do it without increasing bundle size.
+
+// To create the string:
+// 1: create the 
+
+// async inflate
+// TODO: make parameters the more similar to cbDflt
+const cbInflt = (dat: Uint8Array, sz: number, consume: boolean, cb: FlateCallback) => 
+  wrkr(
+    'r=Uint8Array,n=Uint16Array,y=function(r){for(var n=r[0],a=0;a<r.length;++a)r[a]>n&&(n=r[a]);return n},b=function(r,n,a){var e=n>>>3;return(r[e]|r[e+1]<<8)>>>(7&n)&(1<<a)-1},x=function(r,n){var a=n>>>3;return(r[a]|r[a+1]<<8|r[a+2]<<16|r[a+3]<<24)>>>(7&n)},l=function(a,e){for(var f=a.length,t=0,o=new r(e);t<f;++t)++o[a[t]-1];var v=new n(e);for(t=0;t<e;++t)v[t]=v[t-1]+o[t-1]<<1;var l=new n(1<<e),b=15-e;for(t=0;t<f;++t)if(a[t])for(var u=t<<4|a[t],s=e-a[t],c=v[a[t]-1]++<<s,g=c|(1<<s)-1;c<=g;++c)l[i[c]>>>b]=u;return l},rn=function(n,o){for(var i,u,s=!o,c=new r(s?3*n.length:o),w=function(n){var a=c.length;if(n>a){for(var e=new r(Math.max(a<<1,n)),f=0;f<a;++f)e[f]=c[f];c=e}},d=0,k=0,m=0,A=0,M=0,U=0,j=0,p=0,z=0;!d;)if(d=b(n,p,1),k=b(n,p+1,2),p+=3,k){if(s&&w(z+131072),1==k)i=h,u=g,U=511,j=31;else if(2==k){m=b(n,p,5)+257,A=b(n,p+5,5)+1,M=b(n,p+10,4)+4,p+=14;for(var O=new r(m+A),q=new r(19),B=0;B<M;++B)q[f[B]]=b(n,p+3*B,3);p+=3*M;var C=y(q),D=l(q,C);for(B=0;B<O.length;){var E=D[b(n,p,C)];if(p+=15&E,(R=E>>>4)<16)O[B++]=R;else{var F=0,G=0;for(16==R?(G=3+b(n,p,2),p+=2,F=O[B-1]):17==R?(G=3+b(n,p,3),p+=3):18==R&&(G=11+b(n,p,7),p+=7);G--;)O[B++]=F}}var H=O.subarray(0,m),I=O.subarray(m),J=y(H),K=y(I);U=(1<<J)-1,i=l(H,J),j=(1<<K)-1,u=l(I,K)}for(;;){p+=15&(F=i[x(n,p)&U]);var L=F>>>4;if(L<256)c[z++]=L;else{if(256==L)break;var N=z+L-254;L>264&&(N=z+b(n,p,a[B=L-257])+v[B],p+=a[B]);var P=u[x(n,p)&j];p+=15&P;var Q=P>>>4;for(I=t[Q],Q>3&&(I+=x(n,p)&(1<<e[Q])-1,p+=e[Q]),s&&w(z+131072);z<N;)c[z]=c[z++-I],c[z]=c[z++-I],c[z]=c[z++-I],c[z]=c[z++-I];z=N}}}else{7&p&&(p+=8-(7&p));var R,S=n[(R=4+(p>>>3))-4]|n[R-3]<<8;s&&w(z+S);for(var T=R+S;R<T;++R)c[z++]=n[R];p=R<<3}return z==c.length?c:c.slice(0,z)},onmessage=function(r){for(var n=0,a=Object.keys(r.data);n<a.length;++n)self[a[n]]=r.data[a[n]];n=rn(dt,sz);postMessage(n,[n.buffer])}',
+    { a: fleb, e: fdeb, f: clim, v: fl, t: fd, i: rev, h: flm, g: fdm },
+    dat,
+    { sz },
+    consume,
+    cb
+  );
+
+// async deflate
+const cbDflt = (dat: Uint8Array, opt: AsyncDeflateOptions = {}, pre: number, post: number, cb: FlateCallback) =>
+  wrkr(
+    'r=Uint8Array,f=Uint16Array,n=Uint32Array,w=function(n,e){for(var a=n.length,t=0,o=new r(e);t<a;++t)++o[n[t]-1];var i=new f(e);for(t=0;t<e;++t)i[t]=i[t-1]+o[t-1]<<1;var v=new f(a);for(t=0;t<a;++t)v[t]=u[i[n[t]-1]++]>>>15-n[t];return v},M=function(r,f,n){n<<=7&f;var e=f>>>3;r[e]|=n,r[e+1]|=n>>>8},b=function(r,f,n){n<<=7&f;var e=f>>>3;r[e]|=n,r[e+1]|=n>>>8,r[e+2]|=n>>>16},m=function(n,e){for(var a=[],t=0;t<n.length;++t)n[t]&&a.push({s:t,f:n[t]});var o=a.length,i=a.slice();if(0==o)return[new r(0),0];if(1==o){var v=new r(a[0].s+1);return v[a[0].s]=1,[v,1]}a.sort((function(r,f){return r.f-f.f})),a.push({s:-1,f:25001});var s=a[0],u=a[1],l=0,c=1,h=2;for(a[0]={s:-1,f:s.f+u.f,l:s,r:u};c!=o-1;)s=a[a[l].f<a[h].f?l++:h++],u=a[l!=c&&a[l].f<a[h].f?l++:h++],a[c++]={s:-1,f:s.f+u.f,l:s,r:u};var w=i[0].s;for(t=1;t<o;++t)i[t].s>w&&(w=i[t].s);var M=new f(w+1),g=p(a[c-1],M,0);if(g>e){t=0;var b=0,m=g-e,d=1<<m;for(i.sort((function(r,f){return M[f.s]-M[r.s]||r.f-f.f}));t<o;++t){var y=i[t].s;if(!(M[y]>e))break;b+=d-(1<<g-M[y]),M[y]=e}for(b>>>=m;b>0;){var U=i[t].s;M[U]<e?b-=1<<e-M[U]++-1:++t}for(;t>=0&&b;--t){var k=i[t].s;M[k]==e&&(--M[k],++b)}g=e}return[new r(M),g]},p=function(r,f,n){return-1==r.s?Math.max(p(r.l,f,n+1),p(r.r,f,n+1)):f[r.s]=n},A=function(r){for(var n=r.length;n&&!r[--n];);for(var e=new f(++n),a=0,t=r[0],o=1,i=function(r){e[a++]=r},v=1;v<=n;++v)if(r[v]==t&&v!=n)++o;else{if(!t&&o>2){for(;o>138;o-=138)i(32754);o>2&&(i(o>10?o-11<<5|28690:o-3<<5|12305),o=0)}else if(o>3){for(i(t),--o;o>6;o-=6)i(8304);o>2&&(i(o-3<<5|8208),o=0)}for(;o--;)i(t);o=1,t=r[v]}return[e.slice(0,a),n]},U=function(r,f){for(var n=0,e=0;e<f.length;++e)n+=r[e]*f[e];return n},d=function(r,f,n){var e=n.length,a=f+2>>>3;r[a+1]=255&e,r[a+2]=e>>>8,r[a+3]=255^r[a+1],r[a+4]=255^r[a+2];for(var t=0;t<e;++t)r[a+t+5]=n[t];return a+4+e<<3},k=function(r,n,t,i,v,s,u,l,p,k,x){M(n,x++,t),++v[256];for(var j=m(v,15),O=j[0],q=j[1],z=m(s,15),B=z[0],C=z[1],D=A(O),E=D[0],F=D[1],G=A(B),H=G[0],I=G[1],J=new f(19),K=0;K<E.length;++K)J[31&E[K]]++;for(K=0;K<H.length;++K)J[31&H[K]]++;for(var L=m(J,7),N=L[0],P=L[1],Q=19;Q>4&&!N[o[Q-1]];--Q);var R,S,T,V,W=k+5<<3,X=U(v,c)+U(s,h)+u,Y=U(v,O)+U(s,B)+u+14+3*Q+U(J,N)+(2*J[16]+3*J[17]+7*J[18]);if(W<X&&W<Y)return d(n,x,r.subarray(p,p+k));if(M(n,x,1+(Y<X)),x+=2,Y<X){R=w(O,q),S=O,T=w(B,C),V=B;var Z=w(N,P);for(M(n,x,F-257),M(n,x+5,I-1),M(n,x+10,Q-4),x+=14,K=0;K<Q;++K)M(n,x+3*K,N[o[K]]);x+=3*Q;for(var $=[E,H],_=0;_<2;++_){var rr=$[_];for(K=0;K<rr.length;++K){var fr=31&rr[K];M(n,x,Z[fr]),x+=N[fr],fr>15&&(M(n,x,rr[K]>>>5&127),x+=rr[K]>>>12)}}}else R=g,S=c,T=y,V=h;for(K=0;K<l;++K)if(i[K]>255){fr=i[K]>>>18&31,b(n,x,R[fr+257]),x+=S[fr+257],fr>7&&(M(n,x,i[K]>>>23&31),x+=e[fr]);var nr=31&i[K];b(n,x,T[nr]),x+=V[nr],nr>3&&(b(n,x,i[K]>>>5&8191),x+=a[nr])}else b(n,x,R[i[K]]),x+=S[i[K]];return b(n,x,R[256]),x+S[256]},rn=function(t,o,s,u,l){var c=t.length,h=new r(u+c+5*Math.ceil(c/7e3)+l),w=h.subarray(u,h.length-l),M=0;if(o)if(c<8)M=d(w,0,t);else{for(var g=x[o-1],b=g>>>13,m=8191&g,p=(1<<s)-1,y=new f(32768),U=new f(p+1),A=Math.ceil(s/3),j=2*A,O=function(r){return(t[r]^t[r+1]<<A^t[r+2]<<j)&p},q=new n(25e3),z=new f(286),B=new f(30),C=0,D=0,E=(fr=0,0),F=0,G=0;fr<c;++fr){var H=O(fr),I=32767&fr,J=U[H];if(y[I]=J,U[H]=I,F<=fr){var K=c-fr;if((C>7e3||E>24576)&&K>423){M=k(t,w,0,q,z,B,D,E,G,fr-G,M),E=C=D=0,G=fr;for(var L=0;L<286;++L)z[L]=0;for(L=0;L<30;++L)B[L]=0}var N=2,P=0,Q=m,R=I-J&32767;if(K>2&&H==O(fr-R))for(var S=Math.min(b,K),T=Math.min(32767,fr),V=Math.min(258,K);R<=T&&--Q&&I!=J;){if(t[fr+N]==t[fr+N-R]){for(var W=0;W<V&&t[fr+W]==t[fr+W-R];++W);if(W>N){if(N=W,P=R,W>=S)break;var X=Math.min(R,W-2),Y=0;for(L=0;L<X;++L){var Z=fr-R+L+32768&32767,$=Z-y[Z]+32768&32767;$>Y&&(Y=$,J=Z)}}}R+=(I=J)-(J=y[I])+32768&32767}if(P){q[E++]=268435456|v[N]<<18|i[P];var _=31&v[N],rr=31&i[P];D+=e[_]+a[rr],++z[257+_],++B[rr],F=fr+N,++C}else q[E++]=t[fr],++z[t[fr]]}}M=k(t,w,1,q,z,B,D,E,G,fr-G,M)}else for(var fr=0;fr<c;fr+=65535){var nr=fr+65535;nr<c?M=d(w,M,t.subarray(fr,nr)):(w[fr]=1,M=d(w,M,t.subarray(fr,c)))}return h.slice(0,u+(M>>>3)+1+l)},onmessage=function(r){for(var f=0,n=Object.keys(r.data);f<n.length;++f)self[n[f]]=r.data[n[f]];var e=rn(dt,lv,pv,pr,po);postMessage(e,[e.buffer])}',
+    { e: fleb, a: fdeb, o: clim, v: revfl, i: revfd, c: flt, h: fdt, g: flnm, y: fdnm, x: deo, u: rev },
+    dat,
+    { lv: opt.level == null ? 6 : opt.level, pv: gmem(dat.length, opt.mem), pr: pre, po: post },
+    opt.consume,
+    cb
+  );
+
+// gzip unwrap
+const gzuwrp = (d: Uint8Array, o?: number) => {
+  const l = d.length;
+  if (l < 18 || d[0] != 31 || d[1] != 139 || d[2] != 8) throw new Error('invalid gzip data');
+  const flg = d[3];
+  let st = 10 + (flg & 2);
+  if (flg & 4) st += d[10] | (d[11] << 8) + 2;
+  for (let zs = (flg >> 3 & 1) + (flg >> 4 & 1); zs > 0; zs -= (d[st++] == 0) as unknown as number);
+  return [d.subarray(st, -8), o || (d[l - 4] | d[l - 3] << 8 | d[l - 2] << 16 | d[l - 1] << 24)] as const;
+}
+
+// gzip wrap
+const gzwrp = (c: Uint8Array, l: number, crc: number, o: GzipOptions = {}) => {
+  const fn = o.filename;
+  const s = c.length;
+  c[0] = 31, c[1] = 139, c[2] = 8, c[8] = o.level == 0 ? 4 : o.level == 9 ? 2 : 3, c[9] = 255;
+  wbytes(c, 4, Math.floor((new Date(o.mtime as (string | number) || Date.now()) as unknown as number) / 1000));
+  if (fn) for (let i = 0; i <= fn.length; ++i) c[i + 10] = fn.charCodeAt(i);
+  wbytes(c, s - 8, crc), wbytes(c, s - 4, l);
+  return c;
+}
+
+// calc gzip pre
+const gzpre = (o: GzipOptions) => 10 + ((o && o.filename && o.filename.length) || 0);
+
+// zlib unwrap
+const zluwrp = (d: Uint8Array) => {
+  const l = d.length;
+  if (l < 6 || (d[0] & 15) != 8 || (d[0] >>> 4) > 7) throw new Error('invalid zlib data');
+  if (d[1] & 32) throw new Error('invalid zlib data: dictionaries not supported');
+  return d.subarray(2, -4);
+}
+
+const zlwrp = (c: Uint8Array, adl: number, o: ZlibOptions = {}) => {
+  const s = c.length;
+  const lv = o.level, fl = lv == 0 ? 0 : lv < 6 ? 1 : lv == 9 ? 3 : 2;
+  c[0] = 120, c[1] = (fl << 6) | (fl ? (32 - 2 * fl) : 1);
+  wbytes(c, s - 4, adl)
+  return c;
+}
 
 // write bytes
 const wbytes = (d: Uint8Array, b: number, v: number) => {
   for (let i = b; v; ++i) d[i] = v, v >>>= 8;
+}
+
+/**
+ * Asynchronously compresses data with DEFLATE without any wrapper
+ * @param data The data to compress
+ * @param opts The compression options
+ * @param cb The function to be called upon compression completion
+ */
+export function deflate(data: Uint8Array, opts: AsyncDeflateOptions, cb: FlateCallback): void;
+/**
+ * Asynchronously compresses data with DEFLATE without any wrapper
+ * @param data The data to compress
+ * @param cb The function to be called upon compression completion
+ */
+export function deflate(data: Uint8Array, cb: FlateCallback): void;
+export function deflate(data: Uint8Array, opts: AsyncDeflateOptions | FlateCallback, cb?: FlateCallback) {
+  if (!cb) cb = opts as FlateCallback, opts = {};
+  cbDflt(data, opts as AsyncDeflateOptions, 0, 0, cb);
 }
 
 /**
@@ -680,8 +854,26 @@ const wbytes = (d: Uint8Array, b: number, v: number) => {
  * @param opts The compression options
  * @returns The deflated version of the data
  */
-export function deflate(data: Uint8Array, opts?: DeflateOptions) {
+export function deflateSync(data: Uint8Array, opts?: DeflateOptions) {
   return dopt(data, opts, 0, 0);
+}
+
+/**
+ * Asynchronously expands DEFLATE data with no wrapper
+ * @param data The data to decompress
+ * @param opts The decompression options
+ * @param cb The function to be called upon decompression completion
+ */
+export function inflate(data: Uint8Array, opts: AsyncInflateOptions, cb: FlateCallback): void;
+/**
+ * Asynchronously expands DEFLATE data with no wrapper
+ * @param data The data to decompress
+ * @param cb The function to be called upon decompression completion
+ */
+export function inflate(data: Uint8Array, cb: FlateCallback): void;
+export function inflate(data: Uint8Array, opts: AsyncInflateOptions | FlateCallback, cb?: FlateCallback) {
+  if (!cb) cb = opts as FlateCallback, opts = {};
+  cbInflt(data, (opts as AsyncInflateOptions).size, (opts as AsyncInflateOptions).consume, cb);
 }
 
 /**
@@ -690,8 +882,29 @@ export function deflate(data: Uint8Array, opts?: DeflateOptions) {
  * @param out Where to write the data. Saves memory if you know the decompressed size and provide an output buffer of that length.
  * @returns The decompressed version of the data
  */
-export function inflate(data: Uint8Array, out?: Uint8Array) {
+export function inflateSync(data: Uint8Array, out?: Uint8Array) {
   return inflt(data, out);
+}
+
+/**
+ * Asynchronously compresses data with GZIP
+ * @param data The data to compress
+ * @param opts The compression options
+ * @param cb The function to be called upon compression completion
+ */
+export function gzip(data: Uint8Array, opts: AsyncGzipOptions, cb: FlateCallback): void;
+/**
+ * Asynchronously compresses data with GZIP
+ * @param data The data to compress
+ * @param cb The function to be called upon compression completion
+ */
+export function gzip(data: Uint8Array, cb: FlateCallback): void;
+export function gzip(data: Uint8Array, opts: AsyncGzipOptions | FlateCallback, cb?: FlateCallback) {
+  if (!cb) cb = opts as FlateCallback, opts = {};
+  const c = crc(data), l = data.length;
+  cbDflt(data, opts as AsyncGzipOptions, gzpre(opts as AsyncGzipOptions), 8, (err, res) => {
+    cb(err, err ? res : gzwrp(res, l, c, opts as AsyncGzipOptions));
+  });
 }
 
 /**
@@ -700,18 +913,28 @@ export function inflate(data: Uint8Array, out?: Uint8Array) {
  * @param opts The compression options
  * @returns The gzipped version of the data
  */
-export function gzip(data: Uint8Array, opts?: GZIPOptions) {
-  const fn = opts.filename;
-  const l = data.length, raw = dopt(data, opts, 10 + ((fn && fn.length + 1) || 0), 8), s = raw.length;
-  raw[0] = 31, raw[1] = 139, raw[2] = 8, raw[8] = opts.level == 0 ? 4 : opts.level == 9 ? 2 : 3, raw[9] = 255;
-  let mt = Math.floor((new Date(opts.mtime as (string | number) || Date.now()) as unknown as number) / 1000);
-  wbytes(raw, 4, mt);
-  if (fn) for (let i = 0; i <= fn.length; ++i) raw[i + 10] = fn.charCodeAt(i);
-  // CRC32
-  let crc = 0xFFFFFFFF;
-  for (let i = 0; i < l; ++i) crc = crct[(crc & 255) ^ data[i]] ^ (crc >>> 8);
-  wbytes(raw, s - 8, crc ^ 0xFFFFFFFF), wbytes(raw, s - 4, l);
-  return raw;
+export function gzipSync(data: Uint8Array, opts?: GzipOptions) {
+  return gzwrp(dopt(data, opts, gzpre(opts), 8), data.length, crc(data));
+}
+
+
+/**
+ * Asynchronously expands GZIP data
+ * @param data The data to decompress
+ * @param opts The decompression options
+ * @param cb The function to be called upon decompression completion
+ */
+export function gunzip(data: Uint8Array, opts: AsyncGunzipOptions, cb: FlateCallback): void;
+/**
+ * Asynchronously expands GZIP data
+ * @param data The data to decompress
+ * @param cb The function to be called upon decompression completion
+ */
+export function gunzip(data: Uint8Array, cb: FlateCallback): void;
+export function gunzip(data: Uint8Array, opts: AsyncGunzipOptions | FlateCallback, cb?: FlateCallback) {
+  if (!cb) cb = opts as FlateCallback, opts = {};
+  const [uwrp, sz] = gzuwrp(data);
+  cbInflt(uwrp, (opts as AsyncInflateOptions).size || sz, (opts as AsyncInflateOptions).consume, cb);
 }
 
 /**
@@ -720,15 +943,30 @@ export function gzip(data: Uint8Array, opts?: GZIPOptions) {
  * @param out Where to write the data. GZIP already encodes the output size, so providing this doesn't save memory.
  * @returns The decompressed version of the data
  */
-export function gunzip(data: Uint8Array, out?: Uint8Array) {
-  const l = data.length;
-  if (l < 18 || data[0] != 31 || data[1] != 139 || data[2] != 8) throw new Error('invalid gzip data');
-  const flg = data[3];
-  let st = 10 + (flg & 2);
-  if (flg & 4) st += data[10] | (data[11] << 8) + 2;
-  for (let zs = (flg >> 3 & 1) + (flg >> 4 & 1); zs > 0; zs -= (data[st++] == 0) as unknown as number);
-  if (!out) out = new u8(data[l - 4] | data[l - 3] << 8 | data[l - 2] << 16 | data[l - 1] << 24);
-  return inflt(data.subarray(st, -8), out);
+export function gunzipSync(data: Uint8Array, out?: Uint8Array) {
+  const [uwrp, sz] = gzuwrp(data);
+  return inflt(uwrp, out || new u8(sz));
+}
+
+/**
+ * Asynchronously compresses data with Zlib
+ * @param data The data to compress
+ * @param opts The compression options
+ * @param cb The function to be called upon compression completion
+ */
+export function zlib(data: Uint8Array, opts: AsyncZlibOptions, cb: FlateCallback): void;
+/**
+ * Asynchronously compresses data with Zlib
+ * @param data The data to compress
+ * @param cb The function to be called upon compression completion
+ */
+export function zlib(data: Uint8Array, cb: FlateCallback): void;
+export function zlib(data: Uint8Array, opts: AsyncZlibOptions | FlateCallback, cb?: FlateCallback) {
+  if (!cb) cb = opts as FlateCallback, opts = {};
+  const a = adler(data);
+  cbDflt(data, opts as AsyncZlibOptions, 2, 4, (err, res) => {
+    cb(err, err ? res : zlwrp(res, a, opts as AsyncZlibOptions));
+  });
 }
 
 /**
@@ -737,19 +975,26 @@ export function gunzip(data: Uint8Array, out?: Uint8Array) {
  * @param opts The compression options
  * @returns The zlib-compressed version of the data
  */
-export function zlib(data: Uint8Array, opts?: ZlibOptions) {
-  const l = data.length, raw = dopt(data, opts, 2, 4), s = raw.length;
-  const lv = opts.level, fl = lv == 0 ? 0 : lv < 6 ? 1 : lv == 9 ? 3 : 2;
-  raw[0] = 120, raw[1] = (fl << 6) | (fl ? (32 - 2 * fl) : 1);
-  // Adler32
-  let a = 1, b = 0;
-  for (let i = 0; i != l;) {
-    const e = Math.min(i + 5552, l);
-    for (; i < e; ++i) a += data[i], b += a;
-    a %= 65521, b %= 65521;
-  }
-  raw[s - 4] = b >>> 8, raw[s - 3] = b & 255, raw[s - 2] = a >>> 8, raw[s - 1] = a & 255;
-  return raw;
+export function zlibSync(data: Uint8Array, opts?: ZlibOptions) {
+  return zlwrp(dopt(data, opts, 2, 4), adler(data), opts);
+}
+
+/**
+ * Asynchronously expands Zlib data
+ * @param data The data to decompress
+ * @param opts The decompression options
+ * @param cb The function to be called upon decompression completion
+ */
+export function unzlib(data: Uint8Array, opts: AsyncGunzipOptions, cb: FlateCallback): void;
+/**
+ * Asynchronously expands Zlib data
+ * @param data The data to decompress
+ * @param cb The function to be called upon decompression completion
+ */
+export function unzlib(data: Uint8Array, cb: FlateCallback): void;
+export function unzlib(data: Uint8Array, opts: AsyncGunzipOptions | FlateCallback, cb?: FlateCallback) {
+  if (!cb) cb = opts as FlateCallback, opts = {};
+  cbInflt(zluwrp(data), (opts as AsyncInflateOptions).size, (opts as AsyncInflateOptions).consume, cb);
 }
 
 /**
@@ -758,15 +1003,34 @@ export function zlib(data: Uint8Array, opts?: ZlibOptions) {
  * @param out Where to write the data. Saves memory if you know the decompressed size and provide an output buffer of that length.
  * @returns The decompressed version of the data
  */
-export function unzlib(data: Uint8Array, out?: Uint8Array) {
-  const l = data.length;
-  if (l < 6 || (data[0] & 15) != 8 || (data[0] >>> 4) > 7) throw new Error('invalid zlib data');
-  if (data[1] & 32) throw new Error('invalid zlib data: dictionaries not supported');
-  return inflt(data.subarray(2, -4), out);
+export function unzlibSync(data: Uint8Array, out?: Uint8Array) {
+  return inflt(zluwrp(data), out);
 }
 
 // Default algorithm for compression (used because having a known output size allows faster decompression)
 export { gzip as compress };
+// Default algorithm for compression (used because having a known output size allows faster decompression)
+export { gzipSync as compressSync }
+
+/**
+ * Asynchrononously expands compressed GZIP, Zlib, or raw DEFLATE data, automatically detecting the format
+ * @param data The data to decompress
+ * @param opts The decompression options
+ * @param cb The function to be called upon decompression completion
+ */
+export function decompress(data: Uint8Array, opts: AsyncInflateOptions, cb: FlateCallback): void;
+/**
+ * Asynchrononously expands compressed GZIP, Zlib, or raw DEFLATE data, automatically detecting the format
+ * @param data The data to decompress
+ * @param cb The function to be called upon decompression completion
+ */
+export function decompress(data: Uint8Array, cb: FlateCallback): void;
+export function decompress(data: Uint8Array, opts: AsyncInflateOptions | FlateCallback, cb?: FlateCallback) {
+  if (!cb) cb = opts as FlateCallback, opts = {};
+  if (data[0] == 31 && data[1] == 139 && data[2] == 8) gunzip(data, opts as AsyncInflateOptions, cb);
+  else if ((data[0] & 15) != 8 || (data[0] >> 4) > 7) inflate(data, opts as AsyncInflateOptions, cb);
+  else unzlib(data, opts as AsyncInflateOptions, cb);
+}
 
 /**
  * Expands compressed GZIP, Zlib, or raw DEFLATE data, automatically detecting the format
@@ -774,8 +1038,8 @@ export { gzip as compress };
  * @param out Where to write the data. Saves memory if you know the decompressed size and provide an output buffer of that length.
  * @returns The decompressed version of the data
  */
-export function decompress(data: Uint8Array, out?: Uint8Array) {
-  if (data[0] == 31 && data[1] == 139 && data[2] == 8) return gunzip(data, out);
-  if ((data[0] & 15) != 8 || (data[0] >> 4) > 7) return inflate(data, out);
-  return unzlib(data, out);
+export function decompressSync(data: Uint8Array, out?: Uint8Array) {
+  if (data[0] == 31 && data[1] == 139 && data[2] == 8) return gunzipSync(data, out);
+  if ((data[0] & 15) != 8 || (data[0] >> 4) > 7) return inflateSync(data, out);
+  return unzlibSync(data, out);
 }
