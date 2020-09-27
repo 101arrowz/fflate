@@ -526,7 +526,7 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
     // 424 buffer for last block
     const syms = new u32(25000);
     // length/literal freq   distance freq
-    const lf = new u16(286), df = new u16(30);
+    const lf = new u16(288), df = new u16(32);
     //  l/lcnt  exbits  index  l/lind  waitdx  bitpos
     let lc = 0, eb = 0, i = 0, li = 0, wi = 0, bs = 0;
     for (; i < s; ++i) {
