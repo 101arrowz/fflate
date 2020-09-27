@@ -8,6 +8,8 @@ Options for compressing data into a Zlib format
 
   ↳ **ZlibOptions**
 
+  ↳↳ [AsyncZlibOptions](asynczliboptions.md)
+
 ## Index
 
 ### Properties

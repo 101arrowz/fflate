@@ -147,12 +147,12 @@ const fflate = resolve(__dirname, '..');
 
 export const workers = {
   fflate: {
-    deflate: wc(fflate, 'deflate'),
-    inflate: wc(fflate, 'inflate'),
-    gzip: wc(fflate, 'gzip'),
-    gunzip: wc(fflate, 'gunzip'),
-    zlib: wc(fflate, 'zlib'),
-    unzlib: wc(fflate, 'unzlib')
+    deflate: wc(fflate, 'deflateSync'),
+    inflate: wc(fflate, 'inflateSync'),
+    gzip: wc(fflate, 'gzipSync'),
+    gunzip: wc(fflate, 'gunzipSync'),
+    zlib: wc(fflate, 'zlibSync'),
+    unzlib: wc(fflate, 'unzlibSync')
   },
   pako: {
     deflate: wc('pako', 'deflateRaw'),

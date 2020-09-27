@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "declaration": true,
-    "outDir": "lib/",
-    "lib": ["ES5"]
+    "moduleResolution": "node",
+    "outDir": "lib/"
   },
-  "include": ["src/index.ts"]
+  "include": ["src/*.ts"]
 }

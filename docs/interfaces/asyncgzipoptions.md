@@ -1,29 +1,43 @@
-# Interface: GzipOptions
+# Interface: AsyncGzipOptions
 
-Options for compressing data into a GZIP format
+Options for compressing data asynchronously into a GZIP format
 
 ## Hierarchy
 
-* [DeflateOptions](deflateoptions.md)
+* [GzipOptions](gzipoptions.md)
 
-  ↳ **GzipOptions**
+* AsyncOptions
 
-  ↳↳ [AsyncGzipOptions](asyncgzipoptions.md)
+  ↳ **AsyncGzipOptions**
 
 ## Index
 
 ### Properties
 
-* [filename](gzipoptions.md#filename)
-* [level](gzipoptions.md#level)
-* [mem](gzipoptions.md#mem)
-* [mtime](gzipoptions.md#mtime)
+* [consume](asyncgzipoptions.md#consume)
+* [filename](asyncgzipoptions.md#filename)
+* [level](asyncgzipoptions.md#level)
+* [mem](asyncgzipoptions.md#mem)
+* [mtime](asyncgzipoptions.md#mtime)
 
 ## Properties
+
+### consume
+
+• `Optional` **consume**: boolean
+
+*Inherited from [AsyncDeflateOptions](asyncdeflateoptions.md).[consume](asyncdeflateoptions.md#consume)*
+
+Whether or not to "consume" the source data. This will make the typed array/buffer you pass in
+unusable but will increase performance and reduce memory usage.
+
+___
 
 ### filename
 
 • `Optional` **filename**: string
+
+*Inherited from [GzipOptions](gzipoptions.md).[filename](gzipoptions.md#filename)*
 
 The filename of the data. If the `gunzip` command is used to decompress the data, it will output a file
 with this name instead of the name of the compressed file.
@@ -71,6 +85,8 @@ ___
 ### mtime
 
 • `Optional` **mtime**: Date \| string \| number
+
+*Inherited from [GzipOptions](gzipoptions.md).[mtime](gzipoptions.md#mtime)*
 
 When the file was last modified. Defaults to the current time.
 Set this to 0 to avoid specifying a modification date entirely.

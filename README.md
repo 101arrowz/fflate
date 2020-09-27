@@ -4,21 +4,21 @@ High performance (de)compression in an 8kB package
 ## Why fflate?
 `fflate` (short for fast flate) is the **fastest, smallest, and most versatile** pure JavaScript compression and decompression library in existence, handily beating [`pako`](https://npmjs.com/package/pako), [`tiny-inflate`](https://npmjs.com/package/tiny-inflate), and [`UZIP.js`](https://github.com/photopea/UZIP.js) in performance benchmarks while being multiple times more lightweight. Its compression ratios are often better than even the original Zlib C library. It includes support for DEFLATE, GZIP, and Zlib data. Data compressed by `fflate` can be decompressed by other tools, and vice versa.
 
-|                           | `pako` | `tiny-inflate`       | `UZIP.js`             | `fflate`                       |
-|---------------------------|--------|----------------------|-----------------------|--------------------------------|
-| Decompression performance | 1x     | Up to 40% slower     | **Up to 40% faster**  | **Up to 40% faster**           |
-| Compression performance   | 1x     | N/A                  | Up to 5% faster       | **Up to 50% faster**           |
-| Bundle size (minified)    | 44.5kB | **3kB**              | 14.2kB                | 8kB **(3kB for only inflate)** |
-| Compression support       | ✅     | ❌                    | ✅                    | ✅                             |
-| Thread/Worker safe        | ✅     | ✅                    | ❌                    | ✅                             |
-| GZIP/Zlib support         | ✅     | ❌                    | ❌                    | ✅                             |
-| Uses ES Modules           | ❌     | ❌                    | ❌                    | ✅                             |
+|                            | `pako` | `tiny-inflate`       | `UZIP.js`             | `fflate`                       |
+|----------------------------|--------|----------------------|-----------------------|--------------------------------|
+| Decompression performance  | 1x     | Up to 40% slower     | **Up to 40% faster**  | **Up to 40% faster**           |
+| Compression performance    | 1x     | N/A                  | Up to 5% faster       | **Up to 50% faster**           |
+| Bundle size (minzipped)    | 45.6kB | **3kB**              | 14.2kB                | 8kB **(3kB for only inflate)** |
+| Compression support        | ✅     | ❌                    | ✅                    | ✅                             |
+| Thread/Worker safe         | ✅     | ✅                    | ❌                    | ✅                             |
+| GZIP/Zlib support          | ✅     | ❌                    | ❌                    | ✅                             |
+| Uses ES Modules            | ❌     | ❌                    | ❌                    | ✅                             |
 
 ## Usage
 
 Install `fflate`:
 ```sh
-npm install --save fflate # or yarn add fflate, or pnpm add fflate
+npm i fflate # or yarn add fflate, or pnpm add fflate
 ```
 
 Import:
@@ -26,7 +26,7 @@ Import:
 import * as fflate from 'fflate';
 // ALWAYS import only what you need to minimize bundle size.
 // So, if you just need GZIP compression support:
-import { gzip } from 'fflate';
+import { gzipSync } from 'fflate';
 ```
 If your environment doesn't support ES Modules (e.g. Node.js):
 ```js
@@ -47,8 +47,8 @@ const massiveFile = new Uint8Array(massiveFileBuf);
 // Higher level means lower performance but better compression
 // The level ranges from 0 (no compression) to 9 (max compression)
 // The default level is 6
-const notSoMassive = fflate.zlib(massiveFile, { level: 9 });
-const massiveAgain = fflate.unzlib(notSoMassive);
+const notSoMassive = fflate.zlibSync(massiveFile, { level: 9 });
+const massiveAgain = fflate.unzlibSync(notSoMassive);
 ```
 `fflate` can autodetect a compressed file's format as well:
 ```js
@@ -58,7 +58,7 @@ const compressed = new Uint8Array(
 // Above example with Node.js Buffers:
 // Buffer.from('H4sIAAAAAAAAE8tIzcnJBwCGphA2BQAAAA==', 'base64');
 
-const decompressed = fflate.decompress(compressed);
+const decompressed = fflate.decompressSync(compressed);
 ```
 
 Using strings is easy with `TextEncoder` and `TextDecoder`:
@@ -69,10 +69,10 @@ const buf = enc.encode('Hello world!');
 // The default compression method is gzip
 // Increasing mem may increase performance at the cost of memory
 // The mem ranges from 0 to 12, where 4 is the default
-const compressed = fflate.compress(buf, { level: 6, mem: 8 });
+const compressed = fflate.compressSync(buf, { level: 6, mem: 8 });
 
 // When you need to decompress:
-const decompressed = fflate.decompress(compressed);
+const decompressed = fflate.decompressSync(compressed);
 const origText = dec.decode(decompressed);
 console.log(origText); // Hello world!
 ```
@@ -81,9 +81,8 @@ Note that encoding the compressed data as a string, like in `pako`, is not nearl
 // data to string
 const dts = data => {
   let result = '';
-  for (let value of data) {
+  for (let value of data)
     result += String.fromCharCode(data);
-  }
   return result;
 }
 // string to data
@@ -91,11 +90,45 @@ const std = str => {
   let result = new Uint8Array(str.length);
   for (let i = 0; i < str.length; ++i)
     result[i] = str.charCodeAt(i);
-  return result.
+  return result;
 }
-const compressedString = dts(fflate.compress(buf));
-const decompressed = fflate.decompress(std(compressedString));
+const compressedString = dts(fflate.compressSync(buf));
+const decompressed = fflate.decompressSync(std(compressedString));
 ```
+As you may have guessed, there is an asynchronous version of every method as well. Unlike most libraries, this will cause the compression or decompression run in a separate thread entirely and automatically by using Web (or Node) Workers. This means that the processing will not block the main thread at all.
+```js
+import { gzip } from 'fflate';
+
+// Workers will work in almost any browser (even IE10!)
+// However, they fail on Node below v12 without the `--experimental-worker`
+// CLI flag, and will fail entirely on Node below v10.
+
+// Note that there is a significant initial overhead to using workers for both
+// performance (about 70ms) and bundle size (about 5kB), so it's best to avoid
+// the asynchronous API unless necessary.
+
+// For data under about 2MB, the main thread is blocked for so short a time
+// (under 100ms) during both compression and decompression that most users
+// cannot notice it anyway, so using the synchronous API is better.
+
+// However, if you're compressing multiple files at once, or are compressing
+// large amounts of data, the callback APIs are an order of magnitude faster.
+
+// All of the async APIs use a node-style callback as so:
+gzip(aMassiveFile, (err, data) => {
+  if (err) {
+    // Note that for now, this rarely, if ever, happens. Header validation
+    // throws an error synchronously, so you need to try-catch the entire
+    // block. This will only occur upon an exception in the worker (which
+    // is typically a bug.)
+    return;
+  }
+  // Use data however you like
+  console.log(data.length);
+});
+```
+
+Try not to use both the asynchronous and synchronous APIs. , they are about 9kB and 8kB respectively
 
 See the [documentation](https://github.com/101arrowz/fflate/blob/master/docs/README.md) for more detailed information about the API.
 
