@@ -15,6 +15,7 @@ In addition to the base decompression and compression APIs, `fflate` supports hi
 | ZIP support               | ❌     | ❌                    | ✅                    | ✅                             |
 | Thread/Worker safe        | ✅     | ✅                    | ❌                    | ✅                             |
 | GZIP/Zlib support         | ✅     | ❌                    | ❌                    | ✅                             |
+| Multi-core/Asynchronous   | ❌     | ❌                    | ❌                    | ✅                             |
 | Uses ES Modules           | ❌     | ❌                    | ❌                    | ✅                             |
 
 ## Usage

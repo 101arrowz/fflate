@@ -1274,7 +1274,7 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
   for (let i = 0; i < slft; ++i) {
     const fn = k[i];
     const [file, p] = r[fn];
-    const c = crc(file);
+    const c = crc(file), m = file.length;
     const n = stu8(fn), s = n.length;
     const t = p.level == 0 ? 0 : 8;
     if (!n) throw 'filename too long';
@@ -1287,7 +1287,7 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
         files[i] = {
           t,
           d,
-          m: file.length,
+          m,
           c,
           u: fn.length != l,
           n,
