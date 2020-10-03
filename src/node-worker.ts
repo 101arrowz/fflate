@@ -6,6 +6,7 @@ export default (c: string, msg: unknown, transfer: ArrayBuffer[], cb: FlateCallb
   let done = false;
   const cb2: typeof cb = (e, d) => {
     done = true;
+    wk.terminate();
     cb(e, d);
   }
   const wk = new Worker(c + workerAdd, { eval: true })
