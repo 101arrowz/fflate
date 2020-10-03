@@ -4,15 +4,18 @@ High performance (de)compression in an 8kB package
 ## Why fflate?
 `fflate` (short for fast flate) is the **fastest, smallest, and most versatile** pure JavaScript compression and decompression library in existence, handily beating [`pako`](https://npmjs.com/package/pako), [`tiny-inflate`](https://npmjs.com/package/tiny-inflate), and [`UZIP.js`](https://github.com/photopea/UZIP.js) in performance benchmarks while being multiple times more lightweight. Its compression ratios are often better than even the original Zlib C library. It includes support for DEFLATE, GZIP, and Zlib data. Data compressed by `fflate` can be decompressed by other tools, and vice versa.
 
-|                            | `pako` | `tiny-inflate`       | `UZIP.js`             | `fflate`                       |
-|----------------------------|--------|----------------------|-----------------------|--------------------------------|
-| Decompression performance  | 1x     | Up to 40% slower     | **Up to 40% faster**  | **Up to 40% faster**           |
-| Compression performance    | 1x     | N/A                  | Up to 5% faster       | **Up to 50% faster**           |
-| Bundle size (minzipped)    | 45.6kB | **3kB**              | 14.2kB                | 8kB **(3kB for only inflate)** |
-| Compression support        | ✅     | ❌                    | ✅                    | ✅                             |
-| Thread/Worker safe         | ✅     | ✅                    | ❌                    | ✅                             |
-| GZIP/Zlib support          | ✅     | ❌                    | ❌                    | ✅                             |
-| Uses ES Modules            | ❌     | ❌                    | ❌                    | ✅                             |
+In addition to the base decompression and compression APIs, `fflate` supports high-speed ZIP compression and decompression for an extra 3 kB. In fact, the compressor, in synchronous mode, compresses both more quickly and with a higher compression ratio than most compression software (even Info-ZIP, a C program), and in asynchronous mode it can utilize multiple cores to achieve over 3x the performance of any other utility.
+
+|                           | `pako` | `tiny-inflate`       | `UZIP.js`             | `fflate`                       |
+|---------------------------|--------|----------------------|-----------------------|--------------------------------|
+| Decompression performance | 1x     | Up to 40% slower     | **Up to 40% faster**  | **Up to 40% faster**           |
+| Compression performance   | 1x     | N/A                  | Up to 5% faster       | **Up to 50% faster**           |
+| Bundle size (minified)    | 45.6kB | **3kB**              | 14.2kB                | 8kB **(3kB for only inflate)** |
+| Compression support       | ✅     | ❌                    | ✅                    | ✅                             |
+| ZIP support               | ❌     | ❌                    | ✅                    | ✅                             |
+| Thread/Worker safe        | ✅     | ✅                    | ❌                    | ✅                             |
+| GZIP/Zlib support         | ✅     | ❌                    | ❌                    | ✅                             |
+| Uses ES Modules           | ❌     | ❌                    | ❌                    | ✅                             |
 
 ## Usage
 
@@ -76,7 +79,7 @@ const decompressed = fflate.decompressSync(compressed);
 const origText = dec.decode(decompressed);
 console.log(origText); // Hello world!
 ```
-Note that encoding the compressed data as a string, like in `pako`, is not nearly as efficient as binary for data transfer. However, you can do it:
+If you're using an older browser, only want ASCII, or need to encode the compressed data itself as a string, you can use the following methods:
 ```js
 // data to string
 const dts = data => {
@@ -92,23 +95,67 @@ const std = str => {
     result[i] = str.charCodeAt(i);
   return result;
 }
+const buf = std('Hello world!');
+// Note that compressed data strings are much less efficient than raw binary
 const compressedString = dts(fflate.compressSync(buf));
 const decompressed = fflate.decompressSync(std(compressedString));
+const origText = dts(decompressed);
+console.log(origText); // Hello world!
+```
+You can create multi-file ZIP archives easily as well:
+```js
+// Note that the asynchronous version (see below) runs in parallel and
+// is *much* (up to 3x) faster for larger archives.
+const zipped = fflate.zipSync({
+  // Directories can be nested structures, as in an actual filesystem
+  'dir1': {
+    'nested': {
+      // You can use Unicode in filenames
+      '你好.txt': std('Hey there!')
+    },
+    // You can also manually write out a directory path
+    'other/tmp.txt': new Uint8Array([97, 98, 99, 100])
+  },
+  // You can also provide compression options
+  'myImageData.bmp': [aMassiveFile, { level: 9, mem: 12 }],
+  'superTinyFile.bin': [new Uint8Array([0]), { level: 0 }]
+}, {
+  // These options are the defaults for all files, but file-specific
+  // options take precedence.
+  level: 1
+});
+
+// If you write the zipped data to myzip.zip and unzip, the folder
+// structure will be outputted as:
+
+// myzip.zip (original file)
+// dir1
+// |-> nested
+// |   |-> 你好.txt
+// |-> other
+// |   |-> tmp.txt
+// myImageData.bmp
+// superTinyFile.bin
+
+// When decompressing, folders are not nested; all filepaths are fully
+// written out in the keys. For example, the return value may be:
+// { 'nested/directory/a2.txt': Uint8Array(2) [97, 97] })
+const decompressed = fflate.unzipSync(zipped);
 ```
 As you may have guessed, there is an asynchronous version of every method as well. Unlike most libraries, this will cause the compression or decompression run in a separate thread entirely and automatically by using Web (or Node) Workers. This means that the processing will not block the main thread at all.
 
-Note that there is a significant initial overhead to using workers for both performance (about 70ms) and bundle size (about 5kB), so it's best to avoid the asynchronous API unless necessary.
+Note that there is a significant initial overhead to using workers of about 70ms, so it's best to avoid the asynchronous API unless necessary.
 
 For data under about 2MB, the main thread is blocked for so short a time (under 100ms) during both compression and decompression that most users cannot notice it anyway, so using the synchronous API is better. However, if you're compressing multiple files at once, or are compressing large amounts of data, the callback APIs are an order of magnitude better.
 ```js
-import { gzip, zlib } from 'fflate';
+import { gzip, zlib, zip } from 'fflate';
 
 // Workers will work in almost any browser (even IE10!)
-// However, they fail on Node below v12 without the --experimental-worker
+// However, they fail below Node v12 without the --experimental-worker
 // CLI flag, and will fail entirely on Node below v10.
 
 // All of the async APIs use a node-style callback as so:
-gzip(aMassiveFile, (err, data) => {
+const terminate = gzip(aMassiveFile, (err, data) => {
   if (err) {
     // Note that for now, this rarely, if ever, happens. This will only
     // occur upon an exception in the worker (which is typically a bug).
@@ -118,11 +165,25 @@ gzip(aMassiveFile, (err, data) => {
   console.log(data.length);
 });
 
-// This will render the data inside aMassiveFile unusable, but can
-// dramatically improve performance and reduce memory usage.
-zlib(aMassiveFile, { consume: true }, (err, data) => {
+if (needToCancel) {
+  // The return value of any of the asynchronous APIs is a function that,
+  // when called, will immediately cancel the operation. The callback
+  // will not be called.
+  terminate();
+}
+
+// The consume option will render the data inside aMassiveFile unusable,
+// but can dramatically improve performance and reduce memory usage.
+zlib(aMassiveFile, { consume: true, level: 9 }, (err, data) => {
   // Use the data
 });
+
+// This is way faster than zipSync because the compression of multiple
+// files runs in parallel. In fact, the fact that it's parallelized
+// makes it faster than most standalone ZIP CLIs.
+zip({ f1: aMassiveFile, 'f2.txt': anotherMassiveFile }, (err, data) => {
+  // Save the ZIP file
+})
 ```
 
 Try not to use *both* the asynchronous and synchronous APIs. They are about 9kB and 8kB individually, but using them both leads to a 16kB bundle (as you can see from [Bundlephobia](https://bundlephobia.com/result?p=fflate)).
@@ -142,6 +203,8 @@ Before you decide that `fflate` is the end-all compression library, you should n
 
 ## Browser support
 `fflate` makes heavy use of typed arrays (`Uint8Array`, `Uint16Array`, etc.). Typed arrays can be polyfilled at the cost of performance, but the most recent browser that doesn't support them [is from 2011](https://caniuse.com/typedarrays), so I wouldn't bother.
+
+The asynchronous APIs also use `Worker`, which is not supported in a few browsers (however, the vast majority of browsers that support typed arrays support `Worker`).
 
 Other than that, `fflate` is completely ES3, meaning you probably won't even need a bundler to use it.
 

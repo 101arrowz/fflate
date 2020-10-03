@@ -8,11 +8,12 @@ export default (c: string, msg: unknown, transfer: ArrayBuffer[], cb: FlateCallb
     done = true;
     cb(e, d);
   }
-  new Worker(c + workerAdd, { eval: true })
+  const wk = new Worker(c + workerAdd, { eval: true })
     .on('error', e => cb2(e, null))
     .on('message', m => cb2(null, m))
     .on('exit', c => {
       if (!done) cb2(new Error('Exited with code ' + c), null);
-    })
-    .postMessage(msg, transfer);
+    });
+  wk.postMessage(msg, transfer);
+  return () => { done = true; wk.terminate(); }
 }

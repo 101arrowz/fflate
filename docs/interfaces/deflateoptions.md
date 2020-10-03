@@ -12,6 +12,8 @@ Options for compressing data into a DEFLATE format
 
   ↳ [AsyncDeflateOptions](asyncdeflateoptions.md)
 
+  ↳ [ZipOptions](zipoptions.md)
+
 ## Index
 
 ### Properties
