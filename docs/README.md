@@ -8,15 +8,24 @@
 * [AsyncGunzipOptions](interfaces/asyncgunzipoptions.md)
 * [AsyncGzipOptions](interfaces/asyncgzipoptions.md)
 * [AsyncInflateOptions](interfaces/asyncinflateoptions.md)
+* [AsyncTerminable](interfaces/asyncterminable.md)
 * [AsyncUnzlibOptions](interfaces/asyncunzliboptions.md)
+* [AsyncZipOptions](interfaces/asynczipoptions.md)
+* [AsyncZippable](interfaces/asynczippable.md)
 * [AsyncZlibOptions](interfaces/asynczliboptions.md)
 * [DeflateOptions](interfaces/deflateoptions.md)
 * [GzipOptions](interfaces/gzipoptions.md)
+* [Unzipped](interfaces/unzipped.md)
+* [ZipOptions](interfaces/zipoptions.md)
+* [Zippable](interfaces/zippable.md)
 * [ZlibOptions](interfaces/zliboptions.md)
 
 ### Type aliases
 
+* [AsyncZippableFile](README.md#asynczippablefile)
 * [FlateCallback](README.md#flatecallback)
+* [UnzipCallback](README.md#unzipcallback)
+* [ZippableFile](README.md#zippablefile)
 
 ### Functions
 
@@ -30,28 +39,60 @@
 * [gzipSync](README.md#gzipsync)
 * [inflate](README.md#inflate)
 * [inflateSync](README.md#inflatesync)
+* [unzip](README.md#unzip)
+* [unzipSync](README.md#unzipsync)
 * [unzlib](README.md#unzlib)
 * [unzlibSync](README.md#unzlibsync)
+* [zip](README.md#zip)
+* [zipSync](README.md#zipsync)
 * [zlib](README.md#zlib)
 * [zlibSync](README.md#zlibsync)
 
 ## Type aliases
 
+### AsyncZippableFile
+
+Ƭ  **AsyncZippableFile**: Uint8Array \| []
+
+A file that can be used to asynchronously createa a ZIP archive
+
+___
+
 ### FlateCallback
 
 Ƭ  **FlateCallback**: (err: Error,data: Uint8Array) => unknown
 
-Callback for asynchronous comrpession methods
+Callback for asynchronous (de)compression methods
 
 **`param`** Any error that occurred
 
 **`param`** The resulting data. Only present if `err` is null
 
+___
+
+### UnzipCallback
+
+Ƭ  **UnzipCallback**: (err: Error,data: [Unzipped](interfaces/unzipped.md)) => unknown
+
+Callback for asynchronous ZIP decompression
+
+**`param`** Any error that occurred
+
+**`param`** The decompressed ZIP archive
+
+___
+
+### ZippableFile
+
+Ƭ  **ZippableFile**: Uint8Array \| []
+
+A file that can be used to create a ZIP archive
+
 ## Functions
 
 ### decompress
 
-▸ **decompress**(`data`: Uint8Array, `opts`: [AsyncInflateOptions](interfaces/asyncinflateoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **decompress**(`data`: Uint8Array, `opts`: [AsyncInflateOptions](interfaces/asyncinflateoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchrononously expands compressed GZIP, Zlib, or raw DEFLATE data, automatically detecting the format
 
@@ -61,11 +102,11 @@ Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
 `opts` | [AsyncInflateOptions](interfaces/asyncinflateoptions.md) | The decompression options |
-`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion  |
+`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
-▸ **decompress**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **decompress**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchrononously expands compressed GZIP, Zlib, or raw DEFLATE data, automatically detecting the format
 
@@ -74,9 +115,9 @@ Asynchrononously expands compressed GZIP, Zlib, or raw DEFLATE data, automatical
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
-`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion  |
+`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
 ___
 
@@ -99,7 +140,7 @@ ___
 
 ### deflate
 
-▸ **deflate**(`data`: Uint8Array, `opts`: [AsyncDeflateOptions](interfaces/asyncdeflateoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **deflate**(`data`: Uint8Array, `opts`: [AsyncDeflateOptions](interfaces/asyncdeflateoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously compresses data with DEFLATE without any wrapper
 
@@ -109,11 +150,11 @@ Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to compress |
 `opts` | [AsyncDeflateOptions](interfaces/asyncdeflateoptions.md) | The compression options |
-`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon compression completion  |
+`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon compression completion |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
-▸ **deflate**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **deflate**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously compresses data with DEFLATE without any wrapper
 
@@ -124,7 +165,7 @@ Name | Type | Description |
 `data` | Uint8Array | The data to compress |
 `cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon compression completion  |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
 ___
 
@@ -147,7 +188,7 @@ ___
 
 ### gunzip
 
-▸ **gunzip**(`data`: Uint8Array, `opts`: [AsyncGunzipOptions](interfaces/asyncgunzipoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **gunzip**(`data`: Uint8Array, `opts`: [AsyncGunzipOptions](interfaces/asyncgunzipoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously expands GZIP data
 
@@ -157,11 +198,11 @@ Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
 `opts` | [AsyncGunzipOptions](interfaces/asyncgunzipoptions.md) | The decompression options |
-`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion  |
+`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
-▸ **gunzip**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **gunzip**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously expands GZIP data
 
@@ -170,9 +211,9 @@ Asynchronously expands GZIP data
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
-`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion  |
+`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
 ___
 
@@ -195,7 +236,7 @@ ___
 
 ### gzip
 
-▸ **gzip**(`data`: Uint8Array, `opts`: [AsyncGzipOptions](interfaces/asyncgzipoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **gzip**(`data`: Uint8Array, `opts`: [AsyncGzipOptions](interfaces/asyncgzipoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously compresses data with GZIP
 
@@ -205,11 +246,11 @@ Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to compress |
 `opts` | [AsyncGzipOptions](interfaces/asyncgzipoptions.md) | The compression options |
-`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon compression completion  |
+`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon compression completion |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
-▸ **gzip**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **gzip**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously compresses data with GZIP
 
@@ -218,11 +259,11 @@ Asynchronously compresses data with GZIP
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to compress |
-`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon compression completion  |
+`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon compression completion |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
-▸ **gzip**(`data`: Uint8Array, `opts`: [AsyncGzipOptions](interfaces/asyncgzipoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **gzip**(`data`: Uint8Array, `opts`: [AsyncGzipOptions](interfaces/asyncgzipoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously compresses data with GZIP
 
@@ -232,11 +273,11 @@ Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to compress |
 `opts` | [AsyncGzipOptions](interfaces/asyncgzipoptions.md) | The compression options |
-`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon compression completion  |
+`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon compression completion |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
-▸ **gzip**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **gzip**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously compresses data with GZIP
 
@@ -245,9 +286,9 @@ Asynchronously compresses data with GZIP
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to compress |
-`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon compression completion  |
+`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon compression completion |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
 ___
 
@@ -270,7 +311,7 @@ ___
 
 ### inflate
 
-▸ **inflate**(`data`: Uint8Array, `opts`: [AsyncInflateOptions](interfaces/asyncinflateoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **inflate**(`data`: Uint8Array, `opts`: [AsyncInflateOptions](interfaces/asyncinflateoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously expands DEFLATE data with no wrapper
 
@@ -280,11 +321,11 @@ Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
 `opts` | [AsyncInflateOptions](interfaces/asyncinflateoptions.md) | The decompression options |
-`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion  |
+`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
-▸ **inflate**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **inflate**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously expands DEFLATE data with no wrapper
 
@@ -293,9 +334,9 @@ Asynchronously expands DEFLATE data with no wrapper
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
-`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion  |
+`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
 ___
 
@@ -316,9 +357,42 @@ Name | Type | Description |
 
 ___
 
+### unzip
+
+▸ **unzip**(`data`: Uint8Array, `cb`: [UnzipCallback](README.md#unzipcallback)): [AsyncTerminable](interfaces/asyncterminable.md)
+
+Asynchronously decompresses a ZIP archive
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`data` | Uint8Array | The raw compressed ZIP file |
+`cb` | [UnzipCallback](README.md#unzipcallback) | The callback to call with the decompressed files |
+
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
+
+___
+
+### unzipSync
+
+▸ **unzipSync**(`data`: Uint8Array): [Unzipped](interfaces/unzipped.md)
+
+Synchronously decompresses a ZIP archive
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`data` | Uint8Array | The raw compressed ZIP file |
+
+**Returns:** [Unzipped](interfaces/unzipped.md)
+
+___
+
 ### unzlib
 
-▸ **unzlib**(`data`: Uint8Array, `opts`: [AsyncGunzipOptions](interfaces/asyncgunzipoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **unzlib**(`data`: Uint8Array, `opts`: [AsyncGunzipOptions](interfaces/asyncgunzipoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously expands Zlib data
 
@@ -328,11 +402,11 @@ Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
 `opts` | [AsyncGunzipOptions](interfaces/asyncgunzipoptions.md) | The decompression options |
-`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion  |
+`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
-▸ **unzlib**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **unzlib**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously expands Zlib data
 
@@ -341,9 +415,9 @@ Asynchronously expands Zlib data
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
-`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion  |
+`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
 ___
 
@@ -364,9 +438,58 @@ Name | Type | Description |
 
 ___
 
+### zip
+
+▸ **zip**(`data`: [AsyncZippable](interfaces/asynczippable.md), `opts`: [AsyncZipOptions](interfaces/asynczipoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
+
+Asynchronously creates a ZIP file
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`data` | [AsyncZippable](interfaces/asynczippable.md) | The directory structure for the ZIP archive |
+`opts` | [AsyncZipOptions](interfaces/asynczipoptions.md) | The main options, merged with per-file options |
+`cb` | [FlateCallback](README.md#flatecallback) | The callback to call with the generated ZIP archive |
+
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
+
+▸ **zip**(`data`: [AsyncZippable](interfaces/asynczippable.md), `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
+
+Asynchronously creates a ZIP file
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`data` | [AsyncZippable](interfaces/asynczippable.md) | The directory structure for the ZIP archive |
+`cb` | [FlateCallback](README.md#flatecallback) | The callback to call with the generated ZIP archive |
+
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
+
+___
+
+### zipSync
+
+▸ **zipSync**(`data`: [Zippable](interfaces/zippable.md), `opts`: [ZipOptions](interfaces/zipoptions.md)): Uint8Array
+
+Synchronously creates a ZIP file. Prefer using `zip` for better performance
+with more than one file.
+
+#### Parameters:
+
+Name | Type | Default value | Description |
+------ | ------ | ------ | ------ |
+`data` | [Zippable](interfaces/zippable.md) | - | The directory structure for the ZIP archive |
+`opts` | [ZipOptions](interfaces/zipoptions.md) | {} | The main options, merged with per-file options |
+
+**Returns:** Uint8Array
+
+___
+
 ### zlib
 
-▸ **zlib**(`data`: Uint8Array, `opts`: [AsyncZlibOptions](interfaces/asynczliboptions.md), `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **zlib**(`data`: Uint8Array, `opts`: [AsyncZlibOptions](interfaces/asynczliboptions.md), `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously compresses data with Zlib
 
@@ -378,9 +501,9 @@ Name | Type | Description |
 `opts` | [AsyncZlibOptions](interfaces/asynczliboptions.md) | The compression options |
 `cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon compression completion  |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
-▸ **zlib**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): void
+▸ **zlib**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously compresses data with Zlib
 
@@ -389,9 +512,9 @@ Asynchronously compresses data with Zlib
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to compress |
-`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon compression completion  |
+`cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon compression completion |
 
-**Returns:** void
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
 
 ___
 
