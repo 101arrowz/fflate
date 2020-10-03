@@ -11,4 +11,5 @@ export default (c: string, msg: unknown, transfer: ArrayBuffer[], cb: FlateCallb
   w.onerror = e => cb2(e.error, null);
   w.onmessage = e => cb2(null, e.data);
   w.postMessage(msg, transfer);
+  return () => w.terminate();
 }

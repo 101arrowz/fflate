@@ -1,24 +1,22 @@
-# Interface: AsyncDeflateOptions
+# Interface: AsyncZipOptions
 
-Options for compressing data asynchronously into a DEFLATE format
+Options for asynchronously creating a ZIP archive
 
 ## Hierarchy
 
-* [DeflateOptions](deflateoptions.md)
+* [AsyncDeflateOptions](asyncdeflateoptions.md)
 
-* AsyncOptions
+* {}
 
-  ↳ **AsyncDeflateOptions**
-
-  ↳↳ [AsyncZipOptions](asynczipoptions.md)
+  ↳ **AsyncZipOptions**
 
 ## Index
 
 ### Properties
 
-* [consume](asyncdeflateoptions.md#consume)
-* [level](asyncdeflateoptions.md#level)
-* [mem](asyncdeflateoptions.md#mem)
+* [consume](asynczipoptions.md#consume)
+* [level](asynczipoptions.md#level)
+* [mem](asynczipoptions.md#mem)
 
 ## Properties
 

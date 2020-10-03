@@ -1,37 +1,23 @@
-# Interface: AsyncDeflateOptions
+# Interface: ZipOptions
 
-Options for compressing data asynchronously into a DEFLATE format
+Options for creating a ZIP archive
 
 ## Hierarchy
 
 * [DeflateOptions](deflateoptions.md)
 
-* AsyncOptions
+* {}
 
-  ↳ **AsyncDeflateOptions**
-
-  ↳↳ [AsyncZipOptions](asynczipoptions.md)
+  ↳ **ZipOptions**
 
 ## Index
 
 ### Properties
 
-* [consume](asyncdeflateoptions.md#consume)
-* [level](asyncdeflateoptions.md#level)
-* [mem](asyncdeflateoptions.md#mem)
+* [level](zipoptions.md#level)
+* [mem](zipoptions.md#mem)
 
 ## Properties
-
-### consume
-
-• `Optional` **consume**: boolean
-
-*Inherited from [AsyncDeflateOptions](asyncdeflateoptions.md).[consume](asyncdeflateoptions.md#consume)*
-
-Whether or not to "consume" the source data. This will make the typed array/buffer you pass in
-unusable but will increase performance and reduce memory usage.
-
-___
 
 ### level
 
