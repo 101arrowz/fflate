@@ -1,6 +1,6 @@
 {
   "name": "fflate",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "High performance (de)compression in an 8kB package",
   "main": "lib/index.js",
   "module": "esm/index.js",

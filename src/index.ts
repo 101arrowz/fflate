@@ -839,7 +839,7 @@ const gzpre = (o: GzipOptions) => 10 + ((o && o.filename && o.filename.length) |
 // zlib unwrap
 const zluwrp = (d: Uint8Array) => {
   const l = d.length;
-  if (l < 6 || (d[0] & 15) != 8 || (d[0] >>> 4) > 7) throw 'invalid zlib data';
+  if (l < 6 || (d[0] & 15) != 8 || (d[0] >>> 4) > 7 || ((d[0] << 8 | d[1]) % 31)) throw 'invalid zlib data';
   if (d[1] & 32) throw 'invalid zlib data: dictionaries not supported';
   return d.subarray(2, -4);
 }
@@ -1063,7 +1063,7 @@ export function decompress(data: Uint8Array, opts: AsyncInflateOptions | FlateCa
   if (!cb) cb = opts as FlateCallback, opts = {};
   return (data[0] == 31 && data[1] == 139 && data[2] == 8)
     ? gunzip(data, opts as AsyncInflateOptions, cb)
-    : ((data[0] & 15) != 8 || (data[0] >> 4) > 7)
+    : ((data[0] & 15) != 8 || (data[0] >> 4) > 7 || ((data[0] << 8 | data[1]) % 31))
       ? inflate(data, opts as AsyncInflateOptions, cb)
       : unzlib(data, opts as AsyncInflateOptions, cb);
 }
@@ -1075,9 +1075,11 @@ export function decompress(data: Uint8Array, opts: AsyncInflateOptions | FlateCa
  * @returns The decompressed version of the data
  */
 export function decompressSync(data: Uint8Array, out?: Uint8Array) {
-  if (data[0] == 31 && data[1] == 139 && data[2] == 8) return gunzipSync(data, out);
-  if ((data[0] & 15) != 8 || (data[0] >> 4) > 7) return inflateSync(data, out);
-  return unzlibSync(data, out);
+  return (data[0] == 31 && data[1] == 139 && data[2] == 8)
+    ? gunzipSync(data, out)
+    : ((data[0] & 15) != 8 || (data[0] >> 4) > 7 || ((data[0] << 8 | data[1]) % 31))
+      ? inflateSync(data, out)
+      : unzlibSync(data, out);
 }
 
 /**
