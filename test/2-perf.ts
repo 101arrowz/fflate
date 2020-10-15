@@ -24,9 +24,9 @@ for (const k in workers) {
       const fileClone = bClone(file);
       let buf = fileClone;
       if (preprocessors[l]) {
-        buf = bClone(cache[l][name] || (cache[l][name] = Buffer.from(
+        buf = bClone(cache[l][name] ||= Buffer.from(
           await preprocessors[l as keyof typeof preprocessors](buf, [buf.buffer])
-        )));
+        ));
         resetTimer();
       }
       const opt2 = preprocessors[l]

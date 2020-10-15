@@ -1,15 +1,10 @@
-import { FlateCallback } from '.';
+const ch: Record<string, string> = {};
 
-export default (c: string, msg: unknown, transfer: ArrayBuffer[], cb: FlateCallback) => {
-  const u = URL.createObjectURL(new Blob([c], { type: 'text/javascript' }));
+export default <T>(c: string, id: number, msg: unknown, transfer: ArrayBuffer[], cb: (err: Error, msg: T) => void) => {
+  const u = ch[id] ||= URL.createObjectURL(new Blob([c], { type: 'text/javascript' }));
   const w = new Worker(u);
-  const cb2: typeof cb = (e, d) => {
-    w.terminate();
-    URL.revokeObjectURL(u);
-    cb(e, d);
-  }
-  w.onerror = e => cb2(e.error, null);
-  w.onmessage = e => cb2(null, e.data);
+  w.onerror = e => cb(e.error, null);
+  w.onmessage = e => cb(null, e.data);
   w.postMessage(msg, transfer);
-  return () => w.terminate();
+  return w;
 }
