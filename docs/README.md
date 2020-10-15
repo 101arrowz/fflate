@@ -2,6 +2,23 @@
 
 ## Index
 
+### Classes
+
+* [AsyncDecompress](classes/asyncdecompress.md)
+* [AsyncDeflate](classes/asyncdeflate.md)
+* [AsyncGunzip](classes/asyncgunzip.md)
+* [AsyncGzip](classes/asyncgzip.md)
+* [AsyncInflate](classes/asyncinflate.md)
+* [AsyncUnzlib](classes/asyncunzlib.md)
+* [AsyncZlib](classes/asynczlib.md)
+* [Decompress](classes/decompress.md)
+* [Deflate](classes/deflate.md)
+* [Gunzip](classes/gunzip.md)
+* [Gzip](classes/gzip.md)
+* [Inflate](classes/inflate.md)
+* [Unzlib](classes/unzlib.md)
+* [Zlib](classes/zlib.md)
+
 ### Interfaces
 
 * [AsyncDeflateOptions](interfaces/asyncdeflateoptions.md)
@@ -22,8 +39,10 @@
 
 ### Type aliases
 
+* [AsyncFlateStreamHandler](README.md#asyncflatestreamhandler)
 * [AsyncZippableFile](README.md#asynczippablefile)
 * [FlateCallback](README.md#flatecallback)
+* [FlateStreamHandler](README.md#flatestreamhandler)
 * [UnzipCallback](README.md#unzipcallback)
 * [ZippableFile](README.md#zippablefile)
 
@@ -39,6 +58,8 @@
 * [gzipSync](README.md#gzipsync)
 * [inflate](README.md#inflate)
 * [inflateSync](README.md#inflatesync)
+* [strFromU8](README.md#strfromu8)
+* [strToU8](README.md#strtou8)
 * [unzip](README.md#unzip)
 * [unzipSync](README.md#unzipsync)
 * [unzlib](README.md#unzlib)
@@ -50,6 +71,20 @@
 
 ## Type aliases
 
+### AsyncFlateStreamHandler
+
+Ƭ  **AsyncFlateStreamHandler**: (err: Error,data: Uint8Array,final: boolean) => void
+
+Handler for asynchronous data (de)compression streams
+
+**`param`** Any error that occurred
+
+**`param`** The data output from the stream processor
+
+**`param`** Whether this is the final block
+
+___
+
 ### AsyncZippableFile
 
 Ƭ  **AsyncZippableFile**: Uint8Array \| []
@@ -60,7 +95,7 @@ ___
 
 ### FlateCallback
 
-Ƭ  **FlateCallback**: (err: Error,data: Uint8Array) => unknown
+Ƭ  **FlateCallback**: (err: Error,data: Uint8Array) => void
 
 Callback for asynchronous (de)compression methods
 
@@ -70,9 +105,21 @@ Callback for asynchronous (de)compression methods
 
 ___
 
+### FlateStreamHandler
+
+Ƭ  **FlateStreamHandler**: (data: Uint8Array,final: boolean) => void
+
+Handler for data (de)compression streams
+
+**`param`** The data output from the stream processor
+
+**`param`** Whether this is the final block
+
+___
+
 ### UnzipCallback
 
-Ƭ  **UnzipCallback**: (err: Error,data: [Unzipped](interfaces/unzipped.md)) => unknown
+Ƭ  **UnzipCallback**: (err: Error,data: [Unzipped](interfaces/unzipped.md)) => void
 
 Callback for asynchronous ZIP decompression
 
@@ -171,16 +218,16 @@ ___
 
 ### deflateSync
 
-▸ **deflateSync**(`data`: Uint8Array, `opts?`: [DeflateOptions](interfaces/deflateoptions.md)): Uint8Array
+▸ **deflateSync**(`data`: Uint8Array, `opts`: [DeflateOptions](interfaces/deflateoptions.md)): Uint8Array
 
 Compresses data with DEFLATE without any wrapper
 
 #### Parameters:
 
-Name | Type | Description |
------- | ------ | ------ |
-`data` | Uint8Array | The data to compress |
-`opts?` | [DeflateOptions](interfaces/deflateoptions.md) | The compression options |
+Name | Type | Default value | Description |
+------ | ------ | ------ | ------ |
+`data` | Uint8Array | - | The data to compress |
+`opts` | [DeflateOptions](interfaces/deflateoptions.md) | {} | The compression options |
 
 **Returns:** Uint8Array
 
@@ -294,16 +341,16 @@ ___
 
 ### gzipSync
 
-▸ **gzipSync**(`data`: Uint8Array, `opts?`: [GzipOptions](interfaces/gzipoptions.md)): Uint8Array
+▸ **gzipSync**(`data`: Uint8Array, `opts`: [GzipOptions](interfaces/gzipoptions.md)): Uint8Array
 
 Compresses data with GZIP
 
 #### Parameters:
 
-Name | Type | Description |
------- | ------ | ------ |
-`data` | Uint8Array | The data to compress |
-`opts?` | [GzipOptions](interfaces/gzipoptions.md) | The compression options |
+Name | Type | Default value | Description |
+------ | ------ | ------ | ------ |
+`data` | Uint8Array | - | The data to compress |
+`opts` | [GzipOptions](interfaces/gzipoptions.md) | {} | The compression options |
 
 **Returns:** Uint8Array
 
@@ -352,6 +399,40 @@ Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
 `out?` | Uint8Array | Where to write the data. Saves memory if you know the decompressed size and provide an output buffer of that length. |
+
+**Returns:** Uint8Array
+
+___
+
+### strFromU8
+
+▸ **strFromU8**(`dat`: Uint8Array, `latin1?`: boolean): string
+
+Converts a Uint8Array to a string
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`dat` | Uint8Array | The data to decode to string |
+`latin1?` | boolean | Whether or not to interpret the data as Latin-1. This should               not need to be true unless encoding to binary string. |
+
+**Returns:** string
+
+___
+
+### strToU8
+
+▸ **strToU8**(`str`: string, `latin1?`: boolean): Uint8Array
+
+Converts a string into a Uint8Array for use with compression/decompression methods
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`str` | string | The string to encode |
+`latin1?` | boolean | Whether or not to interpret the data as Latin-1. This should               not need to be true unless decoding a binary string. |
 
 **Returns:** Uint8Array
 
@@ -520,15 +601,15 @@ ___
 
 ### zlibSync
 
-▸ **zlibSync**(`data`: Uint8Array, `opts?`: [ZlibOptions](interfaces/zliboptions.md)): Uint8Array
+▸ **zlibSync**(`data`: Uint8Array, `opts`: [ZlibOptions](interfaces/zliboptions.md)): Uint8Array
 
 Compress data with Zlib
 
 #### Parameters:
 
-Name | Type | Description |
------- | ------ | ------ |
-`data` | Uint8Array | The data to compress |
-`opts?` | [ZlibOptions](interfaces/zliboptions.md) | The compression options |
+Name | Type | Default value | Description |
+------ | ------ | ------ | ------ |
+`data` | Uint8Array | - | The data to compress |
+`opts` | [ZlibOptions](interfaces/zliboptions.md) | {} | The compression options |
 
 **Returns:** Uint8Array

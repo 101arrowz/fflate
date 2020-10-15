@@ -1,6 +1,6 @@
 {
   "name": "fflate",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "High performance (de)compression in an 8kB package",
   "main": "lib/index.js",
   "module": "esm/index.js",
@@ -24,17 +24,21 @@
     "pako",
     "browser",
     "node.js",
-    "tiny"
+    "tiny",
+    "zip",
+    "unzip",
+    "non-blocking"
   ],
   "scripts": {
     "build": "yarn build:lib && yarn build:docs",
     "build:lib": "tsc && tsc --project tsconfig.esm.json",
-    "build:docs": "typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none --disableSources src/index.ts",
+    "build:docs": "typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none --disableSources --excludePrivate --excludeProtected --out docs/ src/index.ts",
     "test": "TS_NODE_PROJECT=test/tsconfig.json uvu -b -r ts-node/register test",
     "prepack": "yarn build && yarn test"
   },
   "devDependencies": {
     "@types/node": "^14.11.2",
+    "@types/pako": "*",
     "pako": "*",
     "tiny-inflate": "*",
     "ts-node": "^9.0.0",
