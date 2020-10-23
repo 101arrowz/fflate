@@ -3,7 +3,7 @@
   "compilerOptions": {
     "declaration": false,
     "moduleResolution": "node",
-    "module": "ESNext",
+    "target": "ES2018",
     "outDir": "esm"
   }
 }
