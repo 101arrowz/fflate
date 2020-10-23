@@ -1,3 +1,8 @@
+## 0.3.0
+- Added support for asynchronous and synchronous streaming
+- Reduced bundle size by autogenerating worker code, even in minified environments
+- Error detection rather than hanging
+- Improved performance
 ## 0.2.3
 - Improved Zlib autodetection
 ## 0.2.2
