@@ -1,4 +1,9 @@
 node_modules/
 lib/
 esm/
+# temporary as I work on WASM
+rs/
+rs/debug/
+rs/target/
+rs/**/*.rs.bk
 .DS_STORE
