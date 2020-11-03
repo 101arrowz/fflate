@@ -1,12 +1,10 @@
 # Class: AsyncZlib
 
-Asynchronous streaming DEFLATE compression
+Asynchronous streaming Zlib compression
 
 ## Hierarchy
 
-* AsyncCmpStrm\<[ZlibOptions](../interfaces/zliboptions.md)>
-
-  ↳ **AsyncZlib**
+* **AsyncZlib**
 
 ## Index
 
@@ -28,11 +26,7 @@ Asynchronous streaming DEFLATE compression
 
 \+ **new AsyncZlib**(`opts`: [ZlibOptions](../interfaces/zliboptions.md), `cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncZlib](asynczlib.md)
 
-*Inherited from [AsyncDeflate](asyncdeflate.md).[constructor](asyncdeflate.md#constructor)*
-
-*Overrides [AsyncInflate](asyncinflate.md).[constructor](asyncinflate.md#constructor)*
-
-Creates an asynchronous compression stream
+Creates an asynchronous DEFLATE stream
 
 #### Parameters:
 
@@ -45,11 +39,7 @@ Name | Type | Description |
 
 \+ **new AsyncZlib**(`cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncZlib](asynczlib.md)
 
-*Inherited from [AsyncDeflate](asyncdeflate.md).[constructor](asyncdeflate.md#constructor)*
-
-*Overrides [AsyncInflate](asyncinflate.md).[constructor](asyncinflate.md#constructor)*
-
-Creates an asynchronous compression stream
+Creates an asynchronous DEFLATE stream
 
 #### Parameters:
 
@@ -65,8 +55,6 @@ Name | Type | Description |
 
 •  **ondata**: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)
 
-*Inherited from [AsyncDeflate](asyncdeflate.md).[ondata](asyncdeflate.md#ondata)*
-
 The handler to call whenever data is available
 
 ## Methods
@@ -75,10 +63,6 @@ The handler to call whenever data is available
 
 ▸ **push**(`chunk`: Uint8Array, `final?`: boolean): void
 
-*Inherited from [AsyncDeflate](asyncdeflate.md).[push](asyncdeflate.md#push)*
-
-*Overrides [AsyncInflate](asyncinflate.md).[push](asyncinflate.md#push)*
-
 Pushes a chunk to be deflated
 
 #### Parameters:
@@ -86,6 +70,6 @@ Pushes a chunk to be deflated
 Name | Type | Description |
 ------ | ------ | ------ |
 `chunk` | Uint8Array | The chunk to push |
-`final?` | boolean | Whether this is the final chunk  |
+`final?` | boolean | Whether this is the last chunk  |
 
 **Returns:** void
