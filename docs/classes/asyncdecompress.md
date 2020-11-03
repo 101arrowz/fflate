@@ -1,5 +1,7 @@
 # Class: AsyncDecompress
 
+Asynchronous streaming GZIP, Zlib, or raw DEFLATE decompression
+
 ## Hierarchy
 
 * **AsyncDecompress**
