@@ -2,3 +2,5 @@ node_modules/
 lib/
 esm/
 .DS_STORE
+# Rust version - available when ready
+rs/

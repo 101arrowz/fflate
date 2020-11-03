@@ -30,8 +30,9 @@
     "non-blocking"
   ],
   "scripts": {
-    "build": "yarn build:lib && yarn build:docs",
+    "build": "yarn build:lib && yarn build:docs && yarn build:post",
     "build:lib": "tsc && tsc --project tsconfig.esm.json",
+    "build:post": "node -r ts-node/register scripts/rewriteBuilds.ts",
     "build:docs": "typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none --disableSources --excludePrivate --excludeProtected --out docs/ src/index.ts",
     "test": "TS_NODE_PROJECT=test/tsconfig.json uvu -b -r ts-node/register test",
     "prepack": "yarn build && yarn test"

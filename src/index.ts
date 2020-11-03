@@ -936,7 +936,10 @@ const cbify = <T extends AsyncOptions>(dat: Uint8Array, opts: T, fns: (() => unk
     fns,
     init,
     id,
-    cb
+    (err, dat) => {
+      w.terminate();
+      cb(err, dat);
+    }
   );
   if (!opts.consume) dat = new u8(dat);
   w.postMessage([dat, opts], [dat.buffer]);
@@ -951,8 +954,10 @@ const astrm = (strm: CmpDecmpStrm) => {
   return (ev: MessageEvent<[Uint8Array, boolean]>) => strm.push(ev.data[0], ev.data[1]);
 }
 
+type Astrm = { ondata: AsyncFlateStreamHandler; push: (d: Uint8Array, f?: boolean) => void; };
+
 // async stream attach
-const astrmify = <T>(fns: (() => unknown[])[], strm: { ondata: AsyncFlateStreamHandler; push: (d: Uint8Array, f?: boolean) => void; }, opts: T | 0, init: (ev: MessageEvent<T>) => void, id: number) => {
+const astrmify = <T>(fns: (() => unknown[])[], strm: Astrm, opts: T | 0, init: (ev: MessageEvent<T>) => void, id: number) => {
   let t = 0;
   const w = wrkr<T, [Uint8Array, boolean]>(
     fns,
@@ -1029,56 +1034,21 @@ const zlv = (d: Uint8Array) => {
   if (d[1] & 32) throw 'invalid zlib data: preset dictionaries not supported';
 }
 
-abstract class AsyncStrm {
-  /**
-   * Creates an asynchronous decompression stream
-   * @param cb The callback to call whenever data is inflated
-   */
-  constructor(cb?: AsyncFlateStreamHandler) {
-    this.ondata = cb;
-    this.a();
-  }
-
-  protected abstract a(): void;
-
-  /**
-   * Pushes a chunk to be inflated
-   * @param chunk The chunk to push
-   * @param final Whether this is the final chunk
-   */
-  push(chunk: Uint8Array, final?: boolean) {};
-
-  /**
-   * The handler to call whenever data is available
-   */
-  ondata: AsyncFlateStreamHandler;
-}
-
-abstract class AsyncCmpStrm<T> extends AsyncStrm {
-  /**
-   * Creates an asynchronous compression stream
-   * @param opts The compression options
-   * @param cb The callback to call whenever data is deflated
-   */
-  constructor(opts: T, cb?: AsyncFlateStreamHandler);
-  /**
-   * Creates an asynchronous compression stream
-   * @param cb The callback to call whenever data is deflated
-   */
-  constructor(cb?: AsyncFlateStreamHandler);
-  constructor(opts?: T | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler) {
-    if (!cb) cb = opts as AsyncFlateStreamHandler, opts = {} as T;
-    super(cb);
-    this.o = opts as T;
-  }
-
-  /**
-   * Pushes a chunk to be deflated
-   * @param chunk The chunk to push
-   * @param final Whether this is the final chunk
-   */
-  push(chunk: Uint8Array, final?: boolean) {};
-  protected o: T;
+/**
+ * Creates an asynchronous compression stream
+ * @param opts The compression options
+ * @param cb The callback to call whenever data is deflated
+ */
+function AsyncCmpStrm<T>(opts: T, cb?: AsyncFlateStreamHandler): T;
+/**
+ * Creates an asynchronous compression stream
+ * @param cb The callback to call whenever data is deflated
+ */
+function AsyncCmpStrm<T>(cb?: AsyncFlateStreamHandler): T;
+function AsyncCmpStrm<T>(opts?: T | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler): T {
+  if (!cb) cb = opts as AsyncFlateStreamHandler, opts = {} as T;
+  this.ondata = cb as AsyncFlateStreamHandler;
+  return opts as T;
 }
 
 // zlib footer: -4 to -0 is Adler32
@@ -1126,16 +1096,40 @@ export class Deflate {
 /**
  * Asynchronous streaming DEFLATE compression
  */
-export class AsyncDeflate extends AsyncCmpStrm<DeflateOptions> {
-  protected a() {
+export class AsyncDeflate {
+  /**
+   * The handler to call whenever data is available
+   */
+  ondata: AsyncFlateStreamHandler;
+
+  /**
+   * Creates an asynchronous DEFLATE stream
+   * @param opts The compression options
+   * @param cb The callback to call whenever data is deflated
+   */
+  constructor(opts: DeflateOptions, cb?: AsyncFlateStreamHandler);
+  /**
+   * Creates an asynchronous DEFLATE stream
+   * @param cb The callback to call whenever data is deflated
+   */
+  constructor(cb?: AsyncFlateStreamHandler);
+  constructor(opts?: DeflateOptions | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler) {
     astrmify([
       bDflt,
       () => [astrm, Deflate]
-    ], this, this.o, ev => {
-      const strm = new Deflate(ev.data);
+    ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
+      const strm = new Deflate(ev.data, true as unknown as FlateStreamHandler);
       onmessage = astrm(strm);
     }, 6);
   }
+
+  /**
+   * Pushes a chunk to be deflated
+   * @param chunk The chunk to push
+   * @param final Whether this is the last chunk
+   */
+  // @ts-ignore
+  push(chunk: Uint8Array, final?: boolean): void;
 }
 
 /**
@@ -1219,16 +1213,34 @@ export class Inflate {
 /**
  * Asynchronous streaming DEFLATE decompression
  */
-export class AsyncInflate extends AsyncStrm {
-  protected a() {
+export class AsyncInflate {
+  /**
+   * The handler to call whenever data is available
+   */
+  ondata: AsyncFlateStreamHandler;
+
+  /**
+   * Creates an asynchronous inflation stream
+   * @param cb The callback to call whenever data is deflated
+   */
+  constructor(cb: AsyncFlateStreamHandler) {
+    this.ondata = cb;
     astrmify([
       bInflt,
       () => [astrm, Inflate]
-    ], this, 0, () => {
+    ], this as unknown as Astrm, 0, () => {
       const strm = new Inflate();
       onmessage = astrm(strm);
     }, 7);
   }
+
+  /**
+   * Pushes a chunk to be inflated
+   * @param chunk The chunk to push
+   * @param final Whether this is the last chunk
+   */
+  // @ts-ignore
+  push(chunk: Uint8Array, final?: boolean): void;
 }
 
 /**
@@ -1314,19 +1326,43 @@ export class Gzip {
 }
 
 /**
- * Asynchronous streaming DEFLATE compression
+ * Asynchronous streaming GZIP compression
  */
-export class AsyncGzip extends AsyncCmpStrm<GzipOptions> {
-  protected a() {
+export class AsyncGzip {
+  /**
+   * The handler to call whenever data is available
+   */
+  ondata: AsyncFlateStreamHandler;
+
+  /**
+   * Creates an asynchronous GZIP stream
+   * @param opts The compression options
+   * @param cb The callback to call whenever data is deflated
+   */
+  constructor(opts: GzipOptions, cb?: AsyncFlateStreamHandler);
+  /**
+   * Creates an asynchronous GZIP stream
+   * @param cb The callback to call whenever data is deflated
+   */
+  constructor(cb?: AsyncFlateStreamHandler);
+  constructor(opts?: GzipOptions | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler) {
     astrmify([
       bDflt,
       gze,
       () => [astrm, Deflate, Gzip]
-    ], this, this.o, ev => {
-      const strm = new Gzip(ev.data);
+    ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
+      const strm = new Gzip(ev.data, true as unknown as FlateStreamHandler);
       onmessage = astrm(strm);
     }, 8);
   }
+
+  /**
+   * Pushes a chunk to be GZIPped
+   * @param chunk The chunk to push
+   * @param final Whether this is the last chunk
+   */
+  // @ts-ignore
+  push(chunk: Uint8Array, final?: boolean): void;
 }
 
 /**
@@ -1409,17 +1445,35 @@ export class Gunzip {
 /**
  * Asynchronous streaming GZIP decompression
  */
-export class AsyncGunzip extends AsyncStrm {
-  protected a() {
+export class AsyncGunzip {
+  /**
+   * The handler to call whenever data is available
+   */
+  ondata: AsyncFlateStreamHandler;
+
+  /**
+   * Creates an asynchronous GUNZIP stream
+   * @param cb The callback to call whenever data is deflated
+   */
+  constructor(cb: AsyncFlateStreamHandler) {
+    this.ondata = cb;
     astrmify([
       bInflt,
       guze,
       () => [astrm, Inflate, Gunzip]
-    ], this, 0, () => {
+    ], this as unknown as Astrm, 0, () => {
       const strm = new Gunzip();
       onmessage = astrm(strm);
     }, 9);
   }
+
+  /**
+   * Pushes a chunk to be GUNZIPped
+   * @param chunk The chunk to push
+   * @param final Whether this is the last chunk
+   */
+  // @ts-ignore
+  push(chunk: Uint8Array, final?: boolean): void;
 }
 
 /**
@@ -1503,19 +1557,43 @@ export class Zlib {
 }
 
 /**
- * Asynchronous streaming DEFLATE compression
+ * Asynchronous streaming Zlib compression
  */
-export class AsyncZlib extends AsyncCmpStrm<ZlibOptions> {
-  protected a() {
+export class AsyncZlib {
+  /**
+   * The handler to call whenever data is available
+   */
+  ondata: AsyncFlateStreamHandler;
+
+  /**
+   * Creates an asynchronous DEFLATE stream
+   * @param opts The compression options
+   * @param cb The callback to call whenever data is deflated
+   */
+  constructor(opts: ZlibOptions, cb?: AsyncFlateStreamHandler);
+  /**
+   * Creates an asynchronous DEFLATE stream
+   * @param cb The callback to call whenever data is deflated
+   */
+  constructor(cb?: AsyncFlateStreamHandler);
+  constructor(opts?: ZlibOptions | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler) {
     astrmify([
       bDflt,
       zle,
       () => [astrm, Deflate, Zlib]
-    ], this, this.o, ev => {
-      const strm = new Zlib(ev.data);
+    ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
+      const strm = new Zlib(ev.data, true as unknown as FlateStreamHandler);
       onmessage = astrm(strm);
     }, 10);
   }
+
+  /**
+   * Pushes a chunk to be deflated
+   * @param chunk The chunk to push
+   * @param final Whether this is the last chunk
+   */
+  // @ts-ignore
+  push(chunk: Uint8Array, final?: boolean): void;
 }
 
 /**
@@ -1595,17 +1673,35 @@ export class Unzlib {
 /**
  * Asynchronous streaming Zlib decompression
  */
-export class AsyncUnzlib extends AsyncStrm {
-  protected a() {
+export class AsyncUnzlib {
+  /**
+   * The handler to call whenever data is available
+   */
+  ondata: AsyncFlateStreamHandler;
+
+  /**
+   * Creates an asynchronous Zlib decompression stream
+   * @param cb The callback to call whenever data is deflated
+   */
+  constructor(cb: AsyncFlateStreamHandler) {
+    this.ondata = cb;
     astrmify([
       bInflt,
       zule,
       () => [astrm, Inflate, Unzlib]
-    ], this, 0, () => {
+    ], this as unknown as Astrm, 0, () => {
       const strm = new Unzlib();
       onmessage = astrm(strm);
     }, 11);
   }
+
+  /**
+   * Pushes a chunk to be decompressed from Zlib
+   * @param chunk The chunk to push
+   * @param final Whether this is the last chunk
+   */
+  // @ts-ignore
+  push(chunk: Uint8Array, final?: boolean): void;
 }
 
 /**
@@ -1694,6 +1790,9 @@ export class Decompress {
   }
 }
 
+/**
+ * Asynchronous streaming GZIP, Zlib, or raw DEFLATE decompression
+ */
 export class AsyncDecompress {
   private G = AsyncGunzip;
   private I = AsyncInflate;
@@ -1963,6 +2062,7 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
     wzf(out, o, files.length, cdl, oe);
     cb(null, out);
   }
+  if (!lft) cbf();
   // Cannot use lft because it can decrease
   for (let i = 0; i < slft; ++i) {
     const fn = k[i];
@@ -2058,6 +2158,7 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
   let e = data.length - 22;
   while (b4(data, e) != 0x6054B50) --e;
   let lft = b2(data, e + 8);
+  if (!lft) cb(null, {});
   const c = lft;
   let o = b4(data, e + 16);
   for (let i = 0; i < c; ++i) {
@@ -2093,6 +2194,7 @@ export function unzipSync(data: Uint8Array) {
   let e = data.length - 22;
   while (b4(data, e) != 0x6054B50) --e;
   const c = b2(data, e + 8);
+  if (!c) return {};
   let o = b4(data, e + 16);
   for (let i = 0; i < c; ++i) {
     const off = b4(data, o + 42);

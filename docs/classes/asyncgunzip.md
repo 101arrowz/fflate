@@ -4,9 +4,7 @@ Asynchronous streaming GZIP decompression
 
 ## Hierarchy
 
-* AsyncStrm
-
-  ↳ **AsyncGunzip**
+* **AsyncGunzip**
 
 ## Index
 
@@ -26,17 +24,15 @@ Asynchronous streaming GZIP decompression
 
 ### constructor
 
-\+ **new AsyncGunzip**(`cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncGunzip](asyncgunzip.md)
+\+ **new AsyncGunzip**(`cb`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncGunzip](asyncgunzip.md)
 
-*Inherited from [AsyncInflate](asyncinflate.md).[constructor](asyncinflate.md#constructor)*
-
-Creates an asynchronous decompression stream
+Creates an asynchronous GUNZIP stream
 
 #### Parameters:
 
 Name | Type | Description |
 ------ | ------ | ------ |
-`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is inflated  |
+`cb` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated  |
 
 **Returns:** [AsyncGunzip](asyncgunzip.md)
 
@@ -46,8 +42,6 @@ Name | Type | Description |
 
 •  **ondata**: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)
 
-*Inherited from [AsyncDeflate](asyncdeflate.md).[ondata](asyncdeflate.md#ondata)*
-
 The handler to call whenever data is available
 
 ## Methods
@@ -56,15 +50,13 @@ The handler to call whenever data is available
 
 ▸ **push**(`chunk`: Uint8Array, `final?`: boolean): void
 
-*Inherited from [AsyncInflate](asyncinflate.md).[push](asyncinflate.md#push)*
-
-Pushes a chunk to be inflated
+Pushes a chunk to be GUNZIPped
 
 #### Parameters:
 
 Name | Type | Description |
 ------ | ------ | ------ |
 `chunk` | Uint8Array | The chunk to push |
-`final?` | boolean | Whether this is the final chunk  |
+`final?` | boolean | Whether this is the last chunk  |
 
 **Returns:** void
