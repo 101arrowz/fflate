@@ -7,3 +7,4 @@ tsconfig.esm.json
 tsconfig.json
 yarn.lock
 rs/
+scripts/
