@@ -54,8 +54,7 @@ const [fd, revfd] = freb(fdeb, 0);
 const rev = new u16(32768);
 for (let i = 0; i < 32768; ++i) {
   // reverse table algorithm from UZIP.js
-  let x = i;
-  x = ((x & 0xAAAAAAAA) >>> 1) | ((x & 0x55555555) << 1);
+  let x = ((i & 0xAAAAAAAA) >>> 1) | ((i & 0x55555555) << 1);
   x = ((x & 0xCCCCCCCC) >>> 2) | ((x & 0x33333333) << 2);
   x = ((x & 0xF0F0F0F0) >>> 4) | ((x & 0x0F0F0F0F) << 4);
   rev[i] = (((x & 0xFF00FF00) >>> 8) | ((x & 0x00FF00FF) << 8)) >>> 1;
@@ -79,9 +78,6 @@ const hMap = ((cd: Uint8Array, mb: number, r: 0 | 1) => {
   }
   let co: Uint16Array;
   if (r) {
-    co = new u16(s);
-    for (i = 0; i < s; ++i) co[i] = rev[le[cd[i] - 1]++] >>> (15 - cd[i]);
-  } else {
     // u16 "map": index -> number of actual bits, symbol for code
     co = new u16(1 << mb);
     // bits to remove for reverser
@@ -102,6 +98,9 @@ const hMap = ((cd: Uint8Array, mb: number, r: 0 | 1) => {
         }
       }
     }
+  } else {
+    co = new u16(s);
+    for (i = 0; i < s; ++i) co[i] = rev[le[cd[i] - 1]++] >>> (15 - cd[i]);
   }
   return co;
 });
@@ -116,14 +115,14 @@ for (let i = 280; i < 288; ++i) flt[i] = 8;
 const fdt = new u8(32);
 for (let i = 0; i < 32; ++i) fdt[i] = 5;
 // fixed length map
-const flm = hMap(flt, 9, 0), flnm = hMap(flt, 9, 1);
+const flm = hMap(flt, 9, 0), flrm = hMap(flt, 9, 1);
 // fixed distance map
-const fdm = hMap(fdt, 5, 0), fdnm = hMap(fdt, 5, 1);
+const fdm = hMap(fdt, 5, 0), fdrm = hMap(fdt, 5, 1);
 
 // find max of array
 const max = (a: Uint8Array | number[]) => {
   let m = a[0];
-  for (let i = 0; i < a.length; ++i) {
+  for (let i = 1; i < a.length; ++i) {
     if (a[i] > m) m = a[i];
   }
   return m;
@@ -221,7 +220,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         st.b = bt += l, st.p = pos = t << 3;
         continue;
       }
-      else if (type == 1) lm = flm, dm = fdm, lbt = 9, dbt = 5;
+      else if (type == 1) lm = flrm, dm = fdrm, lbt = 9, dbt = 5;
       else if (type == 2) {
         //  literal                          dist                               lengths
         let hLit = bits(dat, pos, 31) + 257, hDist = bits(dat, pos + 5, 31) + 1, hcLen = bits(dat, pos + 10, 15) + 4;
@@ -240,7 +239,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         const clb = max(clt), clbmsk = (1 << clb) - 1;
         if (!noSt && pos + tl * (clb + 7) > tbts) break;
         // code lengths map
-        const clm = hMap(clt, clb, 0);
+        const clm = hMap(clt, clb, 1);
         for (let i = 0; i < ldt.length;) {
           const r = clm[bits(dat, pos, clbmsk)];
           // bits read
@@ -265,8 +264,8 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         lbt = max(lt)
         // max dist bits
         dbt = max(dt);
-        lm = hMap(lt, lbt, 0);
-        dm = hMap(dt, dbt, 0);
+        lm = hMap(lt, lbt, 1);
+        dm = hMap(dt, dbt, 1);
       } else throw 'invalid block type';
       if (pos > tbts) throw 'unexpected EOF';
     }
@@ -498,8 +497,8 @@ const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Uint32Array
   let lm: Uint16Array, ll: Uint8Array, dm: Uint16Array, dl: Uint8Array;
   wbits(out, p, 1 + (dtlen < ftlen as unknown as number)), p += 2;
   if (dtlen < ftlen) {
-    lm = hMap(dlt, mlb, 1), ll = dlt, dm = hMap(ddt, mdb, 1), dl = ddt;
-    const llm = hMap(lct, mlcb, 1);
+    lm = hMap(dlt, mlb, 0), ll = dlt, dm = hMap(ddt, mdb, 0), dl = ddt;
+    const llm = hMap(lct, mlcb, 0);
     wbits(out, p, nlc - 257);
     wbits(out, p + 5, ndc - 1);
     wbits(out, p + 10, nlcc - 4);
@@ -516,7 +515,7 @@ const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Uint32Array
       }
     }
   } else {
-    lm = flnm, ll = flt, dm = fdnm, dl = fdt;
+    lm = flm, ll = flt, dm = fdm, dl = fdt;
   }
   for (let i = 0; i < li; ++i) {
     if (syms[i] > 255) {
@@ -912,8 +911,8 @@ const wrkr = <T, R>(fns: (() => unknown[])[], init: (ev: MessageEvent<T>) => voi
 }
 
 // base async inflate fn
-const bInflt = () => [u8, u16, fleb, flebmsk, fdeb, fdebmsk, clim, fl, fd, flm, fdm, rev, hMap, max, bits, bits16, shft, slc, inflt, inflateSync, pbf, gu8];
-const bDflt = () => [u8, u16, u32, fleb, fdeb, clim, revfl, revfd, flnm, flt, fdnm, fdt, rev, deo, et, hMap, wbits, wbits16, hTree, ln, lc, clen, wfblk, wblk, shft, slc, dflt, gmem, dopt, deflateSync, pbf]
+const bInflt = () => [u8, u16, fleb, flebmsk, fdeb, fdebmsk, clim, fl, fd, flrm, fdrm, rev, hMap, max, bits, bits16, shft, slc, inflt, inflateSync, pbf, gu8];
+const bDflt = () => [u8, u16, u32, fleb, fdeb, clim, revfl, revfd, flm, flt, fdm, fdt, rev, deo, et, hMap, wbits, wbits16, hTree, ln, lc, clen, wfblk, wblk, shft, slc, dflt, gmem, dopt, deflateSync, pbf]
 
 // gzip extra
 const gze = () => [gzh, gzhl, wbytes, crc, crct];

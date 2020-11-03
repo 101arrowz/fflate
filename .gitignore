@@ -4,3 +4,4 @@ esm/
 .DS_STORE
 # Rust version - available when ready
 rs/
+.DS_STORE
