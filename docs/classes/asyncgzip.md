@@ -1,15 +1,11 @@
 # Class: AsyncGzip
 
-Asynchronous streaming DEFLATE compression
-Asynchronous streaming DEFLATE compression
+Asynchronous streaming GZIP compression
+Asynchronous streaming GZIP compression
 
 ## Hierarchy
 
-* AsyncCmpStrm\<[GzipOptions](../interfaces/gzipoptions.md)>
-
-* AsyncCmpStrm\<[GzipOptions](../interfaces/gzipoptions.md)>
-
-  ↳ **AsyncGzip**
+* **AsyncGzip**
 
 ## Index
 
@@ -31,11 +27,7 @@ Asynchronous streaming DEFLATE compression
 
 \+ **new AsyncGzip**(`opts`: [GzipOptions](../interfaces/gzipoptions.md), `cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncGzip](asyncgzip.md)
 
-*Inherited from [AsyncDeflate](asyncdeflate.md).[constructor](asyncdeflate.md#constructor)*
-
-*Overrides [AsyncInflate](asyncinflate.md).[constructor](asyncinflate.md#constructor)*
-
-Creates an asynchronous compression stream
+Creates an asynchronous GZIP stream
 
 #### Parameters:
 
@@ -48,11 +40,32 @@ Name | Type | Description |
 
 \+ **new AsyncGzip**(`cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncGzip](asyncgzip.md)
 
-*Inherited from [AsyncDeflate](asyncdeflate.md).[constructor](asyncdeflate.md#constructor)*
+Creates an asynchronous GZIP stream
 
-*Overrides [AsyncInflate](asyncinflate.md).[constructor](asyncinflate.md#constructor)*
+#### Parameters:
 
-Creates an asynchronous compression stream
+Name | Type | Description |
+------ | ------ | ------ |
+`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated  |
+
+**Returns:** [AsyncGzip](asyncgzip.md)
+
+\+ **new AsyncGzip**(`opts`: [GzipOptions](../interfaces/gzipoptions.md), `cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncGzip](asyncgzip.md)
+
+Creates an asynchronous GZIP stream
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`opts` | [GzipOptions](../interfaces/gzipoptions.md) | The compression options |
+`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated  |
+
+**Returns:** [AsyncGzip](asyncgzip.md)
+
+\+ **new AsyncGzip**(`cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncGzip](asyncgzip.md)
+
+Creates an asynchronous GZIP stream
 
 #### Parameters:
 
@@ -68,10 +81,7 @@ Name | Type | Description |
 
 •  **ondata**: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)
 
-*Inherited from [AsyncDeflate](asyncdeflate.md).[ondata](asyncdeflate.md#ondata)*
-
-*Overrides [AsyncDeflate](asyncdeflate.md).[ondata](asyncdeflate.md#ondata)*
-
+The handler to call whenever data is available
 The handler to call whenever data is available
 
 ## Methods
@@ -80,17 +90,26 @@ The handler to call whenever data is available
 
 ▸ **push**(`chunk`: Uint8Array, `final?`: boolean): void
 
-*Inherited from [AsyncDeflate](asyncdeflate.md).[push](asyncdeflate.md#push)*
-
-*Overrides [AsyncInflate](asyncinflate.md).[push](asyncinflate.md#push)*
-
-Pushes a chunk to be deflated
+Pushes a chunk to be GZIPped
 
 #### Parameters:
 
 Name | Type | Description |
 ------ | ------ | ------ |
 `chunk` | Uint8Array | The chunk to push |
-`final?` | boolean | Whether this is the final chunk  |
+`final?` | boolean | Whether this is the last chunk  |
+
+**Returns:** void
+
+▸ **push**(`chunk`: Uint8Array, `final?`: boolean): void
+
+Pushes a chunk to be GZIPped
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`chunk` | Uint8Array | The chunk to push |
+`final?` | boolean | Whether this is the last chunk  |
 
 **Returns:** void
