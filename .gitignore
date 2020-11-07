@@ -5,3 +5,4 @@ esm/
 # Rust version - available when ready
 rs/
 .DS_STORE
+umd/
