@@ -1,8 +1,5 @@
-*
+*/
 !esm/
 !lib/
 !umd/
-!CHANGELOG.md
-!LICENSE
-!package.json
-!README.md
+tsconfig*.json
