@@ -52,7 +52,7 @@ You should use either UNPKG or jsDelivr (i.e. only one of the following)
 Note that tree shaking is completely unsupported from the CDN
 -->
 <script src="https://unpkg.com/fflate"></script>
-<script src="https://cdn.jsdelivr.net/npm/fflate"></script>
+<script src="https://cdn.jsdelivr.net/npm/fflate/umd/index.js"></script>
 <!-- Now, the global variable fflate contains the library -->
 ```
 
