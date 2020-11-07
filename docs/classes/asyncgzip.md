@@ -16,6 +16,7 @@ Asynchronous streaming GZIP compression
 ### Properties
 
 * [ondata](asyncgzip.md#ondata)
+* [terminate](asyncgzip.md#terminate)
 
 ### Methods
 
@@ -83,6 +84,17 @@ Name | Type | Description |
 
 The handler to call whenever data is available
 The handler to call whenever data is available
+
+___
+
+### terminate
+
+•  **terminate**: [AsyncTerminable](../interfaces/asyncterminable.md)
+
+A method to terminate the stream's internal worker. Subsequent calls to
+push() will silently fail.
+A method to terminate the stream's internal worker. Subsequent calls to
+push() will silently fail.
 
 ## Methods
 

@@ -45,6 +45,17 @@ If your environment doesn't support ES Modules (e.g. Node.js):
 const fflate = require('fflate');
 ```
 
+If you want to load from a CDN in the browser:
+```html
+<!--
+You should use either UNPKG or jsDelivr (i.e. only one of the following)
+Note that tree shaking is completely unsupported from the CDN
+-->
+<script src="https://unpkg.com/fflate"></script>
+<script src="https://cdn.jsdelivr.net/npm/fflate"></script>
+<!-- Now, the global variable fflate contains the library -->
+```
+
 And use:
 ```js
 // This is an ArrayBuffer of data
@@ -163,7 +174,7 @@ const dcmpStrm = new fflate.Decompress((chunk, final) => {
 });
 ```
 
-You can create multi-file ZIP archives easily as well:
+You can create multi-file ZIP archives easily as well. Note that by default, compression is enabled for all files, which is not useful when ZIPping many PNGs, JPEGs, PDFs, etc. because those formats are already compressed. You should either override the level on a per-file basis or globally to avoid wasting resources.
 ```js
 // Note that the asynchronous version (see below) runs in parallel and
 // is *much* (up to 3x) faster for larger archives.
@@ -179,7 +190,8 @@ const zipped = fflate.zipSync({
   },
   // You can also provide compression options
   'myImageData.bmp': [aMassiveFile, { level: 9, mem: 12 }],
-  'superTinyFile.bin': [new Uint8Array([0]), { level: 0 }]
+  // PNG is pre-compressed; no need to waste time
+  'superTinyFile.png': [aPNGFile, { level: 0 }]
 }, {
   // These options are the defaults for all files, but file-specific
   // options take precedence.
@@ -265,6 +277,10 @@ gzs.push(chunk);
 // immediately. If such behavior is absolutely necessary (it shouldn't
 // be), use synchronous streams.
 console.log(wasCallbackCalled) // false
+
+// To terminate an asynchronous stream's internal worker, call
+// stream.terminate().
+gzs.terminate();
 
 // This is way faster than zipSync because the compression of multiple
 // files runs in parallel. In fact, the fact that it's parallelized

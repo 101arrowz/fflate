@@ -68,7 +68,7 @@ const hMap = ((cd: Uint8Array, mb: number, r: 0 | 1) => {
   // index
   let i = 0;
   // u8 "map": index -> # of codes with bit length = index
-  const l = new u8(mb);
+  const l = new u16(mb);
   // length of cd must be 288 (total # of codes)
   for (; i < s; ++i) ++l[cd[i] - 1];
   // u16 "map": index -> minimum code for bit length = index
@@ -196,12 +196,13 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
   } : () => {};
   //  last chunk         bitpos           bytes
   let final = st.f || 0, pos = st.p || 0, bt = st.b || 0, lm = st.l, dm = st.d, lbt = st.m, dbt = st.n;
+  if (final && !lm) return buf;
   // total bits
   const tbts = sl << 3;
   do {
     if (!lm) {
       // BFINAL - this is only 1 when last chunk is next
-      final = bits(dat, pos, 1);
+      st.f = final = bits(dat, pos, 1);
       // type: 0 = no compression, 1 = fixed huffman, 2 = dynamic huffman
       const type = bits(dat, pos + 1, 3);
       pos += 3;
@@ -311,8 +312,8 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         bt = end;
       }
     }
-    if (lm) final = 1, st.l = lm, st.m = lbt, st.d = dm, st.n = dbt;
-    st.p = pos, st.b = bt;
+    st.l = lm, st.p = pos, st.b = bt;
+    if (lm) final = 1, st.m = lbt, st.d = dm, st.n = dbt;
   } while (!final)
   return bt == buf.length ? buf : slc(buf, 0, bt);
 }
@@ -371,7 +372,7 @@ const hTree = (d: Uint16Array, mb: number) => {
   // symbols that combined have high freq, will start processing i2 (high-freq,
   // non-composite) symbols instead
   // see https://reddit.com/r/photopea/comments/ikekht/uzipjs_questions/
-	while (i1 != s - 1) {
+  while (i1 != s - 1) {
     l = t[t[i0].f < t[i2].f ? i0++ : i2++];
     r = t[i0 != i1 && t[i0].f < t[i2].f ? i0++ : i2++];
     t[i1++] = { s: -1, f: l.f + r.f, l, r };
@@ -493,7 +494,7 @@ const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Uint32Array
   const flen = (bl + 5) << 3;
   const ftlen = clen(lf, flt) + clen(df, fdt) + eb;
   const dtlen = clen(lf, dlt) + clen(df, ddt) + eb + 14 + 3 * nlcc + clen(lcfreq, lct) + (2 * lcfreq[16] + 3 * lcfreq[17] + 7 * lcfreq[18]);
-  if (flen < ftlen && flen < dtlen) return wfblk(out, p, dat.subarray(bs, bs + bl));
+  if (flen <= ftlen && flen <= dtlen) return wfblk(out, p, dat.subarray(bs, bs + bl));
   let lm: Uint16Array, ll: Uint8Array, dm: Uint16Array, dl: Uint8Array;
   wbits(out, p, 1 + (dtlen < ftlen as unknown as number)), p += 2;
   if (dtlen < ftlen) {
@@ -888,7 +889,6 @@ const wom = (ev: MessageEvent<[Record<string, unknown>, string]>) => {
 type CachedWorker = readonly [string, Record<string, unknown>];
 
 const ch: CachedWorker[] = [];
-
 // clone bufs
 const cbfs = (v: Record<string, unknown>) => {
   const tl: ArrayBuffer[] = [];
@@ -953,11 +953,11 @@ const astrm = (strm: CmpDecmpStrm) => {
   return (ev: MessageEvent<[Uint8Array, boolean]>) => strm.push(ev.data[0], ev.data[1]);
 }
 
-type Astrm = { ondata: AsyncFlateStreamHandler; push: (d: Uint8Array, f?: boolean) => void; };
+type Astrm = { ondata: AsyncFlateStreamHandler; push: (d: Uint8Array, f?: boolean) => void; terminate: AsyncTerminable; };
 
 // async stream attach
 const astrmify = <T>(fns: (() => unknown[])[], strm: Astrm, opts: T | 0, init: (ev: MessageEvent<T>) => void, id: number) => {
-  let t = 0;
+  let t: boolean;
   const w = wrkr<T, [Uint8Array, boolean]>(
     fns,
     init,
@@ -965,7 +965,7 @@ const astrmify = <T>(fns: (() => unknown[])[], strm: Astrm, opts: T | 0, init: (
     (err, dat) => {
       if (err) strm.ondata.call(strm, err);
       else {
-        if (dat[1]) t = 1, w.terminate();
+        if (dat[1]) w.terminate();
         strm.ondata.call(strm, err, dat[0], dat[1]);
       }
     }
@@ -974,8 +974,9 @@ const astrmify = <T>(fns: (() => unknown[])[], strm: Astrm, opts: T | 0, init: (
   strm.push = function(d, f) {
     if (t) throw 'stream finished';
     if (!strm.ondata) throw 'no stream handler';
-    w.postMessage([d, f], [d.buffer]);
+    w.postMessage([d, t = f], [d.buffer]);
   };
+  strm.terminate = () => { w.terminate(); };
 }
 
 // read 2 bytes
@@ -1129,6 +1130,12 @@ export class AsyncDeflate {
    */
   // @ts-ignore
   push(chunk: Uint8Array, final?: boolean): void;
+  
+  /**
+   * A method to terminate the stream's internal worker. Subsequent calls to
+   * push() will silently fail.
+   */
+  terminate: AsyncTerminable;
 }
 
 /**
@@ -1182,19 +1189,20 @@ export class Inflate {
   ondata: FlateStreamHandler;
 
   private e(c: Uint8Array) {
+    if (this.d) throw 'stream finished';
+    if (!this.ondata) throw 'no stream handler';
     const l = this.p.length;
     const n = new u8(l + c.length);
     n.set(this.p), n.set(c, l), this.p = n;
   }
 
   private c(c: Uint8Array, final: boolean) {
-    this.s.i = final;
+    this.d = this.s.i = final;
     const bts = this.s.b;
     const dt = inflt(this.p, this.o, this.s);
-    this.ondata(slc(dt, bts, this.s.b), final);
+    this.ondata(slc(dt, bts, this.s.b), final || false);
     this.o = slc(dt, this.s.b - 32768), this.s.b = 32768;
     this.p = slc(this.p, this.s.p >>> 3), this.s.p &= 7;
-    this.d = this.s.f && !this.s.l;
   }
 
   /**
@@ -1203,9 +1211,7 @@ export class Inflate {
    * @param final Whether this is the final chunk
    */
   push(chunk: Uint8Array, final?: boolean) {
-    if (this.d) throw 'stream finished';
-    if (!this.ondata) throw 'no stream handler';
-    this.e(chunk), this.c(chunk, final || false);
+    this.e(chunk), this.c(chunk, final);
   }
 }
 
@@ -1240,6 +1246,12 @@ export class AsyncInflate {
    */
   // @ts-ignore
   push(chunk: Uint8Array, final?: boolean): void;
+
+  /**
+   * A method to terminate the stream's internal worker. Subsequent calls to
+   * push() will silently fail.
+   */
+  terminate: AsyncTerminable;
 }
 
 /**
@@ -1362,6 +1374,12 @@ export class AsyncGzip {
    */
   // @ts-ignore
   push(chunk: Uint8Array, final?: boolean): void;
+
+  /**
+   * A method to terminate the stream's internal worker. Subsequent calls to
+   * push() will silently fail.
+   */
+  terminate: AsyncTerminable;
 }
 
 /**
@@ -1428,7 +1446,7 @@ export class Gunzip {
     (Inflate.prototype as unknown as { e: typeof Inflate.prototype['e'] }).e.call(this, chunk);
     if (this.v) {
       const s = gzs(this.p);
-      if (s >= this.p.length) return;
+      if (s >= this.p.length && !final) return;
       this.p = this.p.subarray(s), this.v = 0;
     }
     if (final) {
@@ -1473,6 +1491,12 @@ export class AsyncGunzip {
    */
   // @ts-ignore
   push(chunk: Uint8Array, final?: boolean): void;
+
+  /**
+   * A method to terminate the stream's internal worker. Subsequent calls to
+   * push() will silently fail.
+   */
+  terminate: AsyncTerminable;
 }
 
 /**
@@ -1593,6 +1617,12 @@ export class AsyncZlib {
    */
   // @ts-ignore
   push(chunk: Uint8Array, final?: boolean): void;
+
+  /**
+   * A method to terminate the stream's internal worker. Subsequent calls to
+   * push() will silently fail.
+   */
+  terminate: AsyncTerminable;
 }
 
 /**
@@ -1656,7 +1686,7 @@ export class Unzlib {
   push(chunk: Uint8Array, final?: boolean) {
     (Inflate.prototype as unknown as { e: typeof Inflate.prototype['e'] }).e.call(this, chunk);
     if (this.v) {
-      if (this.p.length < 2) return;
+      if (this.p.length < 2 && !final) return;
       this.p = this.p.subarray(2), this.v = 0;
     }
     if (final) {
@@ -1701,6 +1731,12 @@ export class AsyncUnzlib {
    */
   // @ts-ignore
   push(chunk: Uint8Array, final?: boolean): void;
+
+  /**
+   * A method to terminate the stream's internal worker. Subsequent calls to
+   * push() will silently fail.
+   */
+  terminate: AsyncTerminable;
 }
 
 /**
@@ -2155,7 +2191,9 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
   }
   const files: Unzipped = {};
   let e = data.length - 22;
-  while (b4(data, e) != 0x6054B50) --e;
+  for (; b4(data, e) != 0x6054B50; --e) {
+    if (!e || data.length - e > 65558) throw 'invalid zip file';
+  };
   let lft = b2(data, e + 8);
   if (!lft) cb(null, {});
   const c = lft;
@@ -2191,7 +2229,9 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
 export function unzipSync(data: Uint8Array) {
   const files: Unzipped = {};
   let e = data.length - 22;
-  while (b4(data, e) != 0x6054B50) --e;
+  for (; b4(data, e) != 0x6054B50; --e) {
+    if (!e || data.length - e > 65558) throw 'invalid zip file';
+  };
   const c = b2(data, e + 8);
   if (!c) return {};
   let o = b4(data, e + 16);
