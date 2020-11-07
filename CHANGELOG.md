@@ -1,3 +1,7 @@
+## 0.3.4
+- Fixed rare overflow bug causing corruption
+- Added async stream termination
+- Added UMD bundle
 ## 0.3.0
 - Added support for asynchronous and synchronous streaming
 - Reduced bundle size by autogenerating worker code, even in minified environments

@@ -15,6 +15,7 @@ Asynchronous streaming Zlib compression
 ### Properties
 
 * [ondata](asynczlib.md#ondata)
+* [terminate](asynczlib.md#terminate)
 
 ### Methods
 
@@ -56,6 +57,15 @@ Name | Type | Description |
 •  **ondata**: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)
 
 The handler to call whenever data is available
+
+___
+
+### terminate
+
+•  **terminate**: [AsyncTerminable](../interfaces/asyncterminable.md)
+
+A method to terminate the stream's internal worker. Subsequent calls to
+push() will silently fail.
 
 ## Methods
 
