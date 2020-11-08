@@ -6,3 +6,6 @@ esm/
 rs/
 .DS_STORE
 umd/
+# for demo
+.parcel-cache
+dist/
