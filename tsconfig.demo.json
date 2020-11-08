@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "target": "ESNext",
+    "moduleResolution": "node"
+  },
+  "include": ["src/demo/**/*.ts", "src/demo/**/*.tsx", "src/demo/augment.d.ts"]
+}

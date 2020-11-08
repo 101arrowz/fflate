@@ -67,7 +67,7 @@ const hMap = ((cd: Uint8Array, mb: number, r: 0 | 1) => {
   const s = cd.length;
   // index
   let i = 0;
-  // u8 "map": index -> # of codes with bit length = index
+  // u16 "map": index -> # of codes with bit length = index
   const l = new u16(mb);
   // length of cd must be 288 (total # of codes)
   for (; i < s; ++i) ++l[cd[i] - 1];
@@ -738,7 +738,7 @@ export interface DeflateOptions {
 export interface GzipOptions extends DeflateOptions {
   /**
    * When the file was last modified. Defaults to the current time.
-   * Set this to 0 to avoid specifying a modification date entirely.
+   * If you're using GZIP, set this to 0 to avoid revealing a modification date entirely.
    */
   mtime?: Date | string | number;
   /**
@@ -2059,6 +2059,8 @@ type ZipDat = AsyncZipDat & {
   // total offset
   o: number;
 }
+
+// TODO: Support streams as ZIP input
 
 /**
  * Asynchronously creates a ZIP file

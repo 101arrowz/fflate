@@ -11,6 +11,15 @@
     "./lib/node-worker.js": "./lib/worker.js",
     "./esm/node-worker.js": "./esm/worker.js"
   },
+  "targets": {
+    "main": false,
+    "module": false,
+    "browser": false,
+    "types": false,
+    "demo": {
+      "distDir": "demo"
+    }
+  },
   "sideEffects": false,
   "repository": "https://github.com/101arrowz/fflate",
   "author": "Arjun Barrett",
@@ -33,11 +42,12 @@
     "non-blocking"
   ],
   "scripts": {
-    "build": "yarn build:lib && yarn build:docs && yarn build:rewrite",
+    "build": "yarn build:lib && yarn build:docs && yarn build:rewrite && yarn build:demo",
     "script": "node -r ts-node/register scripts/$SC.ts",
     "build:lib": "tsc && tsc --project tsconfig.esm.json && yarn build:umd",
     "build:umd": "SC=buildUMD yarn script",
     "build:rewrite": "SC=rewriteBuilds yarn script",
+    "build:demo": "parcel build src/demo/index.html --dist-dir demo",
     "build:docs": "typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none --disableSources --excludePrivate --excludeProtected --out docs/ src/index.ts",
     "test": "TS_NODE_PROJECT=test/tsconfig.json uvu -b -r ts-node/register test",
     "prepack": "yarn build && yarn test"
@@ -49,6 +59,8 @@
     "@types/react-dom": "^16.9.9",
     "jszip": "^3.5.0",
     "pako": "*",
+    "parcel": "^2.0.0-nightly.440",
+    "parcel-config-precache-manifest": "^0.0.3",
     "preact": "^10.5.5",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
@@ -60,5 +72,10 @@
     "typescript": "^4.0.2",
     "uvu": "^0.3.3",
     "uzip": "*"
+  },
+  "alias": {
+    "react": "preact/compat",
+    "react-dom": "preact/compat",
+    "react-dom/test-utils": "preact/test-utils"
   }
 }
