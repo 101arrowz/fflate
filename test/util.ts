@@ -8,9 +8,9 @@ import { Worker } from 'worker_threads';
 const testFilesRaw = {
   basic: Buffer.from('Hello world!'),
   text: 'https://www.gutenberg.org/files/2701/old/moby10b.txt',
-  smallImage: 'https://www.hlevkin.com/TestImages/new/Rainier.bmp',
-  image: 'https://www.hlevkin.com/TestImages/new/Maltese.bmp',
-  largeImage: 'https://www.hlevkin.com/TestImages/new/Sunrise.bmp'
+  smallImage: 'https://hlevkin.com/hlevkin/TestImages/new/Rainier.bmp',
+  image: 'https://www.hlevkin.com/hlevkin/TestImages/new/Maltese.bmp',
+  largeImage: 'https://www.hlevkin.com/hlevkin/TestImages/new/Sunrise.bmp'
 };
 
 export type TestFile = keyof typeof testFilesRaw;
