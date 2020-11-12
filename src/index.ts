@@ -831,14 +831,9 @@ export interface AsyncTerminable {
   (): void;
 }
 
-// for implementing classes
-type Public<T> = { [K in keyof T]: T[K] };
-
-const gmem = (len: number, mem: number) => mem == null ? Math.ceil(Math.max(8, Math.min(13, Math.log(len))) * 1.5) : (12 + mem);
-
 // deflate with opts
 const dopt = (dat: Uint8Array, opt: DeflateOptions, pre: number, post: number, st?: boolean) =>
-  dflt(dat, opt.level == null ? 6 : opt.level, gmem(dat.length, opt.mem), pre, post, !st as unknown as 0 | 1);
+  dflt(dat, opt.level == null ? 6 : opt.level, opt.mem == null ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : (12 + opt.mem), pre, post, !st as unknown as 0 | 1);
 
 // Walmart object spread
 const mrg = <T extends {}>(a: T, b: T) => {
@@ -912,7 +907,7 @@ const wrkr = <T, R>(fns: (() => unknown[])[], init: (ev: MessageEvent<T>) => voi
 
 // base async inflate fn
 const bInflt = () => [u8, u16, fleb, flebmsk, fdeb, fdebmsk, clim, fl, fd, flrm, fdrm, rev, hMap, max, bits, bits16, shft, slc, inflt, inflateSync, pbf, gu8];
-const bDflt = () => [u8, u16, u32, fleb, fdeb, clim, revfl, revfd, flm, flt, fdm, fdt, rev, deo, et, hMap, wbits, wbits16, hTree, ln, lc, clen, wfblk, wblk, shft, slc, dflt, gmem, dopt, deflateSync, pbf]
+const bDflt = () => [u8, u16, u32, fleb, fdeb, clim, revfl, revfd, flm, flt, fdm, fdt, rev, deo, et, hMap, wbits, wbits16, hTree, ln, lc, clen, wfblk, wblk, shft, slc, dflt, dopt, deflateSync, pbf]
 
 // gzip extra
 const gze = () => [gzh, gzhl, wbytes, crc, crct];
@@ -963,7 +958,7 @@ const astrmify = <T>(fns: (() => unknown[])[], strm: Astrm, opts: T | 0, init: (
     init,
     id,
     (err, dat) => {
-      if (err) strm.ondata.call(strm, err);
+      if (err) w.terminate(), strm.ondata.call(strm, err);
       else {
         if (dat[1]) w.terminate();
         strm.ondata.call(strm, err, dat[0], dat[1]);

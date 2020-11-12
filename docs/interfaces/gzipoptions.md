@@ -73,4 +73,4 @@ ___
 • `Optional` **mtime**: Date \| string \| number
 
 When the file was last modified. Defaults to the current time.
-Set this to 0 to avoid specifying a modification date entirely.
+If you're using GZIP, set this to 0 to avoid revealing a modification date entirely.

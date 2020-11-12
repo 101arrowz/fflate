@@ -1,3 +1,5 @@
+## 0.3.6
+- Allowed true ESM imports
 ## 0.3.4
 - Fixed rare overflow bug causing corruption
 - Added async stream termination
