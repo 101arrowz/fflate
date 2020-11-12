@@ -1,7 +1,10 @@
-/// <reference lib="webworker" />
 import pako from 'pako';
 import * as UZIP from 'uzip';
 import JSZip from 'jszip';
+
+const wk = self as unknown as {
+  postMessage(b: unknown, bufs: ArrayBuffer[]): void;
+};
 
 const dcmp = ['inflate', 'gunzip', 'unzlib'];
 
@@ -56,7 +59,7 @@ onmessage = (ev: MessageEvent<[string, string]>) => {
           type: 'uint8array',
           compressionOptions: { level: 6 }
         }).then(buf => {
-          postMessage(buf, [buf.buffer]);
+          wk.postMessage(buf, [buf.buffer]);
         })
       };
     } else if (type == 'unzip') {
@@ -72,7 +75,7 @@ onmessage = (ev: MessageEvent<[string, string]>) => {
             }));
           }
           Promise.all(bufs).then(res => {
-            postMessage(out, res);
+            wk.postMessage(out, res);
           });
         })
       }
@@ -87,7 +90,7 @@ onmessage = (ev: MessageEvent<[string, string]>) => {
         raw: type == 'deflate'
       });
       strm.onData = (chunk: Uint8Array) => {
-        postMessage(chunk, [chunk.buffer]);
+        wk.postMessage(chunk, [chunk.buffer]);
       };
       onmessage = (ev: MessageEvent<[Uint8Array, boolean]>) => {
         strm.push(ev.data[0], ev.data[1]);
@@ -101,12 +104,17 @@ onmessage = (ev: MessageEvent<[string, string]>) => {
           zip[ev.data[0]] = ev.data[1];
         } else {
           const buf = UZIP.encode(zip);
-          postMessage(buf, [buf.buffer]);
+          wk.postMessage(buf, [buf.buffer]);
         }
       };
     } else if (type == 'unzip') {
       onmessage = (ev: MessageEvent<Uint8Array>) => {
-        postMessage(UZIP.parse(ev.data));
+        const bufs = UZIP.parse(ev.data);
+        const outBufs: ArrayBuffer[] = [];
+        for (const k in bufs) {
+          outBufs.push(bufs[k]);
+        }
+        wk.postMessage(bufs, outBufs);
       }
     } else {
       const chunks: Uint8Array[] = [];
@@ -126,7 +134,7 @@ onmessage = (ev: MessageEvent<[string, string]>) => {
                     ? uzGzip(out)
                     // we can pray that there's no special header
                     : UZIP.inflateRaw(out.subarray(10, -8));
-          postMessage(buf, [buf.buffer]);
+          wk.postMessage(buf, [buf.buffer]);
         }
       }
     }
