@@ -1,4 +1,4 @@
-import React, { FC, HTMLAttributes, InputHTMLAttributes, useEffect, useRef } from 'react';
+import React, { CSSProperties, FC, HTMLAttributes, InputHTMLAttributes, useEffect, useRef } from 'react';
 
 const supportsInputDirs = 'webkitdirectory' in HTMLInputElement.prototype;
 const supportsRelativePath = 'webkitRelativePath' in File.prototype;
@@ -30,7 +30,7 @@ const readRecurse = (dir: FileSystemDirectoryEntry, onComplete: (files: File[]) 
       if (entry.isFile) entry.file(f => onDone([
         new File([f], entry.fullPath.slice(1), f)
       ]), onErr);
-      else readRecurse(entry, onDone, onErr);
+      else readRecurse(entry as FileSystemDirectoryEntry, onDone, onErr);
     }
   };
   reader.readEntries(onRead, onError);
@@ -40,8 +40,9 @@ const FilePicker: FC<{
   onFiles(files: File[]): void;
   onDrag(on: boolean): void;
   onError(err: string | Error): void;
+  allowDirs: boolean;
 } & HTMLAttributes<HTMLDivElement>
-> = ({ onFiles, onDrag, onError, style, ...props }) => {
+> = ({ onFiles, onDrag, onError, style, allowDirs, children, ...props }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const dirInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -56,7 +57,7 @@ const FilePicker: FC<{
       const tf = ev.dataTransfer;
       if (!tf.files.length) onError('Please drop some files in');
       else {
-        if (supportsDirs) {
+        if (supportsDirs && allowDirs) {
           let outFiles: File[] = [];
           let lft = tf.items.length;
           let errored = false;
@@ -73,7 +74,7 @@ const FilePicker: FC<{
           for (let i = 0; i < tf.items.length; ++i) {
             const entry = tf.items[i].webkitGetAsEntry();
             if (entry.isFile) entry.file(f => onDone([f]), onErr);
-            else readRecurse(entry, onDone, onErr);
+            else readRecurse(entry as FileSystemDirectoryEntry, onDone, onErr);
           }
         } else onFiles(Array.prototype.slice.call(tf.files));
       }
@@ -90,7 +91,8 @@ const FilePicker: FC<{
     style: {
       display: 'flex',
       flexDirection: 'row',
-      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'spac',
       ...style
     }
   };
@@ -110,14 +112,28 @@ const FilePicker: FC<{
     style: { display: 'none' },
     multiple: true
   };
+  const buttonStyles: CSSProperties = {
+    cursor: 'grab'
+  };
   return (
     <div {...props} {...rootProps}>
+      {children}
       <input type="file" ref={inputRef} {...inputProps} />
-      <div onClick={() => inputRef.current!.click()}>Files</div>
-      {supportsInputDirs && 
+      <div onClick={() => inputRef.current!.click()} style={buttonStyles}>Files</div>
+      {supportsInputDirs && allowDirs &&
         <>
+          <div style={{
+            borderLeft: '1px solid gray',
+            color: 'gray',
+            marginLeft: '2vw',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <span style={{ position: 'relative', left: '-1vw', background: 'white' }}>OR</span>
+          </div>
           <input type="file" ref={dirInputRef} {...inputProps} />
-          <div onClick={() => dirInputRef.current!.click()}>Folders</div>
+          <div onClick={() => dirInputRef.current!.click()} style={buttonStyles}>Folders</div>
         </>
       }
     </div>

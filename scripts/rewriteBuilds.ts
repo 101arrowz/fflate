@@ -1,6 +1,18 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
-for (const d of ['lib', 'esm']) {
-  const f = join(__dirname, '..', d, 'index.js');
-  writeFileSync(f, readFileSync(f, 'utf-8').replace(/\/\*\* \@class \*\//g, '/*#__PURE__*/'));
-}
+const atClass = /\/\*\* \@class \*\//g, pure = '/*#__PURE__*/';
+const libIndex = join(__dirname, '..', 'lib', 'index.js');
+writeFileSync(libIndex, readFileSync(libIndex, 'utf-8').replace(atClass, pure));
+const esmDir = join(__dirname, '..', 'esm');
+const esmIndex = join(esmDir, 'index.js'),
+      esmWK = join(esmDir, 'worker.js'),
+      esmNWK = join(esmDir, 'node-worker.js');
+const esm = readFileSync(esmIndex, 'utf-8').replace(atClass, pure);
+const wk = readFileSync(esmWK, 'utf-8'),
+      nwk = readFileSync(esmNWK, 'utf-8');
+unlinkSync(esmIndex), unlinkSync(esmWK), unlinkSync(esmNWK);
+const workerImport = /import wk from '\.\/node-worker';/;
+const defaultExport = /export default/;
+const constDecl = 'var wk =';
+writeFileSync(join(esmDir, 'index.mjs'), esm.replace(workerImport, nwk.replace(defaultExport, constDecl)));
+writeFileSync(join(esmDir, 'browser.js'), esm.replace(workerImport, wk.replace(defaultExport, constDecl)));

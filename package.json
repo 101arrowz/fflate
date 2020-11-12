@@ -1,15 +1,15 @@
 {
   "name": "fflate",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "High performance (de)compression in an 8kB package",
-  "main": "lib/index.js",
-  "module": "esm/index.js",
-  "types": "lib/index.d.ts",
-  "unpkg": "umd/index.js",
-  "jsdelivr": "umd/index.js",
+  "main": "./lib/index.js",
+  "module": "./esm/index.mjs",
+  "types": "./lib/index.d.ts",
+  "unpkg": "./umd/index.js",
+  "jsdelivr": "./umd/index.js",
   "browser": {
     "./lib/node-worker.js": "./lib/worker.js",
-    "./esm/node-worker.js": "./esm/worker.js"
+    "./esm/index.mjs": "./esm/browser.js"
   },
   "targets": {
     "main": false,
@@ -47,7 +47,7 @@
     "build:lib": "tsc && tsc --project tsconfig.esm.json && yarn build:umd",
     "build:umd": "SC=buildUMD yarn script",
     "build:rewrite": "SC=rewriteBuilds yarn script",
-    "build:demo": "parcel build src/demo/index.html --dist-dir demo",
+    "build:demo": "tsc --project tsconfig.demo.json && parcel build src/demo/index.html --dist-dir demo",
     "build:docs": "typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none --disableSources --excludePrivate --excludeProtected --out docs/ src/index.ts",
     "test": "TS_NODE_PROJECT=test/tsconfig.json uvu -b -r ts-node/register test",
     "prepack": "yarn build && yarn test"
@@ -64,6 +64,7 @@
     "preact": "^10.5.5",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
+    "rmwc": "^6.1.4",
     "terser": "^5.3.8",
     "tiny-inflate": "*",
     "ts-node": "^9.0.0",

@@ -56,6 +56,13 @@ Note that tree shaking is completely unsupported from the CDN
 <!-- Now, the global variable fflate contains the library -->
 ```
 
+If you want to avoid using build tools entirely:
+```js
+// This should only ever be done if you have no build tools, otherwise the
+// standard ESM import is more stable.
+import * as fflate from 'fflate/esm/browser.js';
+```
+
 And use:
 ```js
 // This is an ArrayBuffer of data
