@@ -4,8 +4,8 @@ declare module 'uzip' {
     function inflateRaw(buf: Uint8Array, out?: Uint8Array): Uint8Array;
     function deflate(buf: Uint8Array, opts?: { level: number }): Uint8Array;
     function inflate(buf: Uint8Array, out?: Uint8Array): Uint8Array;
-    function encode(files: Record<string, Uint8Array>, noCmpr?: boolean): Uint8Array;
-    function parse(buf: Uint8Array): Record<string, Uint8Array>;
+    function encode(files: Record<string, Uint8Array>, noCmpr?: boolean): ArrayBuffer;
+    function parse(buf: ArrayBuffer): Record<string, ArrayBuffer>;
   }
   export = UZIP;
 }

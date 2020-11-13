@@ -1,7 +1,9 @@
-import React, { FC } from 'react';
+import React, { FC, useState } from 'react';
 import FilePicker from './components/file-picker';
+import CodeBox from './components/code-box';
 
 const App: FC = () => {
+  const [files, setFiles] = useState<File[]>([])
   return (
     <>
       <div style={{
@@ -48,11 +50,14 @@ const App: FC = () => {
           Despite utilizing multiple cores, supporting data streams, and being very memory efficient, fflate is compatible with both Node.js and browsers as old as IE11.
           <br /><br />
           You can read more about fflate on <a href="//github.com/package/fflate">GitHub</a>. Try the demo below to see its performance for yourself.
+          <br />
+          <span style={{ fontSize: '0.5em' }}>I added a <i>lot</i> of sugar (around 4 hundred lines) to the UZIP and Pako APIs to make the demo clean and asynchronous, but the fflate API is unmodified.</span>
         </div>
-        <FilePicker allowDirs onFiles={f => {
-          console.log(f);
-        }} onError={console.log} onDrag={() => {}} />
-      </div>
+        <div>
+          <FilePicker allowDirs onFiles={setFiles} onError={console.log} onDrag={() => {}} />
+          <CodeBox files={files} />
+        </div>
+       </div>
     </>
   );
 }
