@@ -104,15 +104,16 @@ onmessage = (ev: MessageEvent<[string, string]>) => {
           zip[ev.data[0]] = ev.data[1];
         } else {
           const buf = UZIP.encode(zip);
-          wk.postMessage(buf, [buf.buffer]);
+          wk.postMessage(new Uint8Array(buf), [buf]);
         }
       };
     } else if (type == 'unzip') {
       onmessage = (ev: MessageEvent<Uint8Array>) => {
-        const bufs = UZIP.parse(ev.data);
+        const bufs = UZIP.parse(ev.data.buffer);
         const outBufs: ArrayBuffer[] = [];
         for (const k in bufs) {
           outBufs.push(bufs[k]);
+          bufs[k] = new Uint8Array(bufs[k]);
         }
         wk.postMessage(bufs, outBufs);
       }
