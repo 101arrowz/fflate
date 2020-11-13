@@ -648,7 +648,7 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
     }
     pos = wblk(dat, w, lst, syms, lf, df, eb, li, bs, i - bs, pos);
     // this is the easiest way to avoid needing to maintain state
-    if (!lst) pos = wfblk(w, ++pos, et);
+    if (!lst) pos = wfblk(w, pos, et);
   }
   return slc(o, 0, pre + shft(pos) + post);
 }
@@ -1041,7 +1041,7 @@ function AsyncCmpStrm<T>(opts: T, cb?: AsyncFlateStreamHandler): T;
  */
 function AsyncCmpStrm<T>(cb?: AsyncFlateStreamHandler): T;
 function AsyncCmpStrm<T>(opts?: T | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler): T {
-  if (!cb) cb = opts as AsyncFlateStreamHandler, opts = {} as T;
+  if (!cb && typeof opts == 'function') cb = opts as AsyncFlateStreamHandler, opts = {} as T;
   this.ondata = cb as AsyncFlateStreamHandler;
   return opts as T;
 }
@@ -1060,7 +1060,7 @@ export class Deflate {
   constructor(opts: DeflateOptions, cb?: FlateStreamHandler);
   constructor(cb?: FlateStreamHandler);
   constructor(opts?: DeflateOptions | FlateStreamHandler, cb?: FlateStreamHandler) {
-    if (!cb) cb = opts as FlateStreamHandler, opts = {};
+    if (!cb && typeof opts == 'function') cb = opts as FlateStreamHandler, opts = {};
     this.ondata = cb;
     this.o = (opts as DeflateOptions) || {};
   }
@@ -1113,7 +1113,7 @@ export class AsyncDeflate {
       bDflt,
       () => [astrm, Deflate]
     ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
-      const strm = new Deflate(ev.data, true as unknown as FlateStreamHandler);
+      const strm = new Deflate(ev.data);
       onmessage = astrm(strm);
     }, 6);
   }
@@ -1357,7 +1357,7 @@ export class AsyncGzip {
       gze,
       () => [astrm, Deflate, Gzip]
     ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
-      const strm = new Gzip(ev.data, true as unknown as FlateStreamHandler);
+      const strm = new Gzip(ev.data);
       onmessage = astrm(strm);
     }, 8);
   }
@@ -1600,7 +1600,7 @@ export class AsyncZlib {
       zle,
       () => [astrm, Deflate, Zlib]
     ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
-      const strm = new Zlib(ev.data, true as unknown as FlateStreamHandler);
+      const strm = new Zlib(ev.data);
       onmessage = astrm(strm);
     }, 10);
   }
