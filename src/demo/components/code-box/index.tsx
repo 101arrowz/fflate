@@ -1,9 +1,10 @@
-import React, { FC, FormEvent, useState } from 'react';
+import React, { FC, useRef, useState } from 'react';
+import Highlight, { DefaultProps } from 'prism-react-renderer';
+import Prism from './prism';
+import './prism';
+import './prism.css';
 import exec from './sandbox';
-
-declare const Prism: {
-  highlightElement(el: Element): void;
-};
+import ts from 'typescript';
 
 const canStream = 'stream' in File.prototype;
 
@@ -88,15 +89,157 @@ fakeResponse.arrayBuffer().then(buf => {
   };
 }
 
+const CodeHighlight: FC<{
+  code: string;
+  onInput: (newCode: string) => void;
+}> = ({ code, onInput }) => {
+  const tmpParen = useRef(-1);
+  return (
+    <>
+      <pre className="language-javascript" style={{
+        width: '100%',
+        height: '100%',
+        position: 'relative',
+        backgroundColor: '#2a2734',
+        color: '#9a86fd',
+        fontSize: '0.7em'
+      }}>
+        <div>
+        <Highlight Prism={Prism.Prism as unknown as DefaultProps['Prism']} code={code} language="javascript">
+          {({ tokens, getLineProps, getTokenProps }) => (
+              tokens.map((line, i) => (
+                <div {...getLineProps({ line, key: i })}>
+                  {line.map((token, key) => (
+                    <span {...getTokenProps({ token, key })} />
+                  ))}
+                </div>
+              ))
+          )}
+        </Highlight>
+        </div>
+        <textarea
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+          style={{
+            border: 'unset',
+            resize: 'none',
+            outline: 'none',
+            position: 'absolute',
+            background: 'transparent',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            lineHeight: 'inherit',
+            fontSize: 'inherit',
+            padding: 'inherit',
+            color: 'transparent',
+            caretColor: 'white',
+            fontFamily: 'inherit'
+          }}
+          onKeyDown={e => {
+            const t = e.currentTarget;
+            let val = t.value;
+            const loc = t.selectionStart;
+            let newTmpParen = -1;
+            if (e.key == 'Enter') {
+              const lastNL = val.lastIndexOf('\n', loc - 1);
+              let indent = 0;
+              for (; val.charCodeAt(indent + lastNL + 1) == 32; ++indent);
+              const lastChar = val.charAt(loc - 1);
+              const nextChar = val.charAt(loc);
+              if (lastChar == '{'|| lastChar == '(' || lastChar == '[') indent += 2;
+              const addNL = nextChar == '}' || nextChar == ')' || nextChar == ']';
+              const tail = val.slice(t.selectionEnd);
+              val = val.slice(0, loc) + '\n';
+              for (let i = 0; i < indent; ++i) val += ' ';
+              if (addNL) {
+                if (
+                  (lastChar == '{' && nextChar == '}') ||
+                  (lastChar == '[' && nextChar == ']') || 
+                  (lastChar == '(' && nextChar == ')')
+                ) {
+                  val += '\n';
+                  for (let i = 2; i < indent; ++i) val += ' ';
+                } else {
+                  const end = Math.min(indent, 2);
+                  indent -= end;
+                  val = val.slice(0, -end);
+                }
+              }
+              val += tail;
+              t.value = val;
+              t.selectionStart = t.selectionEnd = loc + indent + 1;
+            } else if (e.key == 'Tab') {
+              val = val.slice(0, loc) + '  ' + val.slice(t.selectionEnd);
+              t.value = val;
+              t.selectionStart = t.selectionEnd = loc + 2;
+            } else if (t.selectionStart == t.selectionEnd) {
+              if (e.key == 'Backspace') {
+                if (val.charCodeAt(loc - 1) == 32 && !val.slice(val.lastIndexOf('\n', loc - 1), loc).trim().length) {
+                  val = val.slice(0, loc - 2) + val.slice(loc);
+                  t.value = val;
+                  t.selectionStart = t.selectionEnd = loc - 2;
+                } else if (
+                  (val.charAt(loc - 1) == '{' && val.charAt(loc) == '}') ||
+                  (val.charAt(loc - 1) == '[' && val.charAt(loc) == ']') ||
+                  (val.charAt(loc - 1) == '(' && val.charAt(loc) == ')')
+                ) {
+                  val = val.slice(0, loc - 1) + val.slice(loc + 1);
+                  t.value = val;
+                  t.selectionStart = t.selectionEnd = loc - 1;
+                } else return;
+              } else {
+                let a: string;
+                switch(e.key) {
+                  case '{':
+                  case '[':
+                  case '(':
+                    t.value = val = val.slice(0, loc) + (e.key == '{' ? '{}' : e.key == '[' ? '[]' : '()') + val.slice(loc);
+                    t.selectionStart = t.selectionEnd = newTmpParen = loc + 1;
+                    break;
+                  case '}':
+                  case ']':
+                  case ')': 
+                    // BUG: if the cursor is moved, this false activates
+                    if (tmpParen.current != loc) {
+                      const lastNL = val.lastIndexOf('\n', loc - 1);
+                      const sl = val.slice(lastNL, loc);
+                      t.value = val = val.slice(0, loc - (sl.length > 1 && !sl.trim().length ? 2 : 0)) + e.key + val.slice(loc);
+                    }
+                    t.selectionEnd = t.selectionStart = loc + 1;
+                    break;
+                  default:
+                    tmpParen.current = -1;
+                    return;
+                }
+              };
+            } else return;
+            tmpParen.current = newTmpParen;
+            e.preventDefault();
+            onInput(val);
+          }}
+          onInput={e => onInput(e.currentTarget.value)}
+          >
+          {code}
+        </textarea>
+      </pre>
+    </>
+    
+  )
+};
+
 const CodeBox: FC<{files: File[]}> = ({ files }) => {
   const [{ fflate, uzip, pako }, setCodes] = useState(presets['Streaming GZIP compression']);
-  const onInput = (ev: FormEvent<HTMLInputElement>) => {
-    const codes: Preset ={
+  const onInput = (lib: 'fflate' | 'uzip' | 'pako', code: string) => {
+    const codes: Preset = {
       fflate,
       uzip,
       pako
     };
-    codes[this as unknown as string] = ev.currentTarget.innerText;
+    codes[lib] = code;
     setCodes(codes);
   }
   return (
@@ -115,15 +258,15 @@ const CodeBox: FC<{files: File[]}> = ({ files }) => {
       }}>
         <div>
           fflate:
-          <code contentEditable className="lang-javascript" onInput={onInput.bind('fflate')}>{fflate}</code>
+          <CodeHighlight code={fflate.trim()} onInput={t => onInput('fflate', t)} />
         </div>
         <div>
           UZIP (shimmed):
-          <code contentEditable className="lang-javascript" onInput={onInput.bind('uzip')}>{uzip}</code>
+          <CodeHighlight code={uzip.trim()} onInput={t => onInput('uzip', t)} />
         </div>
         <div>
           Pako (shimmed):
-          <code contentEditable className="lang-javascript" onInput={onInput.bind('pako')}>{pako}</code>
+          <CodeHighlight code={pako.trim()} onInput={t => onInput('pako', t)} />
         </div>
       </div>
       <button onClick={() => {
