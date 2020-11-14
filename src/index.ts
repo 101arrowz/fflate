@@ -2219,7 +2219,8 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
 }
 
 /**
- * Synchronously decompresses a ZIP archive
+ * Synchronously decompresses a ZIP archive. Prefer using `unzip` for better
+ * performance with more than one file.
  * @param data The raw compressed ZIP file
  * @returns The decompressed files
  */
