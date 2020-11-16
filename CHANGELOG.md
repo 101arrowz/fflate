@@ -1,3 +1,6 @@
+## 0.3.7
+- Patched streaming compression bugs
+- Added demo page
 ## 0.3.6
 - Allowed true ESM imports
 ## 0.3.4
