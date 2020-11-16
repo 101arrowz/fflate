@@ -17,7 +17,7 @@
     "browser": false,
     "types": false,
     "demo": {
-      "distDir": "demo"
+      "distDir": "dist"
     }
   },
   "sideEffects": false,
@@ -47,7 +47,7 @@
     "build:lib": "tsc && tsc --project tsconfig.esm.json && yarn build:umd",
     "build:umd": "SC=buildUMD yarn script",
     "build:rewrite": "SC=rewriteBuilds yarn script",
-    "build:demo": "tsc --project tsconfig.demo.json && parcel build src/demo/index.html --dist-dir demo",
+    "build:demo": "tsc --project tsconfig.demo.json && parcel build demo/index.html",
     "build:docs": "typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none --disableSources --excludePrivate --excludeProtected --out docs/ src/index.ts",
     "test": "TS_NODE_PROJECT=test/tsconfig.json uvu -b -r ts-node/register test",
     "prepack": "yarn build && yarn test"
