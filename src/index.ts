@@ -543,12 +543,12 @@ const et = new u8(0);
 // compresses data into a raw DEFLATE buffer
 const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: number, lst: 0 | 1) => {
   const s = dat.length;
-  const o = new u8(pre + s + 5 * Math.ceil(s / 7000) + post);
+  const o = new u8(pre + s + 5 * (1 + Math.floor(s / 7000)) + post);
   // writing to this writes to the output buffer
   const w = o.subarray(pre, o.length - post);
   let pos = 0;
   if (!lvl || s < 8) {
-    for (let i = 0; i < s; i += 65535) {
+    for (let i = 0; i <= s; i += 65535) {
       // end
       const e = i + 65535;
       if (e < s) {
@@ -556,7 +556,7 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
         pos = wfblk(w, pos, dat.subarray(i, e));
       } else {
         // write final block
-        w[i] = 1;
+        w[i] = lst;
         pos = wfblk(w, pos, dat.subarray(i, s));
       }
     }
