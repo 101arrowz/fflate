@@ -1,4 +1,4 @@
-import * as fflate from '../../../../';
+import * as fflate from '../../..';
 import toNativeStream from './stream-adapter';
 
 type Callback = (...args: unknown[]) => void;

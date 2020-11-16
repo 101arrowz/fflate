@@ -174,6 +174,7 @@ for (var i = 0; i < files.length; ++i) {
 // If you choose JSZip, make sure to use v3.1.5 for adequate performance
 // (2-3x slower than fflate) instead of the latest version, which is 20-30x
 // slower than fflate.
+
 var zipObj = pakoWorker.zip();
 var processFile = function(i) {
   var file = files[i];
@@ -215,7 +216,7 @@ callback(new Error('unsupported'));`,
 const file = files[0];
 // In case this wasn't clear already, Pako doesn't actually support this,
 // you need to create a custom async stream. I suppose you could copy the
-// code used in this demo, which is on GitHub under the src/demo directory.
+// code used in this demo, which is on GitHub under the demo/ directory.
 const gzipStream = pakoWorker.createGzip();
 const fakeResponse = new Response(
   file.stream().pipeThrough(toNativeStream(gzipStream))
