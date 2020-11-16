@@ -53,13 +53,13 @@ const App: FC = () => {
           <br /><br />
           You can both pack and expand Zlib, GZIP, DEFLATE, or ZIP files very quickly with just a few lines of code.
           <br /><br />
-          Weighing in at a measly 8kB for basic (de)compression, you don't need to worry about your bundle size ballooning.
+          Weighing in at a measly 8kB for basic compression and decompression, you don't need to worry about your bundle size ballooning.
           <br /><br />
           Despite utilizing multiple cores, supporting data streams, and being very memory efficient, fflate is compatible with both Node.js and browsers as old as IE11.
           <br /><br />
           You can read more about fflate on <a href="//github.com/package/fflate">GitHub</a>. Try the demo below to see its performance for yourself. The code boxes are editable; try changing parameters or using a different compression format.
           <br /><br />
-          <span style={{ color: 'gray' }}>Disclaimer: I added a <span style={{ fontStyle: 'italic' }}>lot</span> of sugar (around 4 hundred lines) to the UZIP and Pako APIs to make the demo clean and asynchronous, but the fflate API is unmodified.</span>
+          <span style={{ fontSize: '0.75em' }}>Disclaimer: I added a <span style={{ fontStyle: 'italic' }}>lot</span> of sugar (around 4 hundred lines) to the UZIP and Pako APIs to make the demo clean and asynchronous, but the fflate API is unmodified.</span>
           <br /><br />
         </div>
         <div style={{
