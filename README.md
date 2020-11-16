@@ -20,6 +20,9 @@ In addition to the base decompression and compression APIs, `fflate` supports hi
 | Multi-thread/Asynchronous   | ❌     | ❌                      | ❌                    | ✅                             |
 | Uses ES Modules             | ❌     | ❌                      | ❌                    | ✅                             |
 
+## Demo
+If you'd like to try `fflate` for yourself without installing it, you can take a look at the [browser demo](https://101arrowz.github.io/fflate). Since `fflate` is a pure JavaScript library, it works in both the browser and Node.js (see [Browser support](https://github.com/101arrowz/fflate/#browser-support) for more info).
+
 ## Usage
 
 Install `fflate`:
