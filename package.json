@@ -15,11 +15,7 @@
     "main": false,
     "module": false,
     "browser": false,
-    "types": false,
-    "demo": {
-      "distDir": "dist",
-      "publicUrl": "./"
-    }
+    "types": false
   },
   "sideEffects": false,
   "repository": "https://github.com/101arrowz/fflate",
@@ -48,7 +44,7 @@
     "build:lib": "tsc && tsc --project tsconfig.esm.json && yarn build:umd",
     "build:umd": "SC=buildUMD yarn script",
     "build:rewrite": "SC=rewriteBuilds yarn script",
-    "build:demo": "tsc --project tsconfig.demo.json && parcel build demo/index.html && SC=cpGHPages yarn script",
+    "build:demo": "tsc --project tsconfig.demo.json && parcel build demo/index.html --public-url \"./\" && SC=cpGHPages yarn script",
     "build:docs": "typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none --disableSources --excludePrivate --excludeProtected --out docs/ src/index.ts",
     "test": "TS_NODE_PROJECT=test/tsconfig.json uvu -b -r ts-node/register test",
     "prepack": "yarn build && yarn test"
