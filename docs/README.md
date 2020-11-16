@@ -459,7 +459,8 @@ ___
 
 ▸ **unzipSync**(`data`: Uint8Array): [Unzipped](interfaces/unzipped.md)
 
-Synchronously decompresses a ZIP archive
+Synchronously decompresses a ZIP archive. Prefer using `unzip` for better
+performance with more than one file.
 
 #### Parameters:
 

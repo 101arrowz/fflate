@@ -1,9 +1,17 @@
-import React, { FC, useState } from 'react';
+import React, { FC, useEffect, useRef, useState } from 'react';
 import FilePicker from './components/file-picker';
 import CodeBox from './components/code-box';
 
 const App: FC = () => {
-  const [files, setFiles] = useState<File[]>([])
+  const [files, setFiles] = useState<File[] | null>([]);
+  const cbRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (files && files.length) {
+      cbRef.current!.scrollIntoView({
+        behavior: 'smooth' // Hopefully IE just ignores this value
+      });
+    }
+  }, [files]);
   return (
     <>
       <div style={{
@@ -40,7 +48,7 @@ const App: FC = () => {
         width: '100%',
         flex: 1
       }}>
-        <div style={{ maxWidth: '80%', fontSize: 'calc(18px + 0.6vw)', paddingTop: '4vh', paddingBottom: '2vh' }}>
+        <div style={{ maxWidth: '80%', fontSize: 'calc(15px + 0.6vw)', paddingTop: '4vh', paddingBottom: '2vh' }}>
           You've found <a href="//npmjs.com/package/fflate">fflate</a>, the fastest pure JavaScript compression library in existence.
           <br /><br />
           You can both pack and expand Zlib, GZIP, DEFLATE, or ZIP files very quickly with just a few lines of code.
@@ -49,13 +57,23 @@ const App: FC = () => {
           <br /><br />
           Despite utilizing multiple cores, supporting data streams, and being very memory efficient, fflate is compatible with both Node.js and browsers as old as IE11.
           <br /><br />
-          You can read more about fflate on <a href="//github.com/package/fflate">GitHub</a>. Try the demo below to see its performance for yourself.
-          <br />
-          <span style={{ fontSize: '0.5em' }}>I added a <i>lot</i> of sugar (around 4 hundred lines) to the UZIP and Pako APIs to make the demo clean and asynchronous, but the fflate API is unmodified.</span>
+          You can read more about fflate on <a href="//github.com/package/fflate">GitHub</a>. Try the demo below to see its performance for yourself. The code boxes are editable; try changing parameters or using a different compression format.
+          <br /><br />
+          <span style={{ color: 'gray' }}>Disclaimer: I added a <span style={{ fontStyle: 'italic' }}>lot</span> of sugar (around 4 hundred lines) to the UZIP and Pako APIs to make the demo clean and asynchronous, but the fflate API is unmodified.</span>
+          <br /><br />
         </div>
-        <div>
-          <FilePicker allowDirs onFiles={setFiles} onError={console.log} onDrag={() => {}} />
-          <CodeBox files={files} />
+        <div style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          flexDirection: 'column',
+          marginBottom: '2vh'
+        }}>
+          <FilePicker allowDirs onFiles={setFiles} onError={console.log} onDrag={() => {}}>
+            <div>{files ? ((files.length || 'No') + ' file' + (files.length == 1 ? '' : 's') + ' selected') : 'Loading...'}</div>
+            <br />
+          </FilePicker>
+          {((!files || files.length) && <CodeBox files={files!} forwardRef={cbRef} />) || null}
         </div>
        </div>
     </>
