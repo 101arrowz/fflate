@@ -1,4 +1,4 @@
-import React, { CSSProperties, FC, HTMLAttributes, InputHTMLAttributes, useEffect, useRef } from 'react';
+import React, { CSSProperties, FC, HTMLAttributes, InputHTMLAttributes, useEffect, useRef, useState } from 'react';
 
 const supportsInputDirs = 'webkitdirectory' in HTMLInputElement.prototype;
 const supportsRelativePath = 'webkitRelativePath' in File.prototype;
@@ -37,7 +37,7 @@ const readRecurse = (dir: FileSystemDirectoryEntry, onComplete: (files: File[]) 
 }
 
 const FilePicker: FC<{
-  onFiles(files: File[]): void;
+  onFiles(files: File[] | null): void;
   onDrag(on: boolean): void;
   onError(err: string | Error): void;
   allowDirs: boolean;
@@ -45,6 +45,10 @@ const FilePicker: FC<{
 > = ({ onFiles, onDrag, onError, style, allowDirs, children, ...props }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const dirInputRef = useRef<HTMLInputElement>(null);
+  const dragRef = useRef(0);
+  const [inputHover, setInputHover] = useState(false);
+  const [dirInputHover, setDirInputHover] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   useEffect(() => {
     // only init'd when support dirs
     if (dirInputRef.current) {
@@ -57,6 +61,7 @@ const FilePicker: FC<{
       const tf = ev.dataTransfer;
       if (!tf.files.length) onError('Please drop some files in');
       else {
+        onFiles(null);
         if (supportsDirs && allowDirs) {
           let outFiles: File[] = [];
           let lft = tf.items.length;
@@ -78,21 +83,26 @@ const FilePicker: FC<{
           }
         } else onFiles(Array.prototype.slice.call(tf.files));
       }
+      setIsHovering(false);
     },
     onDragEnter() {
+      ++dragRef.current;
       onDrag(true);
+      setIsHovering(true);
     },
     onDragOver(ev) {
       ev.preventDefault();
     },
-    onDragExit() {
-      onDrag(false);
+    onDragLeave() {
+      if (!--dragRef.current) {
+        onDrag(false);  
+        setIsHovering(false);
+      }
     },
     style: {
       display: 'flex',
-      flexDirection: 'row',
+      flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'spac',
       ...style
     }
   };
@@ -103,7 +113,7 @@ const FilePicker: FC<{
         const outFiles: File[] = Array(files.length);
         for (let i = 0; i < files.length; ++i) {
           const file = files[i];
-          outFiles[i] = new File([file], file.webkitRelativePath, file);
+          outFiles[i] = new File([file], file.webkitRelativePath || file.name, file);
         }
         onFiles(outFiles);
       } else onFiles(Array.prototype.slice.call(files));
@@ -113,29 +123,66 @@ const FilePicker: FC<{
     multiple: true
   };
   const buttonStyles: CSSProperties = {
-    cursor: 'grab'
+    cursor: 'default',
+    minWidth: '8vw',
+    height: '6vh',
+    margin: '1vmin',
+    padding: '1vmin',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 1px 2px 1px rgba(0, 0, 0, 0.2), 0 2px 4px 2px rgba(0, 0, 0, 0.15), 0 4px 8px 4px rgba(0, 0, 0, 0.12)',
+    border: '1px solid black',
+    borderRadius: '6px',
+    transition: 'background-color 300ms ease-in-out',
+    WebkitTouchCallout: 'none',
+    WebkitUserSelect: 'none',
+    msUserSelect: 'none',
+    MozUserSelect: 'none',
+    userSelect: 'none'
   };
   return (
     <div {...props} {...rootProps}>
       {children}
-      <input type="file" ref={inputRef} {...inputProps} />
-      <div onClick={() => inputRef.current!.click()} style={buttonStyles}>Files</div>
-      {supportsInputDirs && allowDirs &&
-        <>
-          <div style={{
-            borderLeft: '1px solid gray',
-            color: 'gray',
-            marginLeft: '2vw',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <span style={{ position: 'relative', left: '-1vw', background: 'white' }}>OR</span>
-          </div>
-          <input type="file" ref={dirInputRef} {...inputProps} />
-          <div onClick={() => dirInputRef.current!.click()} style={buttonStyles}>Folders</div>
-        </>
-      }
+      <div style={{
+        transition: 'transform ' + (isHovering ? 300 : 50) + 'ms ease-in-out',
+        transform: isHovering ? 'scale(1.5)' : 'none'
+      }}>Drag and Drop</div>
+      <div style={{
+        borderBottom: '1px solid gray',
+        margin: '1.5vh',
+        color: 'gray',
+        lineHeight: 0,
+        paddingTop: '1.5vh',
+        marginBottom: '3vh',
+        width: '100%',
+      }}>
+        <span style={{ background: 'white', padding: '0.25em' }}>OR</span>
+      </div>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%'
+      }}>
+        <input type="file" ref={inputRef} {...inputProps} />
+        <div onClick={() => inputRef.current!.click()} onMouseOver={() => setInputHover(true)} onMouseOut={() => setInputHover(false)} style={{
+          ...buttonStyles,
+          backgroundColor: inputHover ? 'rgba(0, 0, 0, 0.14)' : 'white'
+        }}>Select Files</div>
+        {supportsInputDirs && allowDirs &&
+          <>
+            <div style={{ boxShadow: '1px 0 black', height: '100%' }}><span /></div>
+            <input type="file" ref={dirInputRef} {...inputProps} />
+            <div onClick={() => dirInputRef.current!.click()} onMouseOver={() => setDirInputHover(true)} onMouseOut={() => setDirInputHover(false)} style={{
+              ...buttonStyles,
+              marginLeft: '8vmin',
+              backgroundColor: dirInputHover ? 'rgba(0, 0, 0, 0.14)' : 'white'
+            }}>Select Folders</div>
+          </>
+        }
+      </div>
     </div>
   );
 }
