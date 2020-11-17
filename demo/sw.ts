@@ -7,7 +7,9 @@ const sw = self as unknown as ServiceWorkerGlobalScope & {
 const precacheVersion = sw.__precacheManifest
   .map(p => p.revision)
   .join('');
-const precacheFiles = sw.__precacheManifest.map(p => p.url);
+const precacheFiles = sw.__precacheManifest.map(p => p.url).filter(
+  u => /\.(ico)$/.test(u)
+);
 
 const ch = () => caches.open(precacheVersion);
  
