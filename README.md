@@ -38,7 +38,7 @@ import * as fflate from 'fflate';
 // However, you should import ONLY what you need to minimize bloat.
 // So, if you just need GZIP compression support:
 import { gzipSync } from 'fflate';
-// Woo! You just saved 20 kB off your bundle with one line.
+// Woo! You just saved 15 kB off your bundle with one line.
 ```
 
 If your environment doesn't support ES Modules (e.g. Node.js):
