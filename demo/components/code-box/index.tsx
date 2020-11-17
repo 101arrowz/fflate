@@ -21,6 +21,14 @@ const presets: Record<string, Preset> = {
   'Basic GZIP compression': {
     fflate: `var left = files.length;
 var filesLengths = {};
+
+// In a real app, use a list of file types to avoid compressing for better
+// performance
+var ALREADY_COMPRESSED = [
+  'zip', 'gz', 'png', 'jpg', 'jpeg', 'pdf', 'doc', 'docx', 'ppt', 'pptx',
+  'xls', 'xlsx', 'heic', 'heif', '7z', 'bz2', 'rar', 'gif', 'webp', 'webm'
+];
+
 // This function binds the variable "file" to the local scope, which makes
 // parallel processing possible.
 // If you use ES6, you can declare variables with "let" to automatically bind
@@ -29,12 +37,33 @@ var processFile = function(i) {
   var file = files[i];
   fileToU8(file, function(buf) {
     fflate.gzip(buf, {
+
+      // In a real app, instead of always compressing at a certain level,
+      // you'll want to check if the file is already compressed. For fairness,
+      // that's not done here.
+
+      /*
+      level: ALREADY_COMPRESSED.indexOf(
+        file.name.slice(file.name.lastIndexOf('.') + 1)
+      ) == -1 ? 6 : 0
+      */
+
       level: 6,
 
-      // These are optional, but fflate supports the metadata
+      // You can uncomment the below for a contest of pure algorithm speed.
+      // In a real app, you'll probably not need to set the memory level
+      // because fflate picks a reasonable level based on file size by default.
+      // If fflate performs worse than UZIP, you're probably passing in 
+      // incompressible files; switching the level or the mem will fix it.
+      
+      /*
+      mem: 4
+      */
 
+      // The following are optional, but fflate supports metadata if you want
       mtime: file.lastModified,
       filename: file.name
+
     }, function(err, data) {
       if (err) callback(err);
       else {
