@@ -717,8 +717,8 @@ if ("development" !== "production") {
     module.exports = runtime;
   })();
 }
-},{}],"3GkXV":[function(require,module,exports) {
-var HMR_HOST = null;
+},{}],"6pK7l":[function(require,module,exports) {
+var HMR_HOST = "0.0.0.0";
 var HMR_PORT = 1234;
 var HMR_ENV_HASH = "d751713988987e9331980363e24189ce";
 module.bundle.HMR_BUNDLE_ID = "e5f29bf6168a5afdf95bee56b3dd2e5a";
@@ -1970,6 +1970,14 @@ try {
     'Basic GZIP compression': {
       fflate: `var left = files.length;
 var filesLengths = {};
+
+// In a real app, use a list of file types to avoid compressing for better
+// performance
+var ALREADY_COMPRESSED = [
+  'zip', 'gz', 'png', 'jpg', 'jpeg', 'pdf', 'doc', 'docx', 'ppt', 'pptx',
+  'xls', 'xlsx', 'heic', 'heif', '7z', 'bz2', 'rar', 'gif', 'webp', 'webm'
+];
+
 // This function binds the variable "file" to the local scope, which makes
 // parallel processing possible.
 // If you use ES6, you can declare variables with "let" to automatically bind
@@ -1978,12 +1986,31 @@ var processFile = function(i) {
   var file = files[i];
   fileToU8(file, function(buf) {
     fflate.gzip(buf, {
+
+      // In a real app, instead of always compressing at a certain level,
+      // you'll want to check if the file is already compressed. For fairness,
+      // that's not done here.
+
+      /*
+      level: ALREADY_COMPRESSED.indexOf(
+        file.name.slice(file.name.lastIndexOf('.'))
+      ) == -1 ? 6 : 0
+      */
+
       level: 6,
 
-      // These are optional, but fflate supports the metadata
+      // You can uncomment the below for a contest of pure algorithm speed.
+      // In a real app, you'll probably not need to set the memory level
+      // because fflate picks a reasonable level based on file size by default.
+      
+      /*
+      mem: 4
+      */
 
+      // The following are optional, but fflate supports metadata if you want
       mtime: file.lastModified,
       filename: file.name
+
     }, function(err, data) {
       if (err) callback(err);
       else {
@@ -2221,7 +2248,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 255,
+        lineNumber: 282,
         columnNumber: 5
       }
     }, /*#__PURE__*/_react.default.createElement("div", {
@@ -2229,7 +2256,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 267,
+        lineNumber: 294,
         columnNumber: 7
       }
     }), /*#__PURE__*/_react.default.createElement("textarea", {
@@ -2347,7 +2374,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 268,
+        lineNumber: 295,
         columnNumber: 7
       }
     }, code));
@@ -2399,21 +2426,21 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 406,
+        lineNumber: 433,
         columnNumber: 5
       }
     }, /*#__PURE__*/_react.default.createElement("div", {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 414,
+        lineNumber: 441,
         columnNumber: 7
       }
     }, /*#__PURE__*/_react.default.createElement("label", {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 415,
+        lineNumber: 442,
         columnNumber: 7
       }
     }, "Preset: "), /*#__PURE__*/_react.default.createElement("select", {
@@ -2429,7 +2456,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 416,
+        lineNumber: 443,
         columnNumber: 9
       }
     }, availablePresets.map(preset => /*#__PURE__*/_react.default.createElement("option", {
@@ -2438,7 +2465,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 423,
+        lineNumber: 450,
         columnNumber: 43
       }
     }, preset)), /*#__PURE__*/_react.default.createElement("option", {
@@ -2446,7 +2473,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 424,
+        lineNumber: 451,
         columnNumber: 11
       }
     }, "Custom"))), /*#__PURE__*/_react.default.createElement("div", {
@@ -2461,7 +2488,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 427,
+        lineNumber: 454,
         columnNumber: 7
       }
     }, /*#__PURE__*/_react.default.createElement("div", {
@@ -2471,7 +2498,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 435,
+        lineNumber: 462,
         columnNumber: 9
       }
     }, "fflate:", /*#__PURE__*/_react.default.createElement(CodeHighlight, {
@@ -2481,7 +2508,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 437,
+        lineNumber: 464,
         columnNumber: 11
       }
     }), /*#__PURE__*/_react.default.createElement("span", {
@@ -2491,7 +2518,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 438,
+        lineNumber: 465,
         columnNumber: 11
       }
     })), /*#__PURE__*/_react.default.createElement("div", {
@@ -2504,7 +2531,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 440,
+        lineNumber: 467,
         columnNumber: 9
       }
     }, /*#__PURE__*/_react.default.createElement("div", {
@@ -2514,7 +2541,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 446,
+        lineNumber: 473,
         columnNumber: 11
       }
     }, "UZIP (shimmed):", /*#__PURE__*/_react.default.createElement(CodeHighlight, {
@@ -2524,7 +2551,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 448,
+        lineNumber: 475,
         columnNumber: 13
       }
     }), /*#__PURE__*/_react.default.createElement("span", {
@@ -2534,7 +2561,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 449,
+        lineNumber: 476,
         columnNumber: 13
       }
     })), /*#__PURE__*/_react.default.createElement("div", {
@@ -2544,7 +2571,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 451,
+        lineNumber: 478,
         columnNumber: 11
       }
     }, "Pako (shimmed):", /*#__PURE__*/_react.default.createElement(CodeHighlight, {
@@ -2554,7 +2581,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 453,
+        lineNumber: 480,
         columnNumber: 13
       }
     }), /*#__PURE__*/_react.default.createElement("span", {
@@ -2564,7 +2591,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 454,
+        lineNumber: 481,
         columnNumber: 13
       }
     })))), /*#__PURE__*/_react.default.createElement("button", {
@@ -2614,7 +2641,7 @@ fakeResponse.arrayBuffer().then(buf => {
       __self: void 0,
       __source: {
         fileName: _jsxFileName,
-        lineNumber: 458,
+        lineNumber: 485,
         columnNumber: 7
       }
     }, "Run"));
@@ -3258,174 +3285,7 @@ const exec = (code, files, callback) => {
 
 var _default = exec;
 exports.default = _default;
-},{"./stream-adapter":"51P0v","../../util/workers.ts":"3XBnh","../../..":"3Zx7k"}],"51P0v":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = void 0;
-
-var _default = stream => {
-  const writable = new WritableStream({
-    write(dat) {
-      stream.push(dat);
-    },
-
-    close() {
-      stream.push(new Uint8Array(0), true);
-    }
-
-  });
-  const readable = new ReadableStream({
-    start(controller) {
-      stream.ondata = (err, chunk, final) => {
-        if (err) writable.abort(err.message);
-        controller.enqueue(chunk);
-        if (final) controller.close();
-      };
-    }
-
-  });
-  return {
-    readable,
-    writable
-  };
-};
-
-exports.default = _default;
-},{}],"3XBnh":[function(require,module,exports) {
-module.exports = require('./get-worker-url')(require('./relative-path')("6ZU7a", "ICYPF"));
-},{"./get-worker-url":"3jI9r","./relative-path":"Q4PMS"}],"3jI9r":[function(require,module,exports) {
-"use strict";
-
-/* global self, Blob */
-var bundleUrl = require('./bundle-url');
-
-module.exports = function (relativePath) {
-  var workerUrl = bundleUrl.getBundleURL() + relativePath;
-
-  if (bundleUrl.getOrigin(workerUrl) === self.location.origin) {
-    // If the worker bundle's url is on the same origin as the document,
-    // use the worker bundle's own url.
-    return workerUrl;
-  } else {
-    // Otherwise, create a blob URL which loads the worker bundle with `importScripts`.
-    return URL.createObjectURL(new Blob(['importScripts(' + JSON.stringify(workerUrl) + ');']));
-  }
-};
-},{"./bundle-url":"10N7P"}],"10N7P":[function(require,module,exports) {
-"use strict";
-
-/* globals document:readonly */
-var bundleURL = null;
-
-function getBundleURLCached() {
-  if (!bundleURL) {
-    bundleURL = getBundleURL();
-  }
-
-  return bundleURL;
-}
-
-function getBundleURL() {
-  try {
-    throw new Error();
-  } catch (err) {
-    var matches = ('' + err.stack).match(/(https?|file|ftp):\/\/[^)\n]+/g);
-
-    if (matches) {
-      return getBaseURL(matches[0]);
-    }
-  }
-
-  return '/';
-}
-
-function getBaseURL(url) {
-  return ('' + url).replace(/^((?:https?|file|ftp):\/\/.+)\/[^/]+$/, '$1') + '/';
-} // TODO: Replace uses with `new URL(url).origin` when ie11 is no longer supported.
-
-
-function getOrigin(url) {
-  let matches = ('' + url).match(/(https?|file|ftp):\/\/[^/]+/);
-
-  if (!matches) {
-    throw new Error('Origin not found');
-  }
-
-  return matches[0];
-}
-
-exports.getBundleURL = getBundleURLCached;
-exports.getBaseURL = getBaseURL;
-exports.getOrigin = getOrigin;
-},{}],"Q4PMS":[function(require,module,exports) {
-"use strict";
-
-var resolve = require('./bundle-manifest').resolve;
-
-module.exports = function (fromId, toId) {
-  return relative(dirname(resolve(fromId)), resolve(toId));
-};
-
-function dirname(_filePath) {
-  if (_filePath === '') {
-    return '.';
-  }
-
-  var filePath = _filePath[_filePath.length - 1] === '/' ? _filePath.slice(0, _filePath.length - 1) : _filePath;
-  var slashIndex = filePath.lastIndexOf('/');
-  return slashIndex === -1 ? '.' : filePath.slice(0, slashIndex);
-}
-
-function relative(from, to) {
-  if (from === to) {
-    return '';
-  }
-
-  var fromParts = from.split('/');
-
-  if (fromParts[0] === '.') {
-    fromParts.shift();
-  }
-
-  var toParts = to.split('/');
-
-  if (toParts[0] === '.') {
-    toParts.shift();
-  } // Find where path segments diverge.
-
-
-  var i;
-  var divergeIndex;
-
-  for (i = 0; (i < toParts.length || i < fromParts.length) && divergeIndex == null; i++) {
-    if (fromParts[i] !== toParts[i]) {
-      divergeIndex = i;
-    }
-  } // If there are segments from "from" beyond the point of divergence,
-  // return back up the path to that point using "..".
-
-
-  var parts = [];
-
-  for (i = 0; i < fromParts.length - divergeIndex; i++) {
-    parts.push('..');
-  } // If there are segments from "to" beyond the point of divergence,
-  // continue using the remaining segments.
-
-
-  if (toParts.length > divergeIndex) {
-    parts.push.apply(parts, toParts.slice(divergeIndex));
-  }
-
-  return parts.join('/');
-}
-
-module.exports._dirname = dirname;
-module.exports._relative = relative;
-},{"./bundle-manifest":"5G1rV"}],"3Zx7k":[function(require,module,exports) {
+},{"../../..":"3Zx7k","./stream-adapter":"51P0v","../../util/workers.ts":"3XBnh"}],"3Zx7k":[function(require,module,exports) {
 "use strict"; // DEFLATE is a complex format; to read this code, you should probably check the RFC first:
 // https://tools.ietf.org/html/rfc1951
 // You may also wish to take a look at the guide I made about this program:
@@ -5527,6 +5387,173 @@ exports["default"] = function (c, id, msg, transfer, cb) {
   w.postMessage(msg, transfer);
   return w;
 };
-},{}]},{},["347E4","3GkXV","77qLy","3BJrQ"], "3BJrQ", "parcelRequirebaf8")
+},{}],"51P0v":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _default = stream => {
+  const writable = new WritableStream({
+    write(dat) {
+      stream.push(dat);
+    },
+
+    close() {
+      stream.push(new Uint8Array(0), true);
+    }
+
+  });
+  const readable = new ReadableStream({
+    start(controller) {
+      stream.ondata = (err, chunk, final) => {
+        if (err) writable.abort(err.message);
+        controller.enqueue(chunk);
+        if (final) controller.close();
+      };
+    }
+
+  });
+  return {
+    readable,
+    writable
+  };
+};
+
+exports.default = _default;
+},{}],"3XBnh":[function(require,module,exports) {
+module.exports = require('./get-worker-url')(require('./relative-path')("6ZU7a", "ICYPF"));
+},{"./get-worker-url":"3jI9r","./relative-path":"Q4PMS"}],"3jI9r":[function(require,module,exports) {
+"use strict";
+
+/* global self, Blob */
+var bundleUrl = require('./bundle-url');
+
+module.exports = function (relativePath) {
+  var workerUrl = bundleUrl.getBundleURL() + relativePath;
+
+  if (bundleUrl.getOrigin(workerUrl) === self.location.origin) {
+    // If the worker bundle's url is on the same origin as the document,
+    // use the worker bundle's own url.
+    return workerUrl;
+  } else {
+    // Otherwise, create a blob URL which loads the worker bundle with `importScripts`.
+    return URL.createObjectURL(new Blob(['importScripts(' + JSON.stringify(workerUrl) + ');']));
+  }
+};
+},{"./bundle-url":"10N7P"}],"10N7P":[function(require,module,exports) {
+"use strict";
+
+/* globals document:readonly */
+var bundleURL = null;
+
+function getBundleURLCached() {
+  if (!bundleURL) {
+    bundleURL = getBundleURL();
+  }
+
+  return bundleURL;
+}
+
+function getBundleURL() {
+  try {
+    throw new Error();
+  } catch (err) {
+    var matches = ('' + err.stack).match(/(https?|file|ftp):\/\/[^)\n]+/g);
+
+    if (matches) {
+      return getBaseURL(matches[0]);
+    }
+  }
+
+  return '/';
+}
+
+function getBaseURL(url) {
+  return ('' + url).replace(/^((?:https?|file|ftp):\/\/.+)\/[^/]+$/, '$1') + '/';
+} // TODO: Replace uses with `new URL(url).origin` when ie11 is no longer supported.
+
+
+function getOrigin(url) {
+  let matches = ('' + url).match(/(https?|file|ftp):\/\/[^/]+/);
+
+  if (!matches) {
+    throw new Error('Origin not found');
+  }
+
+  return matches[0];
+}
+
+exports.getBundleURL = getBundleURLCached;
+exports.getBaseURL = getBaseURL;
+exports.getOrigin = getOrigin;
+},{}],"Q4PMS":[function(require,module,exports) {
+"use strict";
+
+var resolve = require('./bundle-manifest').resolve;
+
+module.exports = function (fromId, toId) {
+  return relative(dirname(resolve(fromId)), resolve(toId));
+};
+
+function dirname(_filePath) {
+  if (_filePath === '') {
+    return '.';
+  }
+
+  var filePath = _filePath[_filePath.length - 1] === '/' ? _filePath.slice(0, _filePath.length - 1) : _filePath;
+  var slashIndex = filePath.lastIndexOf('/');
+  return slashIndex === -1 ? '.' : filePath.slice(0, slashIndex);
+}
+
+function relative(from, to) {
+  if (from === to) {
+    return '';
+  }
+
+  var fromParts = from.split('/');
+
+  if (fromParts[0] === '.') {
+    fromParts.shift();
+  }
+
+  var toParts = to.split('/');
+
+  if (toParts[0] === '.') {
+    toParts.shift();
+  } // Find where path segments diverge.
+
+
+  var i;
+  var divergeIndex;
+
+  for (i = 0; (i < toParts.length || i < fromParts.length) && divergeIndex == null; i++) {
+    if (fromParts[i] !== toParts[i]) {
+      divergeIndex = i;
+    }
+  } // If there are segments from "from" beyond the point of divergence,
+  // return back up the path to that point using "..".
+
+
+  var parts = [];
+
+  for (i = 0; i < fromParts.length - divergeIndex; i++) {
+    parts.push('..');
+  } // If there are segments from "to" beyond the point of divergence,
+  // continue using the remaining segments.
+
+
+  if (toParts.length > divergeIndex) {
+    parts.push.apply(parts, toParts.slice(divergeIndex));
+  }
+
+  return parts.join('/');
+}
+
+module.exports._dirname = dirname;
+module.exports._relative = relative;
+},{"./bundle-manifest":"5G1rV"}]},{},["347E4","6pK7l","77qLy","3BJrQ"], "3BJrQ", "parcelRequirebaf8")
 
 //# sourceMappingURL=index.e5f29bf6.js.map
