@@ -57,7 +57,7 @@ const App: FC = () => {
           <br /><br />
           Despite utilizing multiple cores, supporting data streams, and being very memory efficient, fflate is compatible with both Node.js and browsers as old as IE11.
           <br /><br />
-          You can read more about fflate on <a href="//github.com/package/fflate">GitHub</a>. Try the demo below to see its performance for yourself. The code boxes are editable; try changing parameters or using a different compression format.
+          You can read more about fflate on <a href="https://github.com/101arrowz/fflate">GitHub</a>. Try the demo below to see its performance for yourself. The code boxes are editable; try changing parameters or using a different compression format.
           <br /><br />
           <span style={{ fontSize: '0.75em' }}>Disclaimer: I added a <span style={{ fontStyle: 'italic' }}>lot</span> of sugar (around 4 hundred lines) to the UZIP and Pako APIs to make the demo clean and asynchronous, but the fflate API is unmodified.</span>
           <br /><br />
