@@ -337,4 +337,9 @@ You can validate the performance of `fflate` with `npm`/`yarn`/`pnpm` `test`. It
 Note that the time it takes for the CLI to show the completion of each test is not representative of the time each package took, so please check the JSON output if you want accurate masurements.
 
 ## License
-MIT
+
+This software is [MIT Licensed](./LICENSE), with special exemptions for projects
+and organizations as noted below:
+
+- [SheetJS](https://github.com/SheetJS/) is exempt from MIT licensing and may
+  license any source code from this software under the BSD Zero Clause License
