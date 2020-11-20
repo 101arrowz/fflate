@@ -148,7 +148,8 @@ const shft = (p: number) => (p >>> 3) + (p & 7 && 1);
 const slc = <T extends Uint8Array | Uint16Array | Uint32Array>(v: T, s: number, e?: number): T => {
   if (s == null || s < 0) s = 0;
   if (e == null || e > v.length) e = v.length;
-  const n = new (v.constructor as typeof u8)(e - s) as T;
+  // can't use .constructor in case user-supplied
+  const n = new (v instanceof u16 ? u16 : v instanceof u32 ? u32 : u8)(e - s) as T;
   n.set(v.subarray(s, e));
   return n;
 }
@@ -180,11 +181,11 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
   // source length
   const sl = dat.length;
   // have to estimate size
-  const noBuf = !buf || st;
+  const noBuf = !buf || !noSt;
   // Assumes roughly 33% compression ratio average
   if (!buf) buf = new u8(sl * 3);
   // ensure buffer can fit at least l elements
-  const cbuf = noBuf ? (l: number) => {
+  const cbuf = (l: number) => {
     let bl = buf.length;
     // need to increase size to fit
     if (l > bl) {
@@ -193,7 +194,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
       nbuf.set(buf);
       buf = nbuf;
     }
-  } : () => {};
+  };
   //  last chunk         bitpos           bytes
   let final = st.f || 0, pos = st.p || 0, bt = st.b || 0, lm = st.l, dm = st.d, lbt = st.m, dbt = st.n;
   if (final && !lm) return buf;
@@ -214,7 +215,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
           break;
         }
         // ensure size
-        cbuf(bt + l);
+        if (noBuf) cbuf(bt + l);
         // Copy over uncompressed data
         buf.set(dat.subarray(s, t), bt);
         // Get new bitpos, update byte count
@@ -272,7 +273,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
     }
     // Make sure the buffer can hold this + the largest possible addition
     // maximum chunk size (practically, theoretically infinite) is 2^17;
-    cbuf(bt + 131072);
+    if (noBuf) cbuf(bt + 131072);
     const lms = (1 << lbt) - 1, dms = (1 << dbt) - 1;
     const mxa = lbt + dbt + 18;
     while (noSt || pos + mxa < tbts) {
@@ -302,12 +303,13 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         let dt = fd[dsym];
         if (dsym > 3) dt += bits16(dat, pos) & fdebmsk[dsym], pos += fdeb[dsym];
         if (pos > tbts) throw 'unexpected EOF';
-        cbuf(bt + 131072);
+        if (noBuf) cbuf(bt + 131072);
         const end = bt + add;
-        while (bt < end) {
-          buf[bt] = buf[bt++ - dt];
-          buf[bt] = buf[bt++ - dt];
-          buf[bt] = buf[bt++ - dt];
+        for (; bt < end; bt += 4) {
+          buf[bt] = buf[bt - dt];
+          buf[bt + 1] = buf[bt + 1 - dt];
+          buf[bt + 2] = buf[bt + 2 - dt];
+          buf[bt + 3] = buf[bt + 3 - dt];
         }
         bt = end;
       }
@@ -1997,8 +1999,8 @@ export function strFromU8(dat: Uint8Array, latin1?: boolean) {
 
 // read zip header
 const zh = (d: Uint8Array, b: number) => {
-  const u = b2(d, b + 6) & 2048, c = b2(d, b + 8), sc = b4(d, b += 18), su = b4(d, b + 4), fnl = b2(d, b + 8), fn = strFromU8(d.subarray(b += 12, b += fnl), !u);
-  return [sc, c, su, fn, b] as const;
+  const u = b2(d, b + 6) & 2048, c = b2(d, b + 8), sc = b4(d, b += 18), su = b4(d, b + 4), fnl = b2(d, b + 8), exl = b2(d, b + 10), fn = strFromU8(d.subarray(b += 12, b += fnl), !u);
+  return [sc, c, su, fn, b + exl] as const;
 }
 
 // write zip header
@@ -2210,8 +2212,8 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
     }
     if (!c) cbl(null, slc(data, b, b + sc))
     else if (c == 8) {
-      const infl = data.subarray(b, b + sc);
-      if (sc < 320000) cbl(null, inflateSync(infl, new u8(su)));
+      const infl = data.subarray(b, sc ? b + sc : data.length);
+      if (sc < 320000) cbl(null, inflateSync(infl, su && new u8(su)));
       else inflate(infl, { size: su }, cbl);
     } else throw 'unknown compression type ' + c;
   }
@@ -2238,7 +2240,7 @@ export function unzipSync(data: Uint8Array) {
     o += 46 + b2(data, o + 28) + b2(data, o + 30) + b2(data, o + 32);
     const [sc, c, su, fn, b] = zh(data, off);
     if (!c) files[fn] = slc(data, b, b + sc);
-    else if (c == 8) files[fn] = inflateSync(data.subarray(b, b + sc), new u8(su));
+    else if (c == 8) files[fn] = inflateSync(data.subarray(b, sc ? b + sc : data.length), su && new u8(su));
     else throw 'unknown compression type ' + c;
   }
   return files;
