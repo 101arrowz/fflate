@@ -242,7 +242,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         if (!noSt && pos + tl * (clb + 7) > tbts) break;
         // code lengths map
         const clm = hMap(clt, clb, 1);
-        for (let i = 0; i < ldt.length;) {
+        for (let i = 0; i < tl;) {
           const r = clm[bits(dat, pos, clbmsk)];
           // bits read
           pos += r & 15;
@@ -1999,7 +1999,8 @@ export function strFromU8(dat: Uint8Array, latin1?: boolean) {
 
 // read zip header
 const zh = (d: Uint8Array, b: number) => {
-  const u = b2(d, b + 6) & 2048, c = b2(d, b + 8), sc = b4(d, b += 18), su = b4(d, b + 4), fnl = b2(d, b + 8), exl = b2(d, b + 10), fn = strFromU8(d.subarray(b += 12, b += fnl), !u);
+  const bf = b2(d, b + 6), dd = bf & 4, c = b2(d, b + 8), sc = dd ? null : b4(d, b + 18), su = dd ? null : b4(d, b + 22),
+        fnl = b2(d, b + 26), exl = b2(d, b + 28), fn = strFromU8(d.subarray(b += 30, b += fnl), !(bf & 2048));
   return [sc, c, su, fn, b + exl] as const;
 }
 
@@ -2213,7 +2214,7 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
     if (!c) cbl(null, slc(data, b, b + sc))
     else if (c == 8) {
       const infl = data.subarray(b, sc ? b + sc : data.length);
-      if (sc < 320000) cbl(null, inflateSync(infl, su && new u8(su)));
+      if (sc < 320000) cbl(null, inflateSync(infl, su != null && new u8(su)));
       else inflate(infl, { size: su }, cbl);
     } else throw 'unknown compression type ' + c;
   }
@@ -2240,7 +2241,7 @@ export function unzipSync(data: Uint8Array) {
     o += 46 + b2(data, o + 28) + b2(data, o + 30) + b2(data, o + 32);
     const [sc, c, su, fn, b] = zh(data, off);
     if (!c) files[fn] = slc(data, b, b + sc);
-    else if (c == 8) files[fn] = inflateSync(data.subarray(b, sc ? b + sc : data.length), su && new u8(su));
+    else if (c == 8) files[fn] = inflateSync(data.subarray(b, sc ? b + sc : data.length), su != null && new u8(su));
     else throw 'unknown compression type ' + c;
   }
   return files;
