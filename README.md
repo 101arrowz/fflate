@@ -192,13 +192,20 @@ const zipped = fflate.zipSync({
     'other/tmp.txt': new Uint8Array([97, 98, 99, 100])
   },
   // You can also provide compression options
-  'myImageData.bmp': [aMassiveFile, { level: 9, mem: 12 }],
+  'myImageData.bmp': [aMassiveFile, {
+    level: 9,
+    mem: 12,
+    // ZIP-specific: mtime works here too, defaults to current time
+    mtime: new Date('10/20/2020')
+  }],
   // PNG is pre-compressed; no need to waste time
   'superTinyFile.png': [aPNGFile, { level: 0 }]
 }, {
   // These options are the defaults for all files, but file-specific
   // options take precedence.
-  level: 1
+  level: 1,
+  // Obfuscate mtime by default
+  mtime: 0
 });
 
 // If you write the zipped data to myzip.zip and unzip, the folder
@@ -289,7 +296,12 @@ gzs.terminate();
 // files runs in parallel. In fact, the fact that it's parallelized
 // makes it faster than most standalone ZIP CLIs. The effect is most
 // significant for multiple large files; less so for many small ones.
-zip({ f1: aMassiveFile, 'f2.txt': anotherMassiveFile }, (err, data) => {
+zip({ f1: aMassiveFile, 'f2.txt': anotherMassiveFile }, {
+  // The options object is still optional, you can still do just
+  // zip(archive, callback)
+  level: 6,
+  mtime: 0
+}, (err, data) => {
   // Save the ZIP file
 });
 
