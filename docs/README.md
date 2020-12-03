@@ -26,6 +26,7 @@
 * [AsyncGzipOptions](interfaces/asyncgzipoptions.md)
 * [AsyncInflateOptions](interfaces/asyncinflateoptions.md)
 * [AsyncTerminable](interfaces/asyncterminable.md)
+* [AsyncUnzipOptions](interfaces/asyncunzipoptions.md)
 * [AsyncUnzlibOptions](interfaces/asyncunzliboptions.md)
 * [AsyncZipOptions](interfaces/asynczipoptions.md)
 * [AsyncZippable](interfaces/asynczippable.md)
@@ -89,7 +90,7 @@ ___
 
 Ƭ  **AsyncZippableFile**: Uint8Array \| []
 
-A file that can be used to asynchronously createa a ZIP archive
+A file that can be used to asynchronously create a ZIP archive
 
 ___
 

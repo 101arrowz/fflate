@@ -106,7 +106,6 @@ onmessage = (ev: MessageEvent<[string, string]>) => {
         if (ev.data) {
           zip[ev.data[0]] = ev.data[1];
         } else {
-          console.log(zip);
           const buf = UZIP.encode(zip);
           wk.postMessage([new Uint8Array(buf), true], [buf]);
         }
