@@ -441,6 +441,20 @@ ___
 
 ### unzip
 
+▸ **unzip**(`data`: Uint8Array, `opts`: [AsyncUnzipOptions](interfaces/asyncunzipoptions.md), `cb`: [UnzipCallback](README.md#unzipcallback)): [AsyncTerminable](interfaces/asyncterminable.md)
+
+Asynchronously decompresses a ZIP archive
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`data` | Uint8Array | The raw compressed ZIP file |
+`opts` | [AsyncUnzipOptions](interfaces/asyncunzipoptions.md) | The decompression options |
+`cb` | [UnzipCallback](README.md#unzipcallback) | The callback to call with the decompressed files |
+
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
+
 ▸ **unzip**(`data`: Uint8Array, `cb`: [UnzipCallback](README.md#unzipcallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously decompresses a ZIP archive
