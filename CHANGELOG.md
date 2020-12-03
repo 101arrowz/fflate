@@ -1,3 +1,5 @@
+## 0.3.11
+- Fix docs
 ## 0.3.9
 - Fixed issue with unzipping
 ## 0.3.7
