@@ -320,7 +320,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
   return bt == buf.length ? buf : slc(buf, 0, bt);
 }
 
-// starting at p, write the minimum number of bits that can hold v to ds
+// starting at p, write the minimum number of bits that can hold v to d
 const wbits = (d: Uint8Array, p: number, v: number) => {
   v <<= p & 7;
   const o = p >>> 3;
@@ -328,7 +328,7 @@ const wbits = (d: Uint8Array, p: number, v: number) => {
   d[o + 1] |= v >>> 8;
 }
 
-// starting at p, write the minimum number of bits (>8) that can hold v to ds
+// starting at p, write the minimum number of bits (>8) that can hold v to d
 const wbits16 = (d: Uint8Array, p: number, v: number) => {
   v <<= p & 7;
   const o = p >>> 3;
@@ -1268,7 +1268,7 @@ export function inflate(data: Uint8Array, opts: AsyncInflateOptions, cb: FlateCa
 export function inflate(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
 export function inflate(data: Uint8Array, opts: AsyncInflateOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (!cb) throw 'no callback';
+  if (typeof cb != 'function') throw 'no callback';
   return cbify(data, opts as AsyncInflateOptions, [
     bInflt
   ], ev => pbf(inflateSync(ev.data[0], gu8(ev.data[1]))), 1, cb);
@@ -1396,7 +1396,7 @@ export function gzip(data: Uint8Array, opts: AsyncGzipOptions, cb: FlateCallback
 export function gzip(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
 export function gzip(data: Uint8Array, opts: AsyncGzipOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (!cb) throw 'no callback';
+  if (typeof cb != 'function') throw 'no callback';
   return cbify(data, opts as AsyncGzipOptions, [
     bDflt,
     gze,
@@ -1513,7 +1513,7 @@ export function gunzip(data: Uint8Array, opts: AsyncGunzipOptions, cb: FlateCall
 export function gunzip(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
 export function gunzip(data: Uint8Array, opts: AsyncGunzipOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (!cb) throw 'no callback';
+  if (typeof cb != 'function') throw 'no callback';
   return cbify(data, opts as AsyncGunzipOptions, [
     bInflt,
     guze,
@@ -1638,7 +1638,7 @@ export function zlib(data: Uint8Array, opts: AsyncZlibOptions, cb: FlateCallback
 export function zlib(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
 export function zlib(data: Uint8Array, opts: AsyncZlibOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (!cb) throw 'no callback';
+  if (typeof cb != 'function') throw 'no callback';
   return cbify(data, opts as AsyncZlibOptions, [
     bDflt,
     zle,
@@ -1753,7 +1753,7 @@ export function unzlib(data: Uint8Array, opts: AsyncGunzipOptions, cb: FlateCall
 export function unzlib(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
 export function unzlib(data: Uint8Array, opts: AsyncGunzipOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (!cb) throw 'no callback';
+  if (typeof cb != 'function') throw 'no callback';
   return cbify(data, opts as AsyncUnzlibOptions, [
     bInflt,
     zule,
@@ -1867,7 +1867,7 @@ export function decompress(data: Uint8Array, opts: AsyncInflateOptions, cb: Flat
 export function decompress(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
 export function decompress(data: Uint8Array, opts: AsyncInflateOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (!cb) throw 'no callback';
+  if (typeof cb != 'function') throw 'no callback';
   return (data[0] == 31 && data[1] == 139 && data[2] == 8)
     ? gunzip(data, opts as AsyncInflateOptions, cb)
     : ((data[0] & 15) != 8 || (data[0] >> 4) > 7 || ((data[0] << 8 | data[1]) % 31))
@@ -1900,12 +1900,17 @@ export interface ZipOptions extends DeflateOptions, Pick<GzipOptions, 'mtime'> {
 export interface AsyncZipOptions extends AsyncDeflateOptions, Pick<AsyncGzipOptions, 'mtime'> {}
 
 /**
+ * Options for asynchronously expanding a ZIP archive
+ */
+export interface AsyncUnzipOptions extends AsyncOptions {}
+
+/**
  * A file that can be used to create a ZIP archive
  */
 export type ZippableFile = Uint8Array | [Uint8Array, ZipOptions];
 
 /**
- * A file that can be used to asynchronously createa a ZIP archive
+ * A file that can be used to asynchronously create a ZIP archive
  */
 export type AsyncZippableFile = Uint8Array | [Uint8Array, AsyncZipOptions];
 
@@ -2077,6 +2082,7 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions, cb: FlateCallbac
 export function zip(data: AsyncZippable, cb: FlateCallback): AsyncTerminable;
 export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
+  if (typeof cb != 'function') throw 'no callback';
   const r: FlatZippable<true> = {};
   fltn(data, '', r, opts as AsyncZipOptions);
   const k = Object.keys(r);
@@ -2106,7 +2112,6 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
     c.p(file);
     const n = strToU8(fn), s = n.length;
     const t = p.level == 0 ? 0 : 8;
-    if (n.length > 65535) throw 'filename too long';
     const cbl: FlateCallback = (e, d) => {
       if (e) {
         tAll();
@@ -2127,9 +2132,15 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
         if (!--lft) cbf();
       }
     }
+    if (n.length > 65535) cbl(new Error('filename too long'), null);
     if (!t) cbl(null, file);
-    else if (m < 160000) cbl(null, deflateSync(file, opts as AsyncZipOptions));
-    else term.push(deflate(file, opts as AsyncZipOptions, cbl));
+    else if (m < 160000) {
+      try {
+        cbl(null, deflateSync(file, opts as AsyncZipOptions));
+      } catch(e) {
+        cbl(e, null);
+      }
+    } else term.push(deflate(file, opts as AsyncZipOptions, cbl));
   }
   return tAll;
 }
@@ -2185,6 +2196,7 @@ export function zipSync(data: Zippable, opts: ZipOptions = {}) {
  * @returns A function that can be used to immediately terminate the unzipping
  */
 export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
+  if (typeof cb != 'function') throw 'no callback';
   const term: AsyncTerminable[] = [];
   const tAll = () => {
     for (let i = 0; i < term.length; ++i) term[i]();
@@ -2192,7 +2204,10 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
   const files: Unzipped = {};
   let e = data.length - 22;
   for (; b4(data, e) != 0x6054B50; --e) {
-    if (!e || data.length - e > 65558) throw 'invalid zip file';
+    if (!e || data.length - e > 65558) {
+      cb(new Error('invalid zip file'), null);
+      return;
+    }
   };
   let lft = b2(data, e + 8);
   if (!lft) cb(null, {});
@@ -2214,7 +2229,13 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
     if (!c) cbl(null, slc(data, b, b + sc))
     else if (c == 8) {
       const infl = data.subarray(b, sc ? b + sc : data.length);
-      if (sc < 320000) cbl(null, inflateSync(infl, su != null && new u8(su)));
+      if (sc < 320000) {
+        try {
+          cbl(null, inflateSync(infl, su != null && new u8(su)));
+        } catch(e) {
+          cbl(e, null);
+        }
+      }
       else inflate(infl, { size: su }, cbl);
     } else throw 'unknown compression type ' + c;
   }
