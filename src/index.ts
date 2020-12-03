@@ -1151,7 +1151,7 @@ export function deflate(data: Uint8Array, opts: AsyncDeflateOptions, cb: FlateCa
 export function deflate(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
 export function deflate(data: Uint8Array, opts: AsyncDeflateOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (!cb) throw 'no callback';
+  if (typeof cb != 'function') throw 'no callback';
   return cbify(data, opts as AsyncDeflateOptions, [
     bDflt,
   ], ev => pbf(deflateSync(ev.data[0], ev.data[1])), 0, cb);
