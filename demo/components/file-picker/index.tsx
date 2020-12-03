@@ -41,7 +41,7 @@ const FilePicker: FC<{
   onDrag(on: boolean): void;
   onError(err: string | Error): void;
   allowDirs: boolean;
-} & HTMLAttributes<HTMLDivElement>
+} & Omit<HTMLAttributes<HTMLDivElement>, 'onError'>
 > = ({ onFiles, onDrag, onError, style, allowDirs, children, ...props }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const dirInputRef = useRef<HTMLInputElement>(null);
