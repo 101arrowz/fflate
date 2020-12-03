@@ -3,6 +3,7 @@ import FilePicker from './components/file-picker';
 import CodeBox from './components/code-box';
 
 const App: FC = () => {
+  const [err, setErr] = useState<string | Error | null>(null);
   const [files, setFiles] = useState<File[] | null>([]);
   const cbRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -69,7 +70,8 @@ const App: FC = () => {
           flexDirection: 'column',
           marginBottom: '2vh'
         }}>
-          <FilePicker allowDirs onFiles={setFiles} onError={console.log} onDrag={() => {}}>
+          <FilePicker allowDirs onFiles={setFiles} onError={setErr} onDrag={() => {}}>
+            {err && <div style={{ color: 'red' }}>Error: {err}</div>}
             <div>{files ? ((files.length || 'No') + ' file' + (files.length == 1 ? '' : 's') + ' selected') : 'Loading...'}</div>
             <br />
           </FilePicker>

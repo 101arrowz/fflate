@@ -222,7 +222,7 @@ As you may have guessed, there is an asynchronous version of every method as wel
 
 Note that there is a significant initial overhead to using workers of about 70ms, so it's best to avoid the asynchronous API unless necessary. However, if you're compressing multiple large files at once, or the synchronous API causes the main thread to hang for too long, the callback APIs are an order of magnitude better.
 ```js
-import { gzip, zlib, AsyncGzip, zip } from 'fflate';
+import { gzip, zlib, AsyncGzip, zip, strFromU8 } from 'fflate';
 
 // Workers will work in almost any browser (even IE11!)
 // However, they fail below Node v12 without the --experimental-worker
@@ -291,6 +291,15 @@ gzs.terminate();
 // significant for multiple large files; less so for many small ones.
 zip({ f1: aMassiveFile, 'f2.txt': anotherMassiveFile }, (err, data) => {
   // Save the ZIP file
+});
+
+// unzip is the only async function without support for consume option
+// Also parallelized, so unzip is also often much faster than unzipSync
+unzip(aMassiveZIPFile, (err, unzipped) => {
+  // If the archive has data.xml, log it here
+  console.log(unzipped['data.xml']);
+  // Conversion to string
+  console.log(strFromU8(unzipped['data.xml']))
 })
 ```
 
