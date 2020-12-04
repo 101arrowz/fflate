@@ -3,7 +3,9 @@ lib/
 esm/
 .DS_STORE
 # Rust version - available when ready
-rs/
+rs/target/
+rs/Cargo.lock
+
 .DS_STORE
 umd/
 # for demo
