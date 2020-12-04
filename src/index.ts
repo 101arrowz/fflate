@@ -775,7 +775,7 @@ export type AsyncFlateStreamHandler = (err: Error, data: Uint8Array, final: bool
  * @param err Any error that occurred
  * @param data The resulting data. Only present if `err` is null
  */
-export type FlateCallback = (err: Error, data: Uint8Array) => void;
+export type FlateCallback = (err: Error | string, data: Uint8Array) => void;
 
 // async callback-based compression
 interface AsyncOptions {
@@ -1935,7 +1935,7 @@ export interface Unzipped extends Record<string, Uint8Array> {}
  * @param err Any error that occurred
  * @param data The decompressed ZIP archive
  */
-export type UnzipCallback = (err: Error, data: Unzipped) => void;
+export type UnzipCallback = (err: Error | string, data: Unzipped) => void;
 
 // flattened Zippable
 type FlatZippable<A extends boolean> = Record<string, [Uint8Array, (A extends true ? AsyncZipOptions : ZipOptions)]>;
@@ -2002,11 +2002,14 @@ export function strFromU8(dat: Uint8Array, latin1?: boolean) {
   return r;
 };
 
+// skip local zip header
+const slzh = (d: Uint8Array, b: number) => b + 30 + b2(d, b + 26) + b2(d, b + 28);
+
 // read zip header
 const zh = (d: Uint8Array, b: number) => {
-  const bf = b2(d, b + 6), dd = bf & 4, c = b2(d, b + 8), sc = dd ? null : b4(d, b + 18), su = dd ? null : b4(d, b + 22),
-        fnl = b2(d, b + 26), exl = b2(d, b + 28), fn = strFromU8(d.subarray(b += 30, b += fnl), !(bf & 2048));
-  return [sc, c, su, fn, b + exl] as const;
+  const u = b2(d, b + 8) & 2048, c = b2(d, b + 10), sc = b4(d, b + 20), su = b4(d, b + 24),
+        fnl = b2(d, b + 28), fn = strFromU8(d.subarray(b + 46, b + 46 + fnl), !u);
+  return [sc, c, su, fn, b + 46 + fnl + b2(d, b + 30) + b2(d, b + 32), b4(d, b + 42)] as const;
 }
 
 // write zip header
@@ -2097,8 +2100,12 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
     tot = 0;
     for (let i = 0; i < slft; ++i) {
       const f = files[i];
-      wzh(out, tot, f.c, f.d, f.m, f.n, f.u, f.p, null, f.t);
-      wzh(out, o, f.c, f.d, f.m, f.n, f.u, f.p, tot, f.t), o += 46 + f.n.length, tot += 30 + f.n.length + f.d.length;
+      try {
+        wzh(out, tot, f.c, f.d, f.m, f.n, f.u, f.p, null, f.t);
+        wzh(out, o, f.c, f.d, f.m, f.n, f.u, f.p, tot, f.t), o += 46 + f.n.length, tot += 30 + f.n.length + f.d.length;
+      } catch(e) {
+        return cb(e, null);
+      }
     }
     wzf(out, o, files.length, cdl, oe);
     cb(null, out);
@@ -2132,7 +2139,7 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
         if (!--lft) cbf();
       }
     }
-    if (n.length > 65535) cbl(new Error('filename too long'), null);
+    if (n.length > 65535) cbl('filename too long', null);
     if (!t) cbl(null, file);
     else if (m < 160000) {
       try {
@@ -2205,7 +2212,7 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
   let e = data.length - 22;
   for (; b4(data, e) != 0x6054B50; --e) {
     if (!e || data.length - e > 65558) {
-      cb(new Error('invalid zip file'), null);
+      cb('invalid zip file', null);
       return;
     }
   };
@@ -2214,9 +2221,8 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
   const c = lft;
   let o = b4(data, e + 16);
   for (let i = 0; i < c; ++i) {
-    const off = b4(data, o + 42);
-    o += 46 + b2(data, o + 28) + b2(data, o + 30) + b2(data, o + 32);
-    const [sc, c, su, fn, b] = zh(data, off);
+    const [sc, c, su, fn, no, off] = zh(data, o), b = slzh(data, off);
+    o = no
     const cbl: FlateCallback = (e, d) => {
       if (e) {
         tAll();
@@ -2228,16 +2234,16 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
     }
     if (!c) cbl(null, slc(data, b, b + sc))
     else if (c == 8) {
-      const infl = data.subarray(b, sc ? b + sc : data.length);
+      const infl = data.subarray(b, b + sc);
       if (sc < 320000) {
         try {
-          cbl(null, inflateSync(infl, su != null && new u8(su)));
+          cbl(null, inflateSync(infl, new u8(su)));
         } catch(e) {
           cbl(e, null);
         }
       }
       else inflate(infl, { size: su }, cbl);
-    } else throw 'unknown compression type ' + c;
+    } else cbl('unknown compression type ' + c, null);
   }
   return tAll;
 }
@@ -2258,11 +2264,10 @@ export function unzipSync(data: Uint8Array) {
   if (!c) return {};
   let o = b4(data, e + 16);
   for (let i = 0; i < c; ++i) {
-    const off = b4(data, o + 42);
-    o += 46 + b2(data, o + 28) + b2(data, o + 30) + b2(data, o + 32);
-    const [sc, c, su, fn, b] = zh(data, off);
+    const [sc, c, su, fn, no, off] = zh(data, o), b = slzh(data, off);
+    o = no;
     if (!c) files[fn] = slc(data, b, b + sc);
-    else if (c == 8) files[fn] = inflateSync(data.subarray(b, sc ? b + sc : data.length), su != null && new u8(su));
+    else if (c == 8) files[fn] = inflateSync(data.subarray(b, b + sc), new u8(su));
     else throw 'unknown compression type ' + c;
   }
   return files;
