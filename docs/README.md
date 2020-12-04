@@ -96,7 +96,7 @@ ___
 
 ### FlateCallback
 
-Ƭ  **FlateCallback**: (err: Error,data: Uint8Array) => void
+Ƭ  **FlateCallback**: (err: Error \| string,data: Uint8Array) => void
 
 Callback for asynchronous (de)compression methods
 
@@ -120,7 +120,7 @@ ___
 
 ### UnzipCallback
 
-Ƭ  **UnzipCallback**: (err: Error,data: [Unzipped](interfaces/unzipped.md)) => void
+Ƭ  **UnzipCallback**: (err: Error \| string,data: [Unzipped](interfaces/unzipped.md)) => void
 
 Callback for asynchronous ZIP decompression
 
