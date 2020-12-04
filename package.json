@@ -18,6 +18,7 @@
     "types": false
   },
   "sideEffects": false,
+  "homepage": "https://101arrowz.github.io/fflate",
   "repository": "https://github.com/101arrowz/fflate",
   "author": "Arjun Barrett",
   "license": "MIT",

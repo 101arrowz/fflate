@@ -15,16 +15,12 @@ import wk from './node-worker';
 // aliases for shorter compressed code (most minifers don't do this)
 const u8 = Uint8Array, u16 = Uint16Array, u32 = Uint32Array;
 
-const mskr = (v: Uint8Array, o: Uint8Array | Uint16Array) => {
-  for (let i = 0; i < 32; ++i) o[i] = (1 << v[i]) - 1;
-  return o;
-}
 // fixed length extra bits
-const fleb = new u8([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, /* unused */ 0, 0, /* impossible */ 0]), flebmsk = mskr(fleb, new u8(32));
+const fleb = new u8([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, /* unused */ 0, 0, /* impossible */ 0]);
 
 // fixed distance extra bits
 // see fleb note
-const fdeb = new u8([0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, /* unused */ 0, 0]), fdebmsk = mskr(fdeb, new u16(32));
+const fdeb = new u8([0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, /* unused */ 0, 0]);
 
 // code length index map
 const clim = new u8([16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]);
@@ -53,11 +49,11 @@ const [fd, revfd] = freb(fdeb, 0);
 // map of value to reverse (assuming 16 bits)
 const rev = new u16(32768);
 for (let i = 0; i < 32768; ++i) {
-  // reverse table algorithm from UZIP.js
-  let x = ((i & 0xAAAAAAAA) >>> 1) | ((i & 0x55555555) << 1);
-  x = ((x & 0xCCCCCCCC) >>> 2) | ((x & 0x33333333) << 2);
-  x = ((x & 0xF0F0F0F0) >>> 4) | ((x & 0x0F0F0F0F) << 4);
-  rev[i] = (((x & 0xFF00FF00) >>> 8) | ((x & 0x00FF00FF) << 8)) >>> 1;
+  // reverse table algorithm from SO
+  let x = ((i & 0xAAAA) >>> 1) | ((i & 0x5555) << 1);
+  x = ((x & 0xCCCC) >>> 2) | ((x & 0x3333) << 2);
+  x = ((x & 0xF0F0) >>> 4) | ((x & 0x0F0F) << 4);
+  rev[i] = (((x & 0xFF00) >>> 8) | ((x & 0x00FF) << 8)) >>> 1;
 }
 
 // create huffman tree from u8 "map": index -> code length for code index
@@ -292,16 +288,19 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         // no extra bits needed if less
         if (sym > 264) {
           // index
-          const i = sym - 257;
-          add = bits(dat, pos, flebmsk[i]) + fl[i];
-          pos += fleb[i];
+          const i = sym - 257, b = fleb[i];
+          add = bits(dat, pos, (1 << b) - 1) + fl[i];
+          pos += b;
         }
         // dist
         const d = dm[bits16(dat, pos) & dms], dsym = d >>> 4;
         if (!d) throw 'invalid distance';
         pos += d & 15;
         let dt = fd[dsym];
-        if (dsym > 3) dt += bits16(dat, pos) & fdebmsk[dsym], pos += fdeb[dsym];
+        if (dsym > 3) {
+          const b = fdeb[dsym];
+          dt += bits16(dat, pos) & ((1 << b) - 1), pos += b;
+        }
         if (pos > tbts) throw 'unexpected EOF';
         if (noBuf) cbuf(bt + 131072);
         const end = bt + add;
@@ -908,7 +907,7 @@ const wrkr = <T, R>(fns: (() => unknown[])[], init: (ev: MessageEvent<T>) => voi
 }
 
 // base async inflate fn
-const bInflt = () => [u8, u16, fleb, flebmsk, fdeb, fdebmsk, clim, fl, fd, flrm, fdrm, rev, hMap, max, bits, bits16, shft, slc, inflt, inflateSync, pbf, gu8];
+const bInflt = () => [u8, u16, fleb, fdeb, clim, fl, fd, flrm, fdrm, rev, hMap, max, bits, bits16, shft, slc, inflt, inflateSync, pbf, gu8];
 const bDflt = () => [u8, u16, u32, fleb, fdeb, clim, revfl, revfd, flm, flt, fdm, fdt, rev, deo, et, hMap, wbits, wbits16, hTree, ln, lc, clen, wfblk, wblk, shft, slc, dflt, dopt, deflateSync, pbf]
 
 // gzip extra
