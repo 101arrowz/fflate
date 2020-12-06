@@ -205,7 +205,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
       pos += 3;
       if (!type) {
         // go to end of byte boundary
-        let s = shft(pos) + 4, l = dat[s - 4] | (dat[s - 3] << 8), t = s + l;
+        const s = shft(pos) + 4, l = dat[s - 4] | (dat[s - 3] << 8), t = s + l;
         if (t > sl) {
           if (noSt) throw 'unexpected EOF';
           break;
@@ -220,9 +220,9 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
       }
       else if (type == 1) lm = flrm, dm = fdrm, lbt = 9, dbt = 5;
       else if (type == 2) {
-        //  literal                          dist                               lengths
-        let hLit = bits(dat, pos, 31) + 257, hDist = bits(dat, pos + 5, 31) + 1, hcLen = bits(dat, pos + 10, 15) + 4;
-        const tl = hLit + hDist;
+        //  literal                            lengths
+        const hLit = bits(dat, pos, 31) + 257, hcLen = bits(dat, pos + 10, 15) + 4;
+        const tl = hLit + bits(dat, pos + 5, 31) + 1;
         pos += 14;
         // length+distance tree
         const ldt = new u8(tl);
