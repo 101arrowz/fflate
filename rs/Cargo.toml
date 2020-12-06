@@ -6,3 +6,11 @@ edition = "2018"
 
 [dependencies]
 lazy_static = "^1.4.0"
+wasm-bindgen = "^0.2.69"
+wee_alloc = "^0.4.5"
+
+[profile.release]
+opt-level = "s"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
