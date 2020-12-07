@@ -5,13 +5,11 @@
 // Instead of trying to read this code, check out the TypeScript version
 
 #![allow(non_upper_case_globals)]
-#![no_std]
 
 extern crate alloc;
 
-use alloc::vec::{Vec, from_elem};
+use alloc::vec::Vec;
 use lazy_static::lazy_static;
-use core::result::Result;
 
 const fleb: [usize; 32] = [
     0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 0, 0, 0,
@@ -61,35 +59,34 @@ fn freb(b: &[u16], r: &mut [u32]) {
 }
 
 // hmap base
-fn hmb(cd: &[u8], mb: u8) -> [u16; 16] {
+fn hmb(cd: &[u8], mb: u8, le: &mut [u16]) {
     let mut l = [0u16; 16];
     for &cl in cd {
         l[cl as usize] += 1;
     }
-    let mut le = [0u16; 16];
     let mut v = 0;
     let t = (mb + 1) as usize;
     for i in 1..t {
         le[i] = v;
         v = (v + l[i]) << 1;
     }
-    le
+    for i in t..15 {
+        le[i] = 0;
+    }
 }
 
-fn hmap(cd: &[u8], mb: u8) -> Vec<u16> {
-    let mut le = hmb(cd, mb);
-    cd.iter()
-        .map(|&cl| {
-            let v = rev[le[cl as usize] as usize] >> (15 - cl);
-            le[cl as usize] += 1;
-            v as u16
-        })
-        .collect::<Vec<_>>()
+fn hmap(cd: &[u8], mb: u8, co: &mut [u16], le: &mut [u16]) {
+    hmb(cd, mb, le);
+    for i in 0..cd.len() {
+        let cl = cd[i] as usize;
+        let v = rev[le[cl] as usize] >> (15 - cl);
+        le[cl] += 1;
+        co[i] = v as u16;
+    }
 }
 
-fn hrmap(cd: &[u8], mb: u8) -> Vec<u16> {
-    let mut le = hmb(cd, mb);
-    let mut co = from_elem(0, 1 << mb);
+fn hrmap(cd: &[u8], mb: u8, co: &mut [u16], le: &mut [u16]) {
+    hmb(cd, mb, le);
     let rvb = 15 - mb;
     let mbu = mb as usize;
     for i in 0..cd.len() {
@@ -101,74 +98,101 @@ fn hrmap(cd: &[u8], mb: u8) -> Vec<u16> {
             le[cl] += 1;
             let m = v + (1 << r);
             for j in v..m {
-                co[rev[j] >> rvb] = sv;
+                let ind = rev[j] >> rvb;
+                co[ind] = sv;
             }
         }
     }
-    co
 }
 
 lazy_static! {
-    static ref revfl: Vec<u32> = {
-        let mut v = Vec::with_capacity(261);
+    static ref revfl: [u32; 261]= {
+        let mut v = [0u32; 261];
         freb(&fl, &mut v);
         v[258] = 28;
         v
     };
-    static ref revfd: Vec<u32> = {
-        let mut v = Vec::with_capacity(32769);
+    static ref revfd: [u32; 32769] = {
+        let mut v = [0u32; 32769];
         freb(&fd, &mut v);
         v
     };
-    static ref rev: Vec<usize> = (0..32768)
-        .map(|mut v| {
-            v = ((v & 0xAAAA) >> 1) | ((v & 0x5555) << 1);
-            v = ((v & 0xCCCC) >> 2) | ((v & 0x3333) << 2);
-            v = ((v & 0xF0F0) >> 4) | ((v & 0x0F0F) << 4);
-            (((v & 0xFF00) >> 8) | ((v & 0x00FF) << 8)) >> 1
-        })
-        .collect::<Vec<_>>();
-    static ref flm: Vec<u16> = hmap(&flt, 9);
-    static ref flrm: Vec<u16> = hrmap(&flt, 9);
-    static ref fdm: Vec<u16> = hmap(&fdt, 5);
-    static ref fdrm: Vec<u16> = hrmap(&flt, 5);
+    static ref rev: [usize; 32768] = {
+        let mut v = [0usize; 32768];
+        for i in 0..32768 {
+            let mut el = ((i & 0xAAAA) >> 1) | ((i & 0x5555) << 1);
+            el = ((el & 0xCCCC) >> 2) | ((el & 0x3333) << 2);
+            el = ((el & 0xF0F0) >> 4) | ((el & 0x0F0F) << 4);
+            v[i] = (((el & 0xFF00) >> 8) | ((el & 0x00FF) << 8)) >> 1;
+        }
+        v
+    };
+    static ref flm: [u16; 288] = {
+        let mut v = [0u16; 288];
+        hmap(&flt, 9, &mut v, &mut [0u16; 16]);
+        v
+    };
+    static ref flrm: [u16; 511] = {
+        let mut v: [u16; 511] = [0u16; 511];
+        hrmap(&flt, 9, &mut v, &mut [0u16; 16]);
+        v
+    };
+    static ref fdm: [u16; 31] = {
+        let mut v = [0u16; 31];
+        hmap(&fdt, 5, &mut v, &mut [0u16; 16]);
+        v
+    };
+    static ref fdrm: [u16; 31] = {
+        let mut v: [u16; 31] = [0u16; 31];
+        hrmap(&fdt, 5, &mut v, &mut [0u16; 16]);
+        v
+    };
 }
 
 #[inline(always)]
 fn byte(dat: &[u8], bpos: usize) -> u8 {
-   dat[bpos]
+   if bpos < dat.len() {
+       dat[bpos]
+   } else {
+       0
+   }
 }
 
 #[inline]
 fn bits(dat: &[u8], pos: usize, mask: u8) -> u8 {
     let b = pos >> 3;
-    return ((byte(dat, b) as u16 | ((byte(dat, b + 1) as u16) << 8)) >> (pos & 7)) as u8 & mask;
+    ((byte(dat, b) as u16 | ((byte(dat, b + 1) as u16) << 8)) >> (pos & 7)) as u8 & mask
 }
 
 #[inline]
 fn bits16(dat: &[u8], pos: usize, mask: u16) -> u16 {
     let b = pos >> 3;
-    return ((byte(dat, b) as u32 | ((byte(dat, b + 1) as u32) << 8) | ((byte(dat, b + 2) as u32) << 16)) >> (pos & 7))
-        as u16
-        & mask;
+    ((byte(dat, b) as u32
+        | ((byte(dat, b + 1) as u32) << 8)
+        | ((byte(dat, b + 2) as u32) << 16))
+        >> (pos & 7)) as u16
+        & mask
 }
 
 #[inline(always)]
 fn shft(pos: usize) -> usize {
-    pos >> 3 + (pos & 7 != 0) as usize
+    (pos >> 3) + (pos & 7 != 0) as usize
 }
 
-struct InflateState {
-    lmap: Option<Vec<u16>>,
-    dmap: Option<Vec<u16>>,
+struct InflateState<'a> {
+    lmap: &'a mut [u16],
+    dmap: &'a mut [u16],
+    clmap: &'a mut [u16],
+    le: &'a mut [u16],
     lbits: u8,
     dbits: u8,
     bfinal: bool,
     pos: usize,
     last: bool,
-    head: bool
+    head: bool,
 }
 
+#[derive(Debug)]
 pub enum InflateError {
     UnexpectedEOF,
     InvalidBlockType,
@@ -203,8 +227,8 @@ fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<(), Inf
                     continue;
                 }
                 1 => {
-                    st.lmap = None;
-                    st.dmap = None;
+                    st.lmap.copy_from_slice(&*flrm);
+                    st.dmap.copy_from_slice(&*fdrm);
                     st.lbits = 9;
                     st.dbits = 5;
                 }
@@ -225,10 +249,10 @@ fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<(), Inf
                     if !st.last && pos + tl * (clb + 7) as usize > tbts {
                         break;
                     }
-                    let clm = hrmap(&clt, clb);
+                    hrmap(&clt, clb, st.clmap, st.le);
                     let mut i = 0;
                     loop {
-                        let r = clm[bits(dat, pos, clbmsk) as usize];
+                        let r = st.clmap[bits(dat, pos, clbmsk) as usize];
                         pos += (r & 15) as usize;
                         let s = (r >> 4) as u8;
                         if s < 16 {
@@ -265,8 +289,8 @@ fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<(), Inf
                     let dt = &ldt[hlit..tl];
                     st.lbits = *lt.iter().max().unwrap();
                     st.dbits = *dt.iter().max().unwrap();
-                    st.lmap = Some(hrmap(lt, st.lbits));
-                    st.dmap = Some(hrmap(dt, st.dbits));
+                    hrmap(lt, st.lbits, st.lmap, st.le);
+                    hrmap(dt, st.dbits, st.dmap, st.le);
                 }
                 _ => {
                     return Err(InflateError::InvalidBlockType);
@@ -277,13 +301,11 @@ fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<(), Inf
             }
         }
         st.head = false;
-        let lm = st.lmap.as_ref().unwrap_or(&flm);
-        let dm = st.dmap.as_ref().unwrap_or(&fdm);
         let lms = (1 << st.lbits) - 1;
         let dms = (1 << st.dbits) - 1;
         let mxa = (st.lbits + st.dbits + 18) as usize;
         while st.last || pos + mxa < tbts {
-            let c = lm[bits16(dat, pos, lms) as usize];
+            let c = st.lmap[bits16(dat, pos, lms) as usize];
             pos += (c & 15) as usize;
             if pos > tbts {
                 return Err(InflateError::UnexpectedEOF);
@@ -305,7 +327,7 @@ fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<(), Inf
                     add = bits(dat, pos, (1 << b) - 1) as u16 + fl[i as usize];
                     pos += b;
                 }
-                let d = dm[bits16(dat, pos, dms) as usize];
+                let d = st.dmap[bits16(dat, pos, dms) as usize];
                 if d == 0 {
                     return Err(InflateError::InvalidDistance);
                 }
@@ -336,9 +358,15 @@ fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<(), Inf
 
 pub fn inflate(dat: &[u8]) -> Result<Vec<u8>, InflateError> {
     let mut v = Vec::with_capacity(dat.len() * 3);
+    let mut lmap = [0u16; 32768];
+    let mut dmap = [0u16; 32768];
+    let mut clmap = [0u16; 128];
+    let mut le = [0u16; 16];
     let mut st = InflateState {
-        lmap: None,
-        dmap: None,
+        lmap: &mut lmap,
+        dmap: &mut dmap,
+        clmap: &mut clmap,
+        le: &mut le,
         lbits: 0,
         dbits: 0,
         bfinal: false,
@@ -346,8 +374,6 @@ pub fn inflate(dat: &[u8]) -> Result<Vec<u8>, InflateError> {
         last: true,
         head: true
     };
-    if let Err(e) = inflt(dat, &mut v, &mut st) {
-        return Err(e);
-    };
+    inflt(dat, &mut v, &mut st)?;
     Ok(v)
 }
