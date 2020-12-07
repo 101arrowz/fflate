@@ -9,16 +9,20 @@ mod lib;
 fn main() {
     let args: Vec<String> = args().collect();
     // Assumes run in root dir - good enough for a test
-    let fp_base = String::from("../test/data/largeImage");
+    let fp_base = String::from("./test");
     let fp = &args.get(1).unwrap_or(&fp_base);
     let mut f = File::open(fp).unwrap();
     let mut v: Vec<u8> = Vec::new();
     if f.read_to_end(&mut v).is_ok() {
         for _ in 0..5 {
             let now = Instant::now();
-            let out = lib::inflate(&v);
-            let el = now.elapsed();
-            println!("{}.{:06}s {:?}", el.as_secs(), el.as_nanos() / 1000, out.unwrap().len());
+            let mut buf = Vec::with_capacity(52344054);
+            unsafe { buf.set_len(52344054); }
+            let mut out = lib::SliceOutputBuffer::new(&mut buf);
+            if let Ok(()) = lib::inflate(&v, &mut out) {
+                let el = now.elapsed();
+                println!("{}.{:06}s {:?}", el.as_secs(), el.as_nanos() / 1000, buf.len());
+            };
         }
         // for _ in 0..5 {
         //     let now = Instant::now();
