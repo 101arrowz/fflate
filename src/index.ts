@@ -2142,11 +2142,11 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
     if (!t) cbl(null, file);
     else if (m < 160000) {
       try {
-        cbl(null, deflateSync(file, opts as AsyncZipOptions));
+        cbl(null, deflateSync(file, p));
       } catch(e) {
         cbl(e, null);
       }
-    } else term.push(deflate(file, opts as AsyncZipOptions, cbl));
+    } else term.push(deflate(file, p, cbl));
   }
   return tAll;
 }
