@@ -3,8 +3,8 @@ lib/
 esm/
 .DS_STORE
 # Rust version - available when ready
-rs/target/
-rs/Cargo.lock
+rs/*/target/
+rs/*/Cargo.lock
 
 .DS_STORE
 umd/
