@@ -1,0 +1,33 @@
+[package]
+name = "fflate"
+version = "0.0.1"
+authors = ["Arjun Barrett <arjunbarrett@gmail.com>"]
+description = "A fast, efficient, pure Rust compression library"
+repository = "https://github.com/101arrowz/fflate"
+license = "MIT"
+keywords = [
+  "compression",
+  "decompression",
+  "deflate",
+  "inflate",
+  "gzip",
+  "gunzip",
+  "zlib",
+  "zip",
+  "libflate",
+  "flate2"
+]
+edition = "2018"
+
+[dependencies]
+lazy_static = "1.4"
+
+[profile.release]
+opt-level = "s"
+lto = true
+
+[features]
+std = []
+
+[lib]
+crate-type = ["cdylib", "rlib"]

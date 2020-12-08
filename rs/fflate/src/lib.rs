@@ -5,11 +5,11 @@
 // Instead of trying to read this code, check out the TypeScript version
 
 #![allow(non_upper_case_globals)]
-
-extern crate alloc;
-
-use alloc::vec::Vec;
+#![cfg_attr(not(feature = "std"), no_std)]
 use lazy_static::lazy_static;
+
+#[cfg(feature = "std")]
+use std::{vec::Vec, io::{Read, Write, Error, ErrorKind}};
 
 const fleb: [usize; 32] = [
     0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 0, 0, 0,
@@ -48,6 +48,8 @@ const fdt: [u8; 31] = [5u8; 31];
 const clim: [usize; 19] = [
     16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
 ];
+
+const et: [u8; 0] = [];
 
 fn freb(b: &[u16], r: &mut [u32]) {
     for i in 1..30 {
@@ -91,6 +93,7 @@ fn hrmap(cd: &[u8], mb: u8, co: &mut [u16], le: &mut [u16]) {
     let mbu = mb as usize;
     for i in 0..cd.len() {
         let cl = cd[i] as usize;
+        // TODO: remove cond
         if cl != 0 {
             let r = mbu - cl;
             let v = (le[cl] << r) as usize;
@@ -182,11 +185,12 @@ fn shft(pos: usize) -> usize {
     (pos >> 3) + (pos & 7 != 0) as usize
 }
 
-struct InflateState<'a> {
-    lmap: &'a mut [u16],
-    dmap: &'a mut [u16],
-    clmap: &'a mut [u16],
-    le: &'a mut [u16],
+
+struct InflateState {
+    lmap: [u16; 32768],
+    dmap: [u16; 32768],
+    clmap: [u16; 128],
+    le: [u16; 16],
     lbits: u8,
     dbits: u8,
     bfinal: bool,
@@ -195,7 +199,30 @@ struct InflateState<'a> {
     head: bool,
 }
 
-#[derive(Debug)]
+impl InflateState {
+    #[inline(always)]
+    pub fn new() -> Self {
+        Default::default()
+    }
+}
+
+impl Default for InflateState {
+    fn default() -> Self {
+        InflateState {
+            lmap: [0; 32768],
+            dmap: [0; 32768],
+            clmap: [0; 128],
+            le: [0; 16],
+            lbits: 0,
+            dbits: 0,
+            bfinal: false,
+            pos: 0,
+            last: false,
+            head: true
+        }
+    }
+}
+
 pub enum InflateError {
     UnexpectedEOF,
     InvalidBlockType,
@@ -204,31 +231,32 @@ pub enum InflateError {
 }
 
 pub trait OutputBuffer {
-    fn w(self: &mut Self, value: u8);
-    fn wall(self: &mut Self, slice: &[u8]) {
+    fn w(&mut self, value: u8);
+    fn wall(&mut self, slice: &[u8]) {
         for &value in slice {
             self.w(value);
         }
     }
-    fn palloc(self: &mut Self, extra_bytes: usize);
-    fn back(self: &Self, back: usize) -> u8;
+    fn palloc(&mut self, extra_bytes: usize);
+    fn back(&self, back: usize) -> u8;
 }
 
+#[cfg(feature = "std")]
 impl OutputBuffer for Vec<u8> {
     #[inline(always)]
-    fn w(self: &mut Self, value: u8) {
+    fn w(&mut self, value: u8) {
         self.push(value);
     }
     #[inline(always)]
-    fn wall(self: &mut Self, slice: &[u8]) {
+    fn wall(&mut self, slice: &[u8]) {
         self.extend(slice.iter());
     }
     #[inline(always)]
-    fn palloc(self: &mut Self, extra_bytes: usize) {
+    fn palloc(&mut self, extra_bytes: usize) {
         self.reserve(extra_bytes);
     }
     #[inline(always)]
-    fn back(self: &Self, back: usize) -> u8 {
+    fn back(&self, back: usize) -> u8 {
         self[self.len() - back]
     }
 }
@@ -250,14 +278,14 @@ impl<'a> SliceOutputBuffer<'a> {
 
 impl<'a> OutputBuffer for SliceOutputBuffer<'a> {
     #[inline(always)]
-    fn w(self: &mut Self, value: u8) {
+    fn w(&mut self, value: u8) {
         if self.byte < self.buf.len() {
             self.buf[self.byte] = value;
         }
         self.byte += 1;
     }
     #[inline(always)]
-    fn wall(self: &mut Self, slice: &[u8]) {
+    fn wall(&mut self, slice: &[u8]) {
         let sl = slice.len();
         let end = self.byte + sl;
         if end <= self.buf.len() {
@@ -266,9 +294,9 @@ impl<'a> OutputBuffer for SliceOutputBuffer<'a> {
         self.byte = end;
     }
     #[inline(always)]
-    fn palloc(self: &mut Self, _eb: usize) {}
+    fn palloc(&mut self, _eb: usize) {}
     #[inline(always)]
-    fn back(self: &Self, back: usize) -> u8 {
+    fn back(&self, back: usize) -> u8 {
         self.buf[self.byte - back]
     }
 }
@@ -322,7 +350,7 @@ fn inflt(dat: &[u8], buf: &mut dyn OutputBuffer, st: &mut InflateState) -> Resul
                     if !st.last && pos + tl * (clb + 7) as usize > tbts {
                         break;
                     }
-                    hrmap(&clt, clb, st.clmap, st.le);
+                    hrmap(&clt, clb, &mut st.clmap, &mut st.le);
                     let mut i = 0;
                     loop {
                         let r = st.clmap[bits(dat, pos, clbmsk) as usize];
@@ -362,8 +390,8 @@ fn inflt(dat: &[u8], buf: &mut dyn OutputBuffer, st: &mut InflateState) -> Resul
                     let dt = &ldt[hlit..tl];
                     st.lbits = *lt.iter().max().unwrap();
                     st.dbits = *dt.iter().max().unwrap();
-                    hrmap(lt, st.lbits, st.lmap, st.le);
-                    hrmap(dt, st.dbits, st.dmap, st.le);
+                    hrmap(lt, st.lbits, &mut st.lmap, &mut st.le);
+                    hrmap(dt, st.dbits, &mut st.dmap, &mut st.le);
                 }
                 _ => {
                     return Err(InflateError::InvalidBlockType);
@@ -431,22 +459,49 @@ fn inflt(dat: &[u8], buf: &mut dyn OutputBuffer, st: &mut InflateState) -> Resul
 
 pub fn inflate(dat: &[u8], out: &mut dyn OutputBuffer) -> Result<(), InflateError> {
     out.palloc(dat.len() * 3);
-    let mut buf = [0u16; 65680];
-    let (mut lmap, buf) = buf.split_at_mut(32768);
-    let (mut dmap, buf) = buf.split_at_mut(32768);
-    let (mut clmap, mut le) = buf.split_at_mut(128);
-    let mut st = InflateState {
-        lmap: &mut lmap,
-        dmap: &mut dmap,
-        clmap: &mut clmap,
-        le: &mut le,
-        lbits: 0,
-        dbits: 0,
-        bfinal: false,
-        pos: 0,
-        last: true,
-        head: true
-    };
+    let mut st = InflateState::new();
+    st.last = true;
     inflt(dat, out, &mut st)?;
     Ok(())
 }
+
+pub struct Inflate<'a> {
+    pub sink: &'a mut dyn OutputBuffer,
+    state: InflateState
+}
+
+impl<'a> Inflate<'a> {
+    pub fn push(&mut self, data: &[u8]) -> Result<usize, InflateError> {
+        inflt(data, self.sink, &mut self.state)?;
+        let bytes = self.state.pos >> 3;
+        self.state.pos &= 7;
+        Ok(bytes)
+    }
+    pub fn end(&mut self) -> Result<(), InflateError> {
+        self.state.last = true;
+        self.push(&et)?;
+        Ok(())
+    }
+    pub fn new(sink: &'a mut dyn OutputBuffer) -> Inflate<'a> {
+        Inflate {
+            state: InflateState::new(),
+            sink: sink
+        }
+    }
+}
+
+// #[cfg(feature = "std")]
+// impl<'a> Write for Inflate<'a> {
+//     #[inline(always)]
+//     fn write(&mut self, data: &[u8]) -> Result<usize, Error> {
+//         self.push(data)
+//     }
+//     #[inline(always)]
+//     fn flush(&mut self) -> Result<(), Error> {
+//         match self.end() {
+//             Err(InflateError::UnexpectedEOF) => Err(Error::new(ErrorKind::UnexpectedEof, InflateError::UnexpectedEOF)),
+//             Err(e) => Err(Error::new(ErrorKind::Other, &e)),
+//             Ok(()) => Ok(())
+//         }
+//     }
+// }
