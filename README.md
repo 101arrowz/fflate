@@ -115,6 +115,9 @@ const buf = fflate.strToU8('Hello world!');
 
 // The second argument, latin1, is a boolean that indicates that the data
 // is not Unicode but rather should be encoded and decoded as Latin-1.
+// This is useful for creating a string from binary data that isn't
+// necessarily valid UTF-8. However, binary strings are incredibly
+// inefficient and tend to double file size, so they're not recommended.
 const compressedString = fflate.strFromU8(
   fflate.compressSync(buf),
   true
