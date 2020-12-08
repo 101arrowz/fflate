@@ -1,3 +1,11 @@
+## 0.4.1
+- Fix ZIP failure bug
+- Make ZIP options work better
+- Improve docs
+- Fix async inflate failure
+- Work on Rust version
+## 0.3.11
+- Fix docs
 ## 0.3.9
 - Fixed issue with unzipping
 ## 0.3.7

@@ -26,7 +26,8 @@ var filesLengths = {};
 // performance
 var ALREADY_COMPRESSED = [
   'zip', 'gz', 'png', 'jpg', 'jpeg', 'pdf', 'doc', 'docx', 'ppt', 'pptx',
-  'xls', 'xlsx', 'heic', 'heif', '7z', 'bz2', 'rar', 'gif', 'webp', 'webm'
+  'xls', 'xlsx', 'heic', 'heif', '7z', 'bz2', 'rar', 'gif', 'webp', 'webm',
+  'mp4', 'mov', 'mp3', 'aifc'
 ];
 
 // This function binds the variable "file" to the local scope, which makes
@@ -139,7 +140,8 @@ var left = files.length;
 var zipObj = {};
 var ALREADY_COMPRESSED = [
   'zip', 'gz', 'png', 'jpg', 'jpeg', 'pdf', 'doc', 'docx', 'ppt', 'pptx',
-  'xls', 'xlsx', 'heic', 'heif', '7z', 'bz2', 'rar', 'gif', 'webp', 'webm'
+  'xls', 'xlsx', 'heic', 'heif', '7z', 'bz2', 'rar', 'gif', 'webp', 'webm',
+  'mp4', 'mov', 'mp3', 'aifc'
 ];
 
 // Yet again, this is necessary for parallelization.
