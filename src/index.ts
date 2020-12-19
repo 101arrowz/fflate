@@ -864,8 +864,10 @@ const wcln = (fn: () => unknown[], fnStr: string, td: Record<string, unknown>) =
       const st = v.toString();
       if (v.prototype) {
         // for global objects
-        if (st.indexOf('[native code]') != -1) fnStr += st.slice(9, st.indexOf('(', 11))
-        else {
+        if (st.indexOf('[native code]') != -1) {
+          const spInd = st.indexOf(' ', 8) + 1;
+          fnStr += st.slice(spInd, st.indexOf('(', spInd));
+        } else {
           fnStr += st;
           for (const t in v.prototype) fnStr += ';' + k + '.prototype.' + t + '=' + v.prototype[t].toString();
         }
