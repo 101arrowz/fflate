@@ -1,16 +1,25 @@
 use wasm_bindgen::prelude::*;
-use fflate::{inflate, InflateError};
+use fflate;
 
 #[wasm_bindgen]
-pub fn inflate_raw(buf: &[u8]) -> Result<Vec<u8>, JsValue> {
-    let mut out = Vec::new();
-    if let Err(e) = inflate(buf, &mut out) {
-        return Err(JsValue::from(match e {
-            InflateError::InvalidBlockType => "invalid block type",
-            InflateError::InvalidDistance => "invalid distance",
-            InflateError::InvalidLengthOrLiteral => "invalid length/literal",
-            InflateError::UnexpectedEOF => "unexpected EOF"
-        }));
+pub struct Inflate {
+    buf: &'static Vec<u8>,
+    inflator: fflate::Inflate<'static>
+}
+
+#[wasm_bindgen]
+impl Inflate {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Inflate {
+        unsafe {
+            static mut buf: Vec<u8> = Vec::new();
+            Inflate {
+                buf: &buf,
+                inflator: fflate::Inflate::new(&mut buf)
+            }
+        }
     }
-    Ok(out)
+    pub fn push(&mut self, dat: &[u8], last: bool) -> Result<> {
+        self.inflator.write_all(dat);
+    }
 }
