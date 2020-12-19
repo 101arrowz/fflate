@@ -1,6 +1,6 @@
 {
   "name": "fflate",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "High performance (de)compression in an 8kB package",
   "main": "./lib/index.js",
   "module": "./esm/index.mjs",
@@ -20,6 +20,10 @@
   "sideEffects": false,
   "homepage": "https://101arrowz.github.io/fflate",
   "repository": "https://github.com/101arrowz/fflate",
+  "bugs": {
+    "email": "arjunbarrett@gmail.com",
+    "url": "https://github.com/101arrowz/fflate/issues"
+  },
   "author": "Arjun Barrett",
   "license": "MIT",
   "keywords": [
@@ -35,6 +39,7 @@
     "browser",
     "node.js",
     "tiny",
+    "fast",
     "zip",
     "unzip",
     "non-blocking"

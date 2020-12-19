@@ -230,6 +230,21 @@ pub enum InflateError {
     InvalidDistance
 }
 
+#[cfg(feature = "std")]
+impl From<InflateError> for Error {
+    fn from(error: InflateError) -> Self {
+        Error::new(match error {
+            InflateError::UnexpectedEOF => ErrorKind::UnexpectedEof,
+            _ => ErrorKind::Other
+        }, match error {
+            InflateError::UnexpectedEOF => "unexpected EOF",
+            InflateError::InvalidBlockType => "invalid block type",
+            InflateError::InvalidLengthOrLiteral => "invalid length/literal",
+            InflateError::InvalidDistance => "invalid distance"
+        })
+    }
+}
+
 pub trait OutputBuffer {
     fn w(&mut self, value: u8);
     fn wall(&mut self, slice: &[u8]) {
@@ -490,18 +505,14 @@ impl<'a> Inflate<'a> {
     }
 }
 
-// #[cfg(feature = "std")]
-// impl<'a> Write for Inflate<'a> {
-//     #[inline(always)]
-//     fn write(&mut self, data: &[u8]) -> Result<usize, Error> {
-//         self.push(data)
-//     }
-//     #[inline(always)]
-//     fn flush(&mut self) -> Result<(), Error> {
-//         match self.end() {
-//             Err(InflateError::UnexpectedEOF) => Err(Error::new(ErrorKind::UnexpectedEof, InflateError::UnexpectedEOF)),
-//             Err(e) => Err(Error::new(ErrorKind::Other, &e)),
-//             Ok(()) => Ok(())
-//         }
-//     }
-// }
+#[cfg(feature = "std")]
+impl<'a> Write for Inflate<'a> {
+    #[inline(always)]
+    fn write(&mut self, data: &[u8]) -> Result<usize, Error> {
+        Ok(self.push(data)?)
+    }
+    #[inline(always)]
+    fn flush(&mut self) -> Result<(), Error> {
+        Ok(self.end()?)
+    }
+}
