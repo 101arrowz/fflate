@@ -45,7 +45,7 @@ var processFile = function(i) {
 
       /*
       level: ALREADY_COMPRESSED.indexOf(
-        file.name.slice(file.name.lastIndexOf('.') + 1)
+        file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase()
       ) == -1 ? 6 : 0
       */
 
@@ -147,7 +147,7 @@ var ALREADY_COMPRESSED = [
 // Yet again, this is necessary for parallelization.
 var processFile = function(i) {
   var file = files[i];
-  var ext = file.name.slice(file.name.lastIndexOf('.') + 1);
+  var ext = file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase();
   fileToU8(file, function(buf) {
     // With fflate, we can choose which files we want to compress
     zipObj[file.name] = [buf, {
