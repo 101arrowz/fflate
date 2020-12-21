@@ -126,18 +126,18 @@ const max = (a: Uint8Array | number[]) => {
 
 // read d, starting at bit p and mask with m
 const bits = (d: Uint8Array, p: number, m: number) => {
-  const o = p >>> 3;
+  const o = (p / 8) >> 0;
   return ((d[o] | (d[o + 1] << 8)) >>> (p & 7)) & m;
 }
 
 // read d, starting at bit p continuing for at least 16 bits
 const bits16 = (d: Uint8Array, p: number) => {
-  const o = p >>> 3;
+  const o = (p / 8) >> 0;
   return ((d[o] | (d[o + 1] << 8) | (d[o + 2] << 16)) >>> (p & 7));
 }
 
 // get end of byte
-const shft = (p: number) => (p >>> 3) + (p & 7 && 1);
+const shft = (p: number) => ((p / 8) >> 0) + (p & 7 && 1);
 
 // typed array slice - allows garbage collector to free original reference,
 // while being more compatible than .slice
@@ -172,12 +172,13 @@ type InflateState = {
 
 // expands raw DEFLATE data
 const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
-  const noSt = !st || st.i;
-  if (!st) st = {};
   // source length
   const sl = dat.length;
   // have to estimate size
-  const noBuf = !buf || !noSt;
+  const noBuf = !buf || (st as unknown as boolean);
+  // no state
+  const noSt = !st || st.i;
+  if (!st) st = {};
   // Assumes roughly 33% compression ratio average
   if (!buf) buf = new u8(sl * 3);
   // ensure buffer can fit at least l elements
@@ -186,7 +187,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
     // need to increase size to fit
     if (l > bl) {
       // Double or set to necessary, whichever is greater
-      const nbuf = new u8(Math.max(bl << 1, l));
+      const nbuf = new u8(Math.max(bl * 2, l));
       nbuf.set(buf);
       buf = nbuf;
     }
@@ -195,7 +196,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
   let final = st.f || 0, pos = st.p || 0, bt = st.b || 0, lm = st.l, dm = st.d, lbt = st.m, dbt = st.n;
   if (final && !lm) return buf;
   // total bits
-  const tbts = sl << 3;
+  const tbts = sl * 8;
   do {
     if (!lm) {
       // BFINAL - this is only 1 when last chunk is next
@@ -215,7 +216,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         // Copy over uncompressed data
         buf.set(dat.subarray(s, t), bt);
         // Get new bitpos, update byte count
-        st.b = bt += l, st.p = pos = t << 3;
+        st.b = bt += l, st.p = pos = t * 8;
         continue;
       }
       else if (type == 1) lm = flrm, dm = fdrm, lbt = 9, dbt = 5;
@@ -322,7 +323,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
 // starting at p, write the minimum number of bits that can hold v to d
 const wbits = (d: Uint8Array, p: number, v: number) => {
   v <<= p & 7;
-  const o = p >>> 3;
+  const o = (p / 8) >> 0;
   d[o] |= v;
   d[o + 1] |= v >>> 8;
 }
@@ -330,7 +331,7 @@ const wbits = (d: Uint8Array, p: number, v: number) => {
 // starting at p, write the minimum number of bits (>8) that can hold v to d
 const wbits16 = (d: Uint8Array, p: number, v: number) => {
   v <<= p & 7;
-  const o = p >>> 3;
+  const o = (p / 8) >> 0;
   d[o] |= v;
   d[o + 1] |= v >>> 8;
   d[o + 2] |= v >>> 16;
@@ -475,7 +476,7 @@ const wfblk = (out: Uint8Array, pos: number, dat: Uint8Array) => {
   out[o + 2] = out[o] ^ 255;
   out[o + 3] = out[o + 1] ^ 255;
   for (let i = 0; i < s; ++i) out[o + i + 4] = dat[i];
-  return (o + 4 + s) << 3;
+  return (o + 4 + s) * 8;
 }
 
 // writes a block
@@ -697,7 +698,7 @@ const adler = (): CRCV => {
       }
       a = n, b = m;
     },
-    d() { return (a & 255) << 24 | (a >>> 8) << 16 | (b & 255) << 8 | (b >>> 8); }
+    d() { return ((a >>> 8) << 16 | (b & 255) << 8 | (b >>> 8)) + ((a & 255) << 23) * 2; }
   }
 }
 
@@ -981,7 +982,7 @@ const astrmify = <T>(fns: (() => unknown[])[], strm: Astrm, opts: T | 0, init: (
 const b2 = (d: Uint8Array, b: number) => d[b] | (d[b + 1] << 8);
 
 // read 4 bytes
-const b4 = (d: Uint8Array, b: number) => d[b] | (d[b + 1] << 8) | (d[b + 2] << 16) | (d[b + 3] << 24);
+const b4 = (d: Uint8Array, b: number) => (d[b] | (d[b + 1] << 8) | (d[b + 2] << 16)) + (d[b + 3] << 23) * 2;
 
 // write bytes
 const wbytes = (d: Uint8Array, b: number, v: number) => {
@@ -1014,7 +1015,7 @@ const gzs = (d: Uint8Array) => {
 // gzip length
 const gzl = (d: Uint8Array) => {
   const l = d.length;
-  return (d[l - 4] | d[l - 3] << 8 | d[l - 2] << 16 | d[l - 1] << 24);
+  return (d[l - 4] | d[l - 3] << 8 | d[l - 2] << 16) + (2 * (d[l - 1] << 23));
 }
 
 // gzip header length
@@ -1194,13 +1195,13 @@ export class Inflate {
     n.set(this.p), n.set(c, l), this.p = n;
   }
 
-  private c(c: Uint8Array, final: boolean) {
+  private c(final: boolean) {
     this.d = this.s.i = final;
     const bts = this.s.b;
     const dt = inflt(this.p, this.o, this.s);
     this.ondata(slc(dt, bts, this.s.b), final || false);
     this.o = slc(dt, this.s.b - 32768), this.s.b = 32768;
-    this.p = slc(this.p, this.s.p >>> 3), this.s.p &= 7;
+    this.p = slc(this.p, (this.s.p / 8) >> 0), this.s.p &= 7;
   }
 
   /**
@@ -1209,7 +1210,7 @@ export class Inflate {
    * @param final Whether this is the final chunk
    */
   push(chunk: Uint8Array, final?: boolean) {
-    this.e(chunk), this.c(chunk, final);
+    this.e(chunk), this.c(final);
   }
 }
 
@@ -1453,7 +1454,7 @@ export class Gunzip {
     }
     // necessary to prevent TS from using the closure value
     // This allows for workerization to function correctly
-    (Inflate.prototype as unknown as { c: typeof Inflate.prototype['c'] }).c.call(this, chunk, final);
+    (Inflate.prototype as unknown as { c: typeof Inflate.prototype['c'] }).c.call(this, final);
   }
 }
 
@@ -1693,7 +1694,7 @@ export class Unzlib {
     }
     // necessary to prevent TS from using the closure value
     // This allows for workerization to function correctly
-    (Inflate.prototype as unknown as { c: typeof Inflate.prototype['c'] }).c.call(this, chunk, final);
+    (Inflate.prototype as unknown as { c: typeof Inflate.prototype['c'] }).c.call(this, final);
   }
 }
 
@@ -2023,7 +2024,7 @@ const wzh = (d: Uint8Array, b: number, c: number, cmp: Uint8Array, su: number, f
   d[b] = t, b += 2;
   const dt = new Date(o.mtime || Date.now()), y = dt.getFullYear() - 1980;
   if (y < 0 || y > 119) throw 'date not in range 1980-2099';
-  wbytes(d, b, (y << 25) | ((dt.getMonth() + 1) << 21) | (dt.getDate() << 16) | (dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >>> 1));
+  wbytes(d, b, ((y << 24) * 2) | ((dt.getMonth() + 1) << 21) | (dt.getDate() << 16) | (dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >>> 1));
   b += 4;
   wbytes(d, b, c);
   wbytes(d, b + 4, l);
