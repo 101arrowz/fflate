@@ -1,3 +1,6 @@
+## 0.4.4
+- Files up to 4GB supported
+  - Hey, that's better than even Node.js `zlib`!
 ## 0.4.1
 - Fix ZIP failure bug
 - Make ZIP options work better
