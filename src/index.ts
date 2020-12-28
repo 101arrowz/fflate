@@ -269,7 +269,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
       if (pos > tbts) throw 'unexpected EOF';
     }
     // Make sure the buffer can hold this + the largest possible addition
-    // maximum chunk size (practically, theoretically infinite) is 2^17;
+    // Maximum chunk size (practically, theoretically infinite) is 2^17;
     if (noBuf) cbuf(bt + 131072);
     const lms = (1 << lbt) - 1, dms = (1 << dbt) - 1;
     const mxa = lbt + dbt + 18;
@@ -2008,10 +2008,16 @@ export function strFromU8(dat: Uint8Array, latin1?: boolean) {
 const slzh = (d: Uint8Array, b: number) => b + 30 + b2(d, b + 26) + b2(d, b + 28);
 
 // read zip header
-const zh = (d: Uint8Array, b: number) => {
-  const u = b2(d, b + 8) & 2048, c = b2(d, b + 10), sc = b4(d, b + 20), su = b4(d, b + 24),
-        fnl = b2(d, b + 28), fn = strFromU8(d.subarray(b + 46, b + 46 + fnl), !u);
-  return [sc, c, su, fn, b + 46 + fnl + b2(d, b + 30) + b2(d, b + 32), b4(d, b + 42)] as const;
+const zh = (d: Uint8Array, b: number, z: boolean) => {
+  const fnl = b2(d, b + 28), fn = strFromU8(d.subarray(b + 46, b + 46 + fnl), !(b2(d, b + 8) & 2048)), es = b + 46 + fnl;
+  const [sc, su, off] = z ? z64e(d, es) : [b4(d, b + 20), b4(d, b + 24), b4(d, b + 42)];
+  return [b2(d, b + 10), sc, su, fn, es + b2(d, b + 30) + b2(d, b + 32), off] as const;
+}
+
+// read zip64 extra field
+const z64e = (d: Uint8Array, b: number) => {
+  for (; b2(d, b) != 1; b += b2(d, b + 2));
+  return [b4(d, b + 4), b4(d, b + 12), b4(d, b + 20)] as const;
 }
 
 // write zip header
@@ -2220,10 +2226,17 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
   };
   let lft = b2(data, e + 8);
   if (!lft) cb(null, {});
-  const c = lft;
+  let c = lft;
   let o = b4(data, e + 16);
+  const z = o == 4294967295;
+  if (z) {
+    e = b4(data, e - 12);
+    if (b4(data, e) != 0x6064B50) throw 'invalid zip file';
+    c = lft = b4(data, e + 32);
+    o = b4(data, e + 48);
+  }
   for (let i = 0; i < c; ++i) {
-    const [sc, c, su, fn, no, off] = zh(data, o), b = slzh(data, off);
+    const [c, sc, su, fn, no, off] = zh(data, o, z), b = slzh(data, off);
     o = no
     const cbl: FlateCallback = (e, d) => {
       if (e) {
@@ -2244,7 +2257,7 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
           cbl(e, null);
         }
       }
-      else inflate(infl, { size: su }, cbl);
+      else term.push(inflate(infl, { size: su }, cbl));
     } else cbl('unknown compression type ' + c, null);
   }
   return tAll;
@@ -2262,11 +2275,18 @@ export function unzipSync(data: Uint8Array) {
   for (; b4(data, e) != 0x6054B50; --e) {
     if (!e || data.length - e > 65558) throw 'invalid zip file';
   };
-  const c = b2(data, e + 8);
+  let c = b2(data, e + 8);
   if (!c) return {};
   let o = b4(data, e + 16);
+  const z = o == 4294967295;
+  if (z) {
+    e = b4(data, e - 12);
+    if (b4(data, e) != 0x6064B50) throw 'invalid zip file';
+    c = b4(data, e + 32);
+    o = b4(data, e + 48);
+  }
   for (let i = 0; i < c; ++i) {
-    const [sc, c, su, fn, no, off] = zh(data, o), b = slzh(data, off);
+    const [c, sc, su, fn, no, off] = zh(data, o, z), b = slzh(data, off);
     o = no;
     if (!c) files[fn] = slc(data, b, b + sc);
     else if (c == 8) files[fn] = inflateSync(data.subarray(b, b + sc), new u8(su));

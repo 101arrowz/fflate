@@ -1,3 +1,6 @@
+## 0.4.5
+- Zip64 support
+  - Still not possible to have above 4GB files
 ## 0.4.4
 - Files up to 4GB supported
   - Hey, that's better than even Node.js `zlib`!
