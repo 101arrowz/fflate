@@ -1,4 +1,8 @@
+blank_issues_enabled: false
 contact_links:
+  - name: Questions
+    url: https://github.com/101arrowz/fflate/discussions
+    about: Ask questions about how to use fflate here.
   - name: Email
     url: mailto:arjunbarrett@gmail.com
     about: Privately send me any feedback or bug reports (with files to reproduce them) here.
