@@ -111,9 +111,9 @@ for (let i = 280; i < 288; ++i) flt[i] = 8;
 const fdt = new u8(32);
 for (let i = 0; i < 32; ++i) fdt[i] = 5;
 // fixed length map
-const flm = hMap(flt, 9, 0), flrm = hMap(flt, 9, 1);
+const flm = /*#__PURE__*/ hMap(flt, 9, 0), flrm = /*#__PURE__*/ hMap(flt, 9, 1);
 // fixed distance map
-const fdm = hMap(fdt, 5, 0), fdrm = hMap(fdt, 5, 1);
+const fdm = /*#__PURE__*/ hMap(fdt, 5, 0), fdrm = /*#__PURE__*/ hMap(fdt, 5, 1);
 
 // find max of array
 const max = (a: Uint8Array | number[]) => {
@@ -537,10 +537,10 @@ const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Uint32Array
 }
 
 // deflate options (nice << 13) | chain
-const deo = new u32([65540, 131080, 131088, 131104, 262176, 1048704, 1048832, 2114560, 2117632]);
+const deo = /*#__PURE__*/ new u32([65540, 131080, 131088, 131104, 262176, 1048704, 1048832, 2114560, 2117632]);
 
 // empty
-const et = new u8(0);
+const et = /*#__PURE__*/new u8(0);
 
 // compresses data into a raw DEFLATE buffer
 const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: number, lst: 0 | 1) => {
@@ -662,12 +662,15 @@ type CRCV = {
 };
 
 // CRC32 table
-const crct = new u32(256);
-for (let i = 0; i < 256; ++i) {
-  let c = i, k = 9;
-  while (--k) c = ((c & 1) && 0xEDB88320) ^ (c >>> 1);
-  crct[i] = c;
-}
+const crct = /*#__PURE__*/ (() => {
+  const t = new u32(256);
+  for (let i = 0; i < 256; ++i) {
+    let c = i, k = 9;
+    while (--k) c = ((c & 1) && 0xEDB88320) ^ (c >>> 1);
+    t[i] = c;
+  }
+  return t;
+})();
 
 // CRC32
 const crc = (): CRCV => {
@@ -2016,8 +2019,8 @@ const zh = (d: Uint8Array, b: number, z: boolean) => {
 
 // read zip64 extra field
 const z64e = (d: Uint8Array, b: number) => {
-  for (; b2(d, b) != 1; b += b2(d, b + 2));
-  return [b4(d, b + 4), b4(d, b + 12), b4(d, b + 20)] as const;
+  for (; b2(d, b) != 1; b += 4 + b2(d, b + 2));
+  return [b4(d, b + 12), b4(d, b + 4), b4(d, b + 20)] as const;
 }
 
 // write zip header
