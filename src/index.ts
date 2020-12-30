@@ -194,7 +194,6 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
   };
   //  last chunk         bitpos           bytes
   let final = st.f || 0, pos = st.p || 0, bt = st.b || 0, lm = st.l, dm = st.d, lbt = st.m, dbt = st.n;
-  if (final && !lm) return buf;
   // total bits
   const tbts = sl * 8;
   do {
@@ -1199,11 +1198,11 @@ export class Inflate {
   }
 
   private c(final: boolean) {
-    this.d = this.s.i = final;
+    this.d = this.s.i = final || false;
     const bts = this.s.b;
     const dt = inflt(this.p, this.o, this.s);
-    this.ondata(slc(dt, bts, this.s.b), final || false);
-    this.o = slc(dt, this.s.b - 32768), this.s.b = 32768;
+    this.ondata(slc(dt, bts, this.s.b), this.d);
+    this.o = slc(dt, this.s.b - 32768), this.s.b = this.o.length;
     this.p = slc(this.p, (this.s.p / 8) >> 0), this.s.p &= 7;
   }
 
@@ -1692,7 +1691,7 @@ export class Unzlib {
       this.p = this.p.subarray(2), this.v = 0;
     }
     if (final) {
-      if (this.p.length < 8) throw 'invalid zlib stream';
+      if (this.p.length < 4) throw 'invalid zlib stream';
       this.p = this.p.subarray(0, -4);
     }
     // necessary to prevent TS from using the closure value

@@ -1,3 +1,5 @@
+## 0.4.7
+- Fix data streaming bugs
 ## 0.4.5
 - Zip64 support
   - Still not possible to have above 4GB files
