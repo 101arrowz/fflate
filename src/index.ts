@@ -880,13 +880,6 @@ const wcln = (fn: () => unknown[], fnStr: string, td: Record<string, unknown>) =
   return [fnStr, td] as const;
 }
 
-
-// worker onmessage
-const wom = (ev: MessageEvent<[Record<string, unknown>, string]>) => {
-  for (const k in ev.data[0]) self[k] = ev.data[0][k];
-  onmessage = new Function('return ' + ev.data[1])();
-}
-
 type CachedWorker = readonly [string, Record<string, unknown>];
 
 const ch: CachedWorker[] = [];
@@ -908,7 +901,7 @@ const wrkr = <T, R>(fns: (() => unknown[])[], init: (ev: MessageEvent<T>) => voi
     ch[id] = wcln(fns[m], fnStr, td);
   }
   const td = mrg({}, ch[id][1]);
-  return wk(ch[id][0] + ';onmessage=' + wom.toString(), id, [td, init.toString()], cbfs(td), cb);
+  return wk(ch[id][0] + ';onmessage=function(e){for(var k in e.data)self[k]=e.data[k];onmessage=' + init.toString() + '}', id, td, cbfs(td), cb);
 }
 
 // base async inflate fn
