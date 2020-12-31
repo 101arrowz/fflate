@@ -1,3 +1,6 @@
+## 0.4.8
+- Support strict Content Security Policy
+  - Remove `new Function`
 ## 0.4.7
 - Fix data streaming bugs
 ## 0.4.5
