@@ -89,4 +89,4 @@ ___
 *Inherited from [GzipOptions](gzipoptions.md).[mtime](gzipoptions.md#mtime)*
 
 When the file was last modified. Defaults to the current time.
-If you're using GZIP, set this to 0 to avoid revealing a modification date entirely.
+Set this to 0 to avoid revealing a modification date entirely.

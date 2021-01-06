@@ -6,7 +6,7 @@ Options for creating a ZIP archive
 
 * [DeflateOptions](deflateoptions.md)
 
-* {}
+* [ZipAttributes](zipattributes.md)
 
   ↳ **ZipOptions**
 
@@ -14,10 +14,39 @@ Options for creating a ZIP archive
 
 ### Properties
 
+* [attrs](zipoptions.md#attrs)
 * [level](zipoptions.md#level)
 * [mem](zipoptions.md#mem)
+* [mtime](zipoptions.md#mtime)
+* [os](zipoptions.md#os)
 
 ## Properties
+
+### attrs
+
+• `Optional` **attrs**: number
+
+*Inherited from [ZipAttributes](zipattributes.md).[attrs](zipattributes.md#attrs)*
+
+The file's attributes. These are traditionally somewhat complicated
+and platform-dependent, so using them is scarcely necessary. However,
+here is a representation of what this is, bit by bit:
+
+`TTTTugtrwxrwxrwx0000000000ADVSHR`
+
+T = file type (rarely useful)
+
+u = setuid, g = setgid, t = sticky
+
+rwx = user permissions, rwx = group permissions, rwx = other permissions
+
+0000000000 = unused
+
+A = archive, D = directory, V = volume label, S = system file, H = hidden, R = read-only
+
+If you want to set the Unix permissions, for instance, just bit shift by 16, e.g. 0644 << 16
+
+___
 
 ### level
 
@@ -54,3 +83,25 @@ It is recommended not to lower the value below 4, since that tends to hurt perfo
 In addition, values above 8 tend to help very little on most data and can even hurt performance.
 
 The default value is automatically determined based on the size of the input data.
+
+___
+
+### mtime
+
+• `Optional` **mtime**: GzipOptions[\"mtime\"]
+
+*Inherited from [ZipAttributes](zipattributes.md).[mtime](zipattributes.md#mtime)*
+
+When the file was last modified. Defaults to the current time.
+
+___
+
+### os
+
+• `Optional` **os**: number
+
+*Inherited from [ZipAttributes](zipattributes.md).[os](zipattributes.md#os)*
+
+The operating system of origin for this file. The value is defined
+by PKZIP's APPNOTE.txt, section 4.4.2.2. For example, 0 (the default)
+is MS/DOS, 3 is UNIX, 19 is macOS.

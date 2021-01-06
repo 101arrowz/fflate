@@ -3,7 +3,7 @@ let Worker: typeof import('worker_threads').Worker;
 const workerAdd = ";var __w=require('worker_threads');__w.parentPort.on('message',function(m){onmessage({data:m})}),postMessage=function(m,t){__w.parentPort.postMessage(m,t)},close=process.exit;self=global";
 
 try {
-  Worker = require('worker_threads').Worker;
+  Worker = /*#__PURE__*/require('worker_threads').Worker;
 } catch(e) {
 }
 export default Worker ? <T>(c: string, _: number, msg: unknown, transfer: ArrayBuffer[], cb: (err: Error, msg: T) => void) => {

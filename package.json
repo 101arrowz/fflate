@@ -11,6 +11,13 @@
     "./lib/node-worker.js": "./lib/worker.js",
     "./esm/index.mjs": "./esm/browser.js"
   },
+  "exports": {
+    ".": {
+      "node": "./esm/index.mjs",
+      "require": "./lib/index.js",
+      "default": "./esm/browser.js"
+    }
+  },
   "targets": {
     "main": false,
     "module": false,
@@ -82,5 +89,8 @@
     "react": "preact/compat",
     "react-dom": "preact/compat",
     "react-dom/test-utils": "preact/test-utils"
+  },
+  "dependencies": {
+    "@msgpack/msgpack": "^2.3.0"
   }
 }

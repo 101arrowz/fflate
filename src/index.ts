@@ -544,7 +544,7 @@ const et = /*#__PURE__*/new u8(0);
 // compresses data into a raw DEFLATE buffer
 const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: number, lst: 0 | 1) => {
   const s = dat.length;
-  const o = new u8(pre + s + 5 * (1 + Math.floor(s / 7000)) + post);
+  const o = new u8(pre + s + 5 * (1 + Math.ceil(s / 7000)) + post);
   // writing to this writes to the output buffer
   const w = o.subarray(pre, o.length - post);
   let pos = 0;
@@ -649,7 +649,7 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
     }
     pos = wblk(dat, w, lst, syms, lf, df, eb, li, bs, i - bs, pos);
     // this is the easiest way to avoid needing to maintain state
-    if (!lst) pos = wfblk(w, pos, et);
+    if (!lst && pos & 7) pos = wfblk(w, pos + 1, et);
   }
   return slc(o, 0, pre + shft(pos) + post);
 }
@@ -742,7 +742,7 @@ export interface DeflateOptions {
 export interface GzipOptions extends DeflateOptions {
   /**
    * When the file was last modified. Defaults to the current time.
-   * If you're using GZIP, set this to 0 to avoid revealing a modification date entirely.
+   * Set this to 0 to avoid revealing a modification date entirely.
    */
   mtime?: Date | string | number;
   /**
@@ -840,11 +840,11 @@ const dopt = (dat: Uint8Array, opt: DeflateOptions, pre: number, post: number, s
   dflt(dat, opt.level == null ? 6 : opt.level, opt.mem == null ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : (12 + opt.mem), pre, post, !st as unknown as 0 | 1);
 
 // Walmart object spread
-const mrg = <T extends {}>(a: T, b: T) => {
-  const o = {} as T;
+const mrg = <A, B>(a: A, b: B) => {
+  const o = {} as Record<string, unknown>;
   for (const k in a) o[k] = a[k];
   for (const k in b) o[k] = b[k];
-  return o;
+  return o as A & B;
 }
 
 // worker clone
@@ -1887,14 +1887,52 @@ export function decompressSync(data: Uint8Array, out?: Uint8Array) {
 }
 
 /**
+ * Attributes for files added to a ZIP archive object
+ */
+export interface ZipAttributes {
+  /**
+   * The operating system of origin for this file. The value is defined
+   * by PKZIP's APPNOTE.txt, section 4.4.2.2. For example, 0 (the default)
+   * is MS/DOS, 3 is UNIX, 19 is macOS.
+   */
+  os?: number;
+
+  /**
+   * The file's attributes. These are traditionally somewhat complicated
+   * and platform-dependent, so using them is scarcely necessary. However,
+   * here is a representation of what this is, bit by bit:
+   * 
+   * `TTTTugtrwxrwxrwx0000000000ADVSHR`
+   * 
+   * T = file type (rarely useful)
+   * 
+   * u = setuid, g = setgid, t = sticky
+   * 
+   * rwx = user permissions, rwx = group permissions, rwx = other permissions
+   * 
+   * 0000000000 = unused
+   * 
+   * A = archive, D = directory, V = volume label, S = system file, H = hidden, R = read-only
+   * 
+   * If you want to set the Unix permissions, for instance, just bit shift by 16, e.g. 0644 << 16
+   */
+  attrs?: number;
+
+  /**
+   * When the file was last modified. Defaults to the current time.
+   */
+  mtime?: GzipOptions['mtime'];
+}
+
+/**
  * Options for creating a ZIP archive
  */
-export interface ZipOptions extends DeflateOptions, Pick<GzipOptions, 'mtime'> {}
+export interface ZipOptions extends DeflateOptions, ZipAttributes {}
 
 /**
  * Options for asynchronously creating a ZIP archive
  */
-export interface AsyncZipOptions extends AsyncDeflateOptions, Pick<AsyncGzipOptions, 'mtime'> {}
+export interface AsyncZipOptions extends AsyncDeflateOptions, ZipAttributes {}
 
 /**
  * Options for asynchronously expanding a ZIP archive
@@ -1914,18 +1952,31 @@ export type AsyncZippableFile = Uint8Array | [Uint8Array, AsyncZipOptions];
 /**
  * The complete directory structure of a ZIPpable archive
  */
-export interface Zippable extends Record<string, Zippable | ZippableFile> {}
+export interface Zippable {
+  [path: string]: Zippable | ZippableFile;
+}
 
 /**
  * The complete directory structure of an asynchronously ZIPpable archive
  */
-export interface AsyncZippable extends Record<string, AsyncZippable | AsyncZippableFile> {}
+export interface AsyncZippable {
+  [path: string]: AsyncZippable | AsyncZippableFile;
+}
 
 /**
  * An unzipped archive. The full path of each file is used as the key,
  * and the file is the value
  */
-export interface Unzipped extends Record<string, Uint8Array> {}
+export interface Unzipped {
+  [path: string]: Uint8Array
+}
+
+/**
+ * Handler for string generation streams
+ * @param data The string output from the stream processor
+ * @param final Whether this is the final block
+ */
+export type StringStreamHandler = (data: string, final: boolean) => void;
 
 /**
  * Callback for asynchronous ZIP decompression
@@ -1933,6 +1984,13 @@ export interface Unzipped extends Record<string, Uint8Array> {}
  * @param data The decompressed ZIP archive
  */
 export type UnzipCallback = (err: Error | string, data: Unzipped) => void;
+
+/**
+ * Callback for ZIP compression progress
+ * @param err Any error that occurred
+ * @param data The decompressed ZIP archive
+ */
+export type ZipProgressHandler = (bytesRead: number, bytesOut: number) => void;
 
 // flattened Zippable
 type FlatZippable<A extends boolean> = Record<string, [Uint8Array, (A extends true ? AsyncZipOptions : ZipOptions)]>;
@@ -1947,6 +2005,102 @@ const fltn = <A extends boolean>(d: A extends true ? AsyncZippable : Zippable, p
   }
 }
 
+// text encoder
+const te = typeof TextEncoder != 'undefined' && new TextEncoder();
+// text decoder
+const td = typeof TextDecoder != 'undefined' && new TextDecoder();
+// text decoder stream
+let tds = 0;
+try {
+  td.decode(et, { stream: true });
+  tds = 1;
+} catch(e) {}
+
+// decode UTF8
+const dutf8 = (d: Uint8Array) => {
+  for (let r = '', i = 0;;) {
+    let c = d[i++];
+    const eb = ((c > 127) as unknown as number) + ((c > 223) as unknown as number) + ((c > 239) as unknown as number);
+    if (i + eb > d.length) return [r, d.slice(i - 1)] as const;
+    if (!eb) r += String.fromCharCode(c)
+    else if (eb == 3) {
+      c = ((c & 15) << 18 | (d[i++] & 63) << 12 | (d[i++] & 63) << 6 | (d[i++] & 63)) - 65536,
+      r += String.fromCharCode(55296 | (c >> 10), 56320 | (c & 1023));
+    } else if (eb & 1) r += String.fromCharCode((c & 31) << 6 | (d[i++] & 63));
+    else r += String.fromCharCode((c & 15) << 12 | (d[i++] & 63) << 6 | (d[i++] & 63));
+  }
+}
+
+/**
+ * Streaming UTF-8 decoding
+ */
+export class DecodeUTF8 {
+  private p: Uint8Array;
+  private t: TextDecoder;
+  /**
+   * Creates a UTF-8 decoding stream
+   * @param opts The compression options
+   * @param cb The callback to call whenever data is deflated
+   */
+  constructor(handler?: StringStreamHandler) {
+    this.ondata = handler;
+    if (tds) this.t = new TextDecoder();
+    else this.p = et;
+  }
+
+  /**
+   * Pushes a chunk to be decoded from UTF-8 binary
+   * @param chunk The chunk to push
+   * @param final Whether this is the last chunk
+   */
+  push(chunk: Uint8Array, final?: boolean) {
+    if (!this.ondata) throw 'no callback';
+    if (!final) final = false;
+    if (this.t) return this.ondata(this.t.decode(chunk, { stream: !final }), final);
+    const dat = new u8(this.p.length + chunk.length);
+    dat.set(this.p);
+    dat.set(chunk, this.p.length);
+    const [ch, np] = dutf8(dat);
+    if (final && np.length) throw 'invalid utf-8 data';
+    this.p = np;
+    this.ondata(ch, final);
+  }
+
+  /**
+   * The handler to call whenever data is available
+   */
+  ondata: StringStreamHandler;
+}
+
+/**
+ * Streaming UTF-8 encoding
+ */
+export class EncodeUTF8 {
+  /**
+   * Creates a UTF-8 decoding stream
+   * @param opts The compression options
+   * @param cb The callback to call whenever data is deflated
+   */
+  constructor(handler?: FlateStreamHandler) {
+    this.ondata = handler;
+  }
+
+  /**
+   * Pushes a chunk to be encoded to UTF-8
+   * @param chunk The string data to push
+   * @param final Whether this is the last chunk
+   */
+  push(chunk: string, final?: boolean) {
+    if (!this.ondata) throw 'no callback';
+    this.ondata(strToU8(chunk), final || false);
+  }
+
+  /**
+   * The handler to call whenever data is available
+   */
+  ondata: FlateStreamHandler;
+}
+
 /**
  * Converts a string into a Uint8Array for use with compression/decompression methods
  * @param str The string to encode
@@ -1955,9 +2109,14 @@ const fltn = <A extends boolean>(d: A extends true ? AsyncZippable : Zippable, p
  * @returns The string encoded in UTF-8/Latin-1 binary
  */
 export function strToU8(str: string, latin1?: boolean): Uint8Array {
+  if (latin1) {
+    const ar = new u8(str.length);
+    for (let i = 0; i < str.length; ++i) ar[i] = str.charCodeAt(i);
+    return ar;
+  }
+  if (te) return te.encode(str);
   const l = str.length;
-  if (!latin1 && typeof TextEncoder != 'undefined') return new TextEncoder().encode(str);
-  let ar = new u8(str.length + (str.length >>> 1));
+  let ar = new u8(str.length + (str.length >> 1));
   let ai = 0;
   const w = (v: number) => { ar[ai++] = v; };
   for (let i = 0; i < l; ++i) {
@@ -1985,19 +2144,21 @@ export function strToU8(str: string, latin1?: boolean): Uint8Array {
  * @returns The original UTF-8/Latin-1 string
  */
 export function strFromU8(dat: Uint8Array, latin1?: boolean) {
-  let r = '';
-  if (!latin1 && typeof TextDecoder != 'undefined') return new TextDecoder().decode(dat);
-  for (let i = 0; i < dat.length;) {
-    let c = dat[i++];
-    if (c < 128 || latin1) r += String.fromCharCode(c);
-    else if (c < 224) r += String.fromCharCode((c & 31) << 6 | (dat[i++] & 63));
-    else if (c < 240) r += String.fromCharCode((c & 15) << 12 | (dat[i++] & 63) << 6 | (dat[i++] & 63));
-    else
-      c = ((c & 15) << 18 | (dat[i++] & 63) << 12 | (dat[i++] & 63) << 6 | (dat[i++] & 63)) - 65536,
-      r += String.fromCharCode(55296 | (c >> 10), 56320 | (c & 1023));
-  }
-  return r;
+  if (latin1) {
+    let r = '';
+    for (let i = 0; i < dat.length; i += 16384)
+      r += String.fromCharCode.apply(null, dat.subarray(i, i + 16384));
+    return r;
+  } else if (td) return td.decode(dat)
+  else {
+    const [out, ext] = dutf8(dat);
+    if (ext.length) throw 'invalid utf-8 data';
+    return out;
+  } 
 };
+
+// deflate bit flag
+const dbf = (l: number) => l == 1 ? 3 : l < 6 ? 2 : l == 9 ? 1 : 0;
 
 // skip local zip header
 const slzh = (d: Uint8Array, b: number) => b + 30 + b2(d, b + 26) + b2(d, b + 28);
@@ -2015,26 +2176,43 @@ const z64e = (d: Uint8Array, b: number) => {
   return [b4(d, b + 12), b4(d, b + 4), b4(d, b + 20)] as const;
 }
 
+// zip header file
+type ZHF = Omit<ZipInputFile, 'terminate' | 'ondata' | 'filename'>;
+
+
 // write zip header
-const wzh = (d: Uint8Array, b: number, c: number, cmp: Uint8Array, su: number, fn: Uint8Array, u: boolean, o: ZipOptions, ce: number | null, t: number) => {
-  const fl = fn.length, l = cmp.length;
+const wzh = (d: Uint8Array, b: number, f: ZHF, fn: Uint8Array, u: boolean, c?: number, ce?: number) => {
+  const fl = fn.length;
   wbytes(d, b, ce != null ? 0x2014B50 : 0x4034B50), b += 4;
-  if (ce != null) d[b] = 20, b += 2;
+  if (ce != null) d[b++] = 20, d[b++] = f.os;
   d[b] = 20, b += 2; // spec compliance? what's that?
-  d[b++] = (t == 8 && (o.level == 1 ? 6 : o.level < 6 ? 4 : o.level == 9 ? 2 : 0)), d[b++] = u && 8;
-  d[b] = t, b += 2;
-  const dt = new Date(o.mtime || Date.now()), y = dt.getFullYear() - 1980;
+  d[b++] = (f.flag << 1) | (c == null && 8), d[b++] = u && 8;
+  d[b++] = f.compression & 255, d[b++] = f.compression >> 8;
+  const dt = new Date(f.mtime == null ? Date.now() : f.mtime), y = dt.getFullYear() - 1980;
   if (y < 0 || y > 119) throw 'date not in range 1980-2099';
-  wbytes(d, b, ((y << 24) * 2) | ((dt.getMonth() + 1) << 21) | (dt.getDate() << 16) | (dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >>> 1));
-  b += 4;
-  wbytes(d, b, c);
-  wbytes(d, b + 4, l);
-  wbytes(d, b + 8, su);
-  wbytes(d, b + 12, fl), b += 16; // skip extra field, comment
-  if (ce != null) wbytes(d, b += 10, ce), b += 4;
+  wbytes(d, b, ((y << 24) * 2) | ((dt.getMonth() + 1) << 21) | (dt.getDate() << 16) | (dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >>> 1)), b += 4;
+  if (c != null) {
+    wbytes(d, b, f.crc);
+    wbytes(d, b + 4, c);
+    wbytes(d, b + 8, f.size);
+  }
+  wbytes(d, b + 12, fl), b += 16;
+  if (ce != null) {
+    wbytes(d, b + 6, f.attrs);
+    wbytes(d, b + 10, ce), b += 14;
+  }
   d.set(fn, b);
-  b += fl;
-  if (ce == null) d.set(cmp, b);
+  return b + fl;
+}
+
+// create zip data descriptor
+const czdd = (f: Pick<ZipInputFile, 'size' | 'crc'>, c: number) => {
+  const d = new u8(16);
+  wbytes(d, 0, 0x8074B50)
+  wbytes(d, 4, f.crc);
+  wbytes(d, 8, c);
+  wbytes(d, 12, f.size);
+  return d;
 }
 
 // write zip footer (end of central directory)
@@ -2046,30 +2224,367 @@ const wzf = (o: Uint8Array, b: number, c: number, d: number, e: number) => {
   wbytes(o, b + 16, e);
 }
 
-// internal zip data
-type AsyncZipDat = {
+/**
+ * A stream that can be used to create a file in a ZIP archive
+ */
+export interface ZipInputFile extends ZipAttributes {
+  /**
+   * The filename to associate with the data provided to this stream. If you
+   * want a file in a subdirectory, use forward slashes as a separator (e.g.
+   * `directory/filename.ext`). This will still work on Windows.
+   */
+  filename: string;
+
+  /**
+   * The size of the file in bytes. This attribute may be invalid after
+   * the file is added to the ZIP archive; it must be correct only before the
+   * stream completes.
+   * 
+   * If you don't want to have to compute this yourself, consider extending the
+   * ZipPassThrough class and overriding its process() method, or using one of
+   * ZipDeflate or AsyncZipDeflate
+   */
+  size: number;
+
+  /**
+   * A CRC of the original file contents. This attribute may be invalid after
+   * the file is added to the ZIP archive; it must be correct only before the
+   * stream completes.
+   * 
+   * If you don't want to have to generate this yourself, consider extending the
+   * ZipPassThrough class and overriding its process() method, or using one of
+   * ZipDeflate or AsyncZipDeflate
+   */
+  crc: number;
+
+  /**
+   * The compression format for the data stream. This number is determined by
+   * the spec in PKZIP's APPNOTE.txt, section 4.4.5. For example, 0 = no
+   * compression, 8 = deflate, 14 = LZMA
+   */
+  compression?: number;
+
+  /**
+   * Bits 1 and 2 of the general purpose bit flag, specified in PKZIP's
+   * APPNOTE.txt, section 4.4.4. This is unlikely to be necessary.
+   */
+  flag?: 0 | 1 | 2 | 3;
+
+  /**
+   * The handler to be called when data is added. After passing this stream to
+   * the ZIP file object, this handler will always be defined. To call it:
+   * 
+   * `stream.ondata(error, chunk, final)`
+   * 
+   * error = any error that occurred (null if there was no error)
+   * 
+   * chunk = a Uint8Array of the data that was added (null if there was an
+   * error)
+   * 
+   * final = boolean, whether this is the final chunk in the stream
+   */
+  ondata?: AsyncFlateStreamHandler;
+  
+  /**
+   * A method called when the stream is no longer needed, for clean-up
+   * purposes. This will not always be called after the stream completes,
+   * so, you may wish to call this.terminate() after the final chunk is
+   * processed if you have clean-up logic.
+   */
+  terminate?: AsyncTerminable;
+}
+
+type AsyncZipDat = ZHF & {
   // compressed data
-  d: Uint8Array;
-  // uncompressed length
-  m: number;
-  // type (0 = uncompressed, 8 = DEFLATE)
-  t: number;
-  // filename as Uint8Array
-  n: Uint8Array;
-  // Unicode filename
+  c: Uint8Array;
+  // filename
+  f: Uint8Array;
+  // unicode
   u: boolean;
-  // CRC32
-  c: number;
-  // zip options
-  p: ZipOptions;
 };
 
 type ZipDat = AsyncZipDat & {
-  // total offset
+  // offset
   o: number;
 }
 
-// TODO: Support streams as ZIP input
+/**
+ * A pass-through stream to keep data uncompressed in a ZIP archive.
+ */
+export class ZipPassThrough implements ZipInputFile {
+  filename: string;
+  crc: number;
+  size: number;
+  os?: number;
+  attrs?: number;
+  ondata: AsyncFlateStreamHandler;
+  private c: CRCV;
+
+  /**
+   * Creates a pass-through stream that can be added to ZIP archives
+   * @param filename The filename to associate with this data stream
+   */
+  constructor(filename: string) {
+    this.filename = filename;
+    this.c = crc();
+    this.size = 0;
+  }
+
+  /**
+   * Processes a chunk and pushes to the output stream. You can override this
+   * method in a subclass for custom behavior, but by default this passes
+   * the data through. You must call this.ondata(err, chunk, final) at some
+   * point in this method.
+   * @param chunk The chunk to process
+   * @param final Whether this is the last chunk
+   */
+  protected process(chunk: Uint8Array, final: boolean) {
+    this.ondata(null, chunk, final);
+  }
+
+  /**
+   * Pushes a chunk to be added. If you are subclassing this with a custom
+   * compression algorithm, note that you must push data from the source
+   * file only, pre-compression.
+   * @param chunk The chunk to push
+   * @param final Whether this is the last chunk
+   */
+  push(chunk: Uint8Array, final?: boolean) {
+    if (!(this as ZipInputFile).ondata) throw 'no callback - add to ZIP archive before pushing';
+    this.c.p(chunk);
+    this.size += chunk.length;
+    if (final) this.crc = this.c.d();
+    this.process(chunk, final || false);
+  }
+}
+
+// I don't extend because TypeScript extension adds 1kB of runtime bloat
+
+/**
+ * Streaming DEFLATE compression for ZIP archives. Prefer using AsyncZipDeflate
+ * for better performance
+ */
+export class ZipDeflate implements ZipInputFile {
+  filename: string;
+  crc: number;
+  size: number;
+  compression: number;
+  flag: 0 | 1 | 2 | 3;
+  os?: number;
+  attrs?: number;
+  ondata: AsyncFlateStreamHandler;
+  private d: Deflate;
+
+  /**
+   * Creates a DEFLATE stream that can be added to ZIP archives
+   * @param filename The filename to associate with this data stream
+   * @param opts The compression options
+   */
+  constructor(filename: string, opts: DeflateOptions = {}) {
+    ZipPassThrough.call(this, filename);
+    this.d = new Deflate(opts, (dat, final) => {
+      this.ondata(null, dat, final);
+    });
+    this.compression = 8;
+    this.flag = dbf(opts.level);
+  }
+  
+  process(chunk: Uint8Array, final: boolean) {
+    try {
+      this.d.push(chunk, final);
+    } catch(e) {
+      this.ondata(e, null, final);
+    }
+  }
+
+  /**
+   * Pushes a chunk to be deflated
+   * @param chunk The chunk to push
+   * @param final Whether this is the last chunk
+   */
+  push(chunk: Uint8Array, final?: boolean) {
+    ZipPassThrough.prototype.push.call(this, chunk, final);
+  }
+}
+
+/**
+ * Asynchronous streaming DEFLATE compression for ZIP archives
+ */
+export class AsyncZipDeflate implements ZipInputFile {
+  filename: string;
+  crc: number;
+  size: number;
+  compression: number;
+  flag: 0 | 1 | 2 | 3;
+  os?: number;
+  attrs?: number;
+  ondata: AsyncFlateStreamHandler;
+  private d: AsyncDeflate;
+  terminate: AsyncTerminable;
+
+  /**
+   * Creates a DEFLATE stream that can be added to ZIP archives
+   * @param filename The filename to associate with this data stream
+   * @param opts The compression options
+   */
+  constructor(filename: string, opts: DeflateOptions = {}) {
+    ZipPassThrough.call(this, filename);
+    this.d = new AsyncDeflate(opts, (err, dat, final) => {
+      this.ondata(err, dat, final);
+    });
+    this.compression = 8;
+    this.flag = dbf(opts.level);
+    this.terminate = this.d.terminate;
+  }
+  
+  process(chunk: Uint8Array, final: boolean) {
+    this.d.push(chunk, final);
+  }
+
+  /**
+   * Pushes a chunk to be deflated
+   * @param chunk The chunk to push
+   * @param final Whether this is the last chunk
+   */
+  push(chunk: Uint8Array, final?: boolean) {
+    ZipPassThrough.prototype.push.call(this, chunk, final);
+  }
+}
+
+type ZIFE = {
+  // compressed size
+  c: number;
+  // filename
+  f: Uint8Array;
+  // unicode
+  u: boolean;
+  // byte offset
+  b: number;
+  // header offset
+  h: number;
+  // terminator
+  t: () => void;
+  // turn
+  r: () => void;
+};
+
+type ZipInternalFile = ZHF & ZIFE;
+
+/**
+ * A zippable archive to which files can incrementally be added
+ */
+export class Zip {
+  private u: ZipInternalFile[];
+  private d: number;
+  /**
+   * Creates an empty ZIP archive to which files can be added
+   */
+  constructor() {
+    this.u = [];
+    this.d = 1;
+  }
+  /**
+   * Adds a file to the ZIP archive
+   * @param file The file stream to add
+   */
+  add(file: ZipInputFile) {
+    if (this.d & 2) throw 'stream finished';
+    const f = strToU8(file.filename), fl = f.length, u = fl != file.filename.length, hl = fl + 30;
+    if (fl > 65535) throw 'filename too long';
+    const header = new u8(hl);
+    wzh(header, 0, file, f, u);
+    let chks: Uint8Array[] = [header];
+    const pAll = () => {
+      for (const chk of chks) this.ondata(null, chk, false);
+      chks = [];
+    };
+    let tr = this.d;
+    this.d = 0;
+    const ind = this.u.length;
+    const uf = mrg(file, {
+      f,
+      u,
+      t: () => { 
+        if (file.terminate) file.terminate();
+      },
+      r: () => {
+        pAll();
+        if (tr) {
+          const nxt = this.u[ind + 1];
+          if (nxt) nxt.r();
+          else this.d = 1;
+        }
+        tr = 1;
+      }
+    } as ZIFE);
+    let cl = 0;
+    file.ondata = (err, dat, final) => {
+      if (err) {
+        this.ondata(err, dat, final);
+        this.terminate();
+      } else {
+        cl += dat.length;
+        chks.push(dat);
+        if (final) {
+          chks.push(czdd(file, cl));
+          uf.c = cl, uf.b = hl + cl + 16, uf.crc = file.crc, uf.size = file.size;
+          if (tr) uf.r();
+          tr = 1;
+        } else if (tr) pAll();
+      }
+    }
+    this.u.push(uf);
+  }
+
+  /**
+   * Ends the process of adding files and prepares to emit the final chunks.
+   * This *must* be called after adding all desired files for the resulting
+   * ZIP file to work properly.
+   */
+  end() {
+    if (this.d & 2) {
+      if (this.d & 1) throw 'stream finishing';
+      throw 'stream finished';
+    }
+    if (this.d) this.e();
+    else this.u.push({
+      r: () => {
+        if (!(this.d & 1)) return;
+        this.u.splice(-1, 1);
+        this.e();
+      },
+      t: () => {}
+    } as unknown as ZipInternalFile);
+    this.d = 3;
+  }
+
+  private e() {
+    let bt = 0, l = 0, tl = 0;
+    for (const f of this.u) tl += 46 + f.f.length;
+    const out = new u8(tl + 22);
+    for (const f of this.u) {
+      wzh(out, bt, f, f.f, f.u, f.c, l);
+      bt += 46 + f.f.length, l += f.b;
+    }
+    wzf(out, bt, this.u.length, tl, l)
+    this.ondata(null, out, true);
+    this.d = 2;
+  }
+
+  /**
+   * A method to terminate any internal workers used by the stream. Subsequent
+   * calls to add() will silently fail.
+   */
+  terminate() {
+    for (const f of this.u) f.t();
+    this.d = 2;
+  }
+
+  /**
+   * The handler to call whenever data is available
+   */
+  ondata: AsyncFlateStreamHandler;
+}
 
 /**
  * Asynchronously creates a ZIP file
@@ -2104,8 +2619,11 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
     for (let i = 0; i < slft; ++i) {
       const f = files[i];
       try {
-        wzh(out, tot, f.c, f.d, f.m, f.n, f.u, f.p, null, f.t);
-        wzh(out, o, f.c, f.d, f.m, f.n, f.u, f.p, tot, f.t), o += 46 + f.n.length, tot += 30 + f.n.length + f.d.length;
+        const l = f.c.length;
+        wzh(out, tot, f, f.f, f.u, l);
+        const loc = tot + 30 + f.f.length;
+        out.set(f.c, loc);
+        wzh(out, o, f, f.f, f.u, l, tot), o += 46 + f.f.length, tot = loc + l;
       } catch(e) {
         return cb(e, null);
       }
@@ -2118,33 +2636,32 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
   for (let i = 0; i < slft; ++i) {
     const fn = k[i];
     const [file, p] = r[fn];
-    const c = crc(), m = file.length;
+    const c = crc(), size = file.length;
     c.p(file);
-    const n = strToU8(fn), s = n.length;
-    const t = p.level == 0 ? 0 : 8;
+    const f = strToU8(fn), s = f.length;
+    const compression = p.level == 0 ? 0 : 8;
     const cbl: FlateCallback = (e, d) => {
       if (e) {
         tAll();
         cb(e, null);
       } else {
         const l = d.length;
-        files[i] = {
-          t,
-          d,
-          m,
-          c: c.d(),
-          u: fn.length != l,
-          n,
-          p
-        };
+        files[i] = mrg(p, {
+          size,
+          crc: c.d(),
+          c: d,
+          f,
+          u: s != fn.length,
+          compression
+        });
         o += 30 + s + l;
         tot += 76 + 2 * s + l;
         if (!--lft) cbf();
       }
     }
-    if (n.length > 65535) cbl('filename too long', null);
-    if (!t) cbl(null, file);
-    else if (m < 160000) {
+    if (s > 65535) cbl('filename too long', null);
+    if (!compression) cbl(null, file);
+    else if (size < 160000) {
       try {
         cbl(null, deflateSync(file, p));
       } catch(e) {
@@ -2170,30 +2687,29 @@ export function zipSync(data: Zippable, opts: ZipOptions = {}) {
   let tot = 0;
   for (const fn in r) {
     const [file, p] = r[fn];
-    const t = p.level == 0 ? 0 : 8;
-    const n = strToU8(fn), s = n.length;
-    if (n.length > 65535) throw 'filename too long';
-    const d = t ? deflateSync(file, p) : file, l = d.length;
+    const compression = p.level == 0 ? 0 : 8;
+    const f = strToU8(fn), s = f.length;
+    if (s > 65535) throw 'filename too long';
+    const d = compression ? deflateSync(file, p) : file, l = d.length;
     const c = crc();
     c.p(file);
-    files.push({
-      t,
-      d,
-      m: file.length,
-      c: c.d(),
-      u: fn.length != s,
-      n,
+    files.push(mrg(p, {
+      size: file.length,
+      crc: c.d(),
+      c: d,
+      f,
+      u: s != fn.length,
       o,
-      p
-    });
+      compression
+    }));
     o += 30 + s + l;
     tot += 76 + 2 * s + l;
   }
   const out = new u8(tot + 22), oe = o, cdl = tot - o;
   for (let i = 0; i < files.length; ++i) {
     const f = files[i];
-    wzh(out, f.o, f.c, f.d, f.m, f.n, f.u, f.p, null, f.t);
-    wzh(out, o, f.c, f.d, f.m, f.n, f.u, f.p, f.o, f.t), o += 46 + f.n.length;
+    wzh(out, f.o, f, f.f, f.u, f.c.length);
+    wzh(out, o, f, f.f, f.u, f.c.length, f.o), o += 46 + f.f.length;
   }
   wzf(out, o, files.length, cdl, oe);
   return out;
@@ -2226,7 +2742,10 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
   const z = o == 4294967295;
   if (z) {
     e = b4(data, e - 12);
-    if (b4(data, e) != 0x6064B50) throw 'invalid zip file';
+    if (b4(data, e) != 0x6064B50) {
+      cb('invalid zip file', null);
+      return;
+    }
     c = lft = b4(data, e + 32);
     o = b4(data, e + 48);
   }
