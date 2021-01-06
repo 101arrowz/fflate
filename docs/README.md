@@ -10,13 +10,19 @@
 * [AsyncGzip](classes/asyncgzip.md)
 * [AsyncInflate](classes/asyncinflate.md)
 * [AsyncUnzlib](classes/asyncunzlib.md)
+* [AsyncZipDeflate](classes/asynczipdeflate.md)
 * [AsyncZlib](classes/asynczlib.md)
+* [DecodeUTF8](classes/decodeutf8.md)
 * [Decompress](classes/decompress.md)
 * [Deflate](classes/deflate.md)
+* [EncodeUTF8](classes/encodeutf8.md)
 * [Gunzip](classes/gunzip.md)
 * [Gzip](classes/gzip.md)
 * [Inflate](classes/inflate.md)
 * [Unzlib](classes/unzlib.md)
+* [Zip](classes/zip.md)
+* [ZipDeflate](classes/zipdeflate.md)
+* [ZipPassThrough](classes/zippassthrough.md)
 * [Zlib](classes/zlib.md)
 
 ### Interfaces
@@ -34,6 +40,8 @@
 * [DeflateOptions](interfaces/deflateoptions.md)
 * [GzipOptions](interfaces/gzipoptions.md)
 * [Unzipped](interfaces/unzipped.md)
+* [ZipAttributes](interfaces/zipattributes.md)
+* [ZipInputFile](interfaces/zipinputfile.md)
 * [ZipOptions](interfaces/zipoptions.md)
 * [Zippable](interfaces/zippable.md)
 * [ZlibOptions](interfaces/zliboptions.md)
@@ -44,7 +52,9 @@
 * [AsyncZippableFile](README.md#asynczippablefile)
 * [FlateCallback](README.md#flatecallback)
 * [FlateStreamHandler](README.md#flatestreamhandler)
+* [StringStreamHandler](README.md#stringstreamhandler)
 * [UnzipCallback](README.md#unzipcallback)
+* [ZipProgressHandler](README.md#zipprogresshandler)
 * [ZippableFile](README.md#zippablefile)
 
 ### Functions
@@ -118,11 +128,35 @@ Handler for data (de)compression streams
 
 ___
 
+### StringStreamHandler
+
+Ƭ  **StringStreamHandler**: (data: string,final: boolean) => void
+
+Handler for string generation streams
+
+**`param`** The string output from the stream processor
+
+**`param`** Whether this is the final block
+
+___
+
 ### UnzipCallback
 
 Ƭ  **UnzipCallback**: (err: Error \| string,data: [Unzipped](interfaces/unzipped.md)) => void
 
 Callback for asynchronous ZIP decompression
+
+**`param`** Any error that occurred
+
+**`param`** The decompressed ZIP archive
+
+___
+
+### ZipProgressHandler
+
+Ƭ  **ZipProgressHandler**: (bytesRead: number,bytesOut: number) => void
+
+Callback for ZIP compression progress
 
 **`param`** Any error that occurred
 

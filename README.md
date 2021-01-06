@@ -54,11 +54,24 @@ If you want to load from a CDN in the browser:
 <!--
 You should use either UNPKG or jsDelivr (i.e. only one of the following)
 Note that tree shaking is completely unsupported from the CDN
+You may also want to specify the version, e.g. with fflate@0.4.8
 -->
-<script src="https://unpkg.com/fflate"></script>
+<script src="https://unpkg.com/fflate/umd/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fflate/umd/index.js"></script>
 <!-- Now, the global variable fflate contains the library -->
 ```
+
+If your environment doesn't support bundling:
+```js
+// Again, try to import just what you need
+
+// For the browser:
+import * as fflate from 'fflate/esm/browser.js';
+// If for some reason the standard ESM import fails on Node:
+import * as fflate from 'fflate/esm/index.mjs';
+```
+
+If you see `require('worker_threads')` in any code bundled for the browser, your bundler probably didn't resolve the `browser` field of `package.json`. You can enable it (e.g. [for Rollup](https://github.com/rollup/plugins/tree/master/packages/node-resolve#browser)) or you can manually import the ESM version at `fflate/esm/browser.js`. 
 
 And use:
 ```js
