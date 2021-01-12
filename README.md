@@ -19,6 +19,7 @@ In addition to the base decompression and compression APIs, `fflate` supports hi
 | Supports files up to 4GB    | ✅     | ❌                      | ❌                    | ✅                             |
 | Doesn't hang on error       | ✅     | ❌                      | ❌                    | ✅                             |
 | Multi-thread/Asynchronous   | ❌     | ❌                      | ❌                    | ✅                             |
+| Streaming ZIP support       | ❌     | ❌                      | ❌                    | ✅                             |
 | Uses ES Modules             | ❌     | ❌                      | ❌                    | ✅                             |
 
 ## Demo
@@ -53,7 +54,11 @@ If you want to load from a CDN in the browser:
 ```html
 <!--
 You should use either UNPKG or jsDelivr (i.e. only one of the following)
-Note that tree shaking is completely unsupported from the CDN
+
+Note that tree shaking is completely unsupported from the CDN. If you want
+a small build without build tools, please ask me and I will make one manually
+with only the features you need.
+
 You may also want to specify the version, e.g. with fflate@0.4.8
 -->
 <script src="https://unpkg.com/fflate/umd/index.js"></script>
@@ -178,20 +183,45 @@ const deflateStream = new fflate.Deflate((chunk, final) => {
   console.log(chunk, final);
 });
 
+// If you want to create a stream from strings, use EncodeUTF8
+const utfEncode = new fflate.EncodeUTF8((data, final) => {
+  // Chaining streams together is done by pushing to the
+  // next stream in the handler for the previous stream
+  deflateStream.push(data, final);
+});
+
+utfEncode.push('Hello'.repeat(1000));
+utfEncode.push(' '.repeat(100));
+utfEncode.push('world!'.repeat(10), true);
+
+// The deflateStream has logged the compressed data
+
 const inflateStream = new fflate.Inflate();
 inflateStream.ondata = (decompressedChunk, final) => {
   // print out a string of the compressed data
   console.log(fflate.strFromU8(decompressedChunk));
 };
 
+let stringData = '';
+
+// Streaming UTF-8 decode is available too
+const utfDecode = new fflate.DecodeUTF8((data, final) => {
+  stringData += data;
+});
+
 // Decompress streams auto-detect the compression method, as the
 // non-streaming decompress() method does.
 const dcmpStrm = new fflate.Decompress((chunk, final) => {
-  console.log(
-    'This chunk was encoded in either GZIP, Zlib, or DEFLATE',
-    chunk
-  );
+  console.log(chunk, 'was encoded with GZIP, Zlib, or DEFLATE');
+  utfDecode.push(chunk, final);
 });
+
+dcmpStrm.push(zlibJSONData1);
+dcmpStrm.push(zlibJSONData2, true);
+
+// This succeeds; the UTF-8 decoder chained with the unknown compression format
+// stream to reach a string as a sink.
+console.log(JSON.parse(stringData));
 ```
 
 You can create multi-file ZIP archives easily as well. Note that by default, compression is enabled for all files, which is not useful when ZIPping many PNGs, JPEGs, PDFs, etc. because those formats are already compressed. You should either override the level on a per-file basis or globally to avoid wasting resources.
@@ -242,11 +272,83 @@ const zipped = fflate.zipSync({
 // { 'nested/directory/a2.txt': Uint8Array(2) [97, 97] })
 const decompressed = fflate.unzipSync(zipped);
 ```
+
+If you need extremely high performance or custom ZIP compression formats, you can use the highly-extensible ZIP streams. They take streams as both input and output. You can even use custom compression/decompression algorithms from other libraries, as long as they [are defined in the ZIP spec](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) (see section 4.4.5). If you'd like more info on using custom compressors, [feel free to ask](https://github.com/101arrowz/fflate/discussions).
+```js
+// ZIP object
+// Can also specify zip.ondata outside of the constructor
+const zip = new fflate.Zip((err, dat, final) => {
+  if (!err) {
+    // output of the streams
+    console.log(dat, final);
+  }
+});
+
+const helloTxt = new fflate.ZipDeflate('hello.txt', {
+  level: 9
+});
+
+// Always add streams to ZIP archives before pushing to those streams
+zip.add(helloTxt);
+
+helloTxt.push(chunk1);
+// Last chunk
+helloTxt.push(chunk2, true);
+
+// ZipPassThrough is like ZipDeflate with level 0, but allows for tree shaking
+const nonStreamingFile = new fflate.ZipPassThrough('test.png');
+zip.add(nonStreamingFile);
+// If you have data already loaded, just .push(data, true)
+nonStreamingFile.push(pngData, true);
+
+// You need to call .end() after finishing
+// This ensures the ZIP is valid
+zip.end();
+
+// Unzip object
+const unzipper = new fflate.Unzip();
+
+// This function will almost always have to be called. It is used to support
+// compression algorithms such as BZIP2 or LZMA in ZIP files if just DEFLATE
+// is not enough (though it almost always is).
+// If your ZIP files are not compressed, this line is not needed.
+unzipper.register(fflate.UnzipInflate);
+
+const neededFiles = ['file1.txt', 'example.json'];
+
+// Can specify handler in constructor too
+unzipper.onfile = (err, filename, file) => {
+  if (err) {
+    // The filename will usually exist here too
+    console.log(`Error with file ${filename}: ${err}`);
+    return;
+  }
+  // filename is a string, file is a stream
+  if (neededFiles.includes(filename)) {
+    file.ondata = (err, dat, final) => {
+      // Stream output here
+      console.log(dat, final);
+    };
+    
+    // You should only start the stream if you plan to use it to improve
+    // performance. Only after starting the stream will ondata be called.
+    file.start();
+  }
+};
+
+unzipper.push(zipChunk1);
+unzipper.push(zipChunk2);
+unzipper.push(zipChunk3, true);
+```
+
 As you may have guessed, there is an asynchronous version of every method as well. Unlike most libraries, this will cause the compression or decompression run in a separate thread entirely and automatically by using Web (or Node) Workers. This means that the processing will not block the main thread at all.
 
 Note that there is a significant initial overhead to using workers of about 70ms, so it's best to avoid the asynchronous API unless necessary. However, if you're compressing multiple large files at once, or the synchronous API causes the main thread to hang for too long, the callback APIs are an order of magnitude better.
 ```js
-import { gzip, zlib, AsyncGzip, zip, strFromU8 } from 'fflate';
+import {
+  gzip, zlib, AsyncGzip, zip, unzip, strFromU8,
+  Zip, AsyncZipDeflate, Unzip, AsyncUnzipInflate
+} from 'fflate';
 
 // Workers will work in almost any browser (even IE11!)
 // However, they fail below Node v12 without the --experimental-worker
@@ -329,21 +431,52 @@ unzip(aMassiveZIPFile, (err, unzipped) => {
   console.log(unzipped['data.xml']);
   // Conversion to string
   console.log(strFromU8(unzipped['data.xml']))
-})
+});
+
+// Streaming ZIP archives can accept asynchronous streams. This automatically
+// uses multicore compression.
+const zip = new Zip();
+zip.ondata = (err, chunk, final) => { ... };
+// The JSON and BMP are compressed in parallel
+const exampleFile = new AsyncZipDeflate('example.json');
+exampleFile.push(JSON.stringify({ large: 'object' }), true);
+const exampleFile2 = new AsyncZipDeflate('example2.bmp', { level: 9 });
+exampleFile.push(ec2a);
+exampleFile.push(ec2b);
+exampleFile.push(ec2c);
+...
+exampleFile.push(ec2Final, true);
+zip.end();
+
+// Streaming Unzip should register the asynchronous inflation algorithm
+// for parallel processing.
+const unzip = new Unzip((err, fn, stream) => {
+  if (fn.endsWith('.json')) {
+    stream.ondata = (err, chunk, final) => { ... };
+    stream.start();
+
+    if (needToCancel) {
+      // To cancel these streams, call file.terminate()
+      file.terminate();
+    }
+  }
+});
+unzip.register(AsyncUnzipInflate);
+unzip.push(data, true);
 ```
 
 See the [documentation](https://github.com/101arrowz/fflate/blob/master/docs/README.md) for more detailed information about the API.
 
 ## Bundle size estimates
 
-Since `fflate` uses ES Modules, this table should give you a general idea of `fflate`'s bundle size for the features you need. The maximum bundle size that is possible with `fflate` is about 22kB if you use every single feature, but feature parity with `pako` is only around 10kB (as opposed to 45kB from `pako`). If your bundle size increases dramatically after adding `fflate`, please [create an issue](https://github.com/101arrowz/fflate/issues/new).
+Since `fflate` uses ES Modules, this table should give you a general idea of `fflate`'s bundle size for the features you need. The maximum bundle size that is possible with `fflate` is about 27kB if you use every single feature, but feature parity with `pako` is only around 10kB (as opposed to 45kB from `pako`). If your bundle size increases dramatically after adding `fflate`, please [create an issue](https://github.com/101arrowz/fflate/issues/new).
 
 | Feature                 | Bundle size (minified)         | Nearest competitor     |
 |-------------------------|--------------------------------|------------------------|
 | Decompression           | 3kB                            | `tiny-inflate`         |
 | Compression             | 5kB                            | `UZIP.js`, 184% larger |
 | Async decompression     | 4kB (1kB + raw decompression)  | N/A                    |
-| Async compression       | 5kB (1kB + raw compression)    | N/A                    |
+| Async compression       | 6kB (1kB + raw compression)    | N/A                    |
 | ZIP decompression       | 5kB (2kB + raw decompression)  | `UZIP.js`, 184% larger |
 | ZIP compression         | 7kB (2kB + raw compression)    | `UZIP.js`, 103% larger |
 | GZIP/Zlib decompression | 4kB (1kB + raw decompression)  | `pako`, 1040% larger   |

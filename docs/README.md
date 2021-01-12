@@ -9,6 +9,7 @@
 * [AsyncGunzip](classes/asyncgunzip.md)
 * [AsyncGzip](classes/asyncgzip.md)
 * [AsyncInflate](classes/asyncinflate.md)
+* [AsyncUnzipInflate](classes/asyncunzipinflate.md)
 * [AsyncUnzlib](classes/asyncunzlib.md)
 * [AsyncZipDeflate](classes/asynczipdeflate.md)
 * [AsyncZlib](classes/asynczlib.md)
@@ -19,6 +20,9 @@
 * [Gunzip](classes/gunzip.md)
 * [Gzip](classes/gzip.md)
 * [Inflate](classes/inflate.md)
+* [Unzip](classes/unzip.md)
+* [UnzipInflate](classes/unzipinflate.md)
+* [UnzipPassThrough](classes/unzippassthrough.md)
 * [Unzlib](classes/unzlib.md)
 * [Zip](classes/zip.md)
 * [ZipDeflate](classes/zipdeflate.md)
@@ -39,6 +43,9 @@
 * [AsyncZlibOptions](interfaces/asynczliboptions.md)
 * [DeflateOptions](interfaces/deflateoptions.md)
 * [GzipOptions](interfaces/gzipoptions.md)
+* [UnzipDecoder](interfaces/unzipdecoder.md)
+* [UnzipDecoderConstructor](interfaces/unzipdecoderconstructor.md)
+* [UnzipFile](interfaces/unzipfile.md)
 * [Unzipped](interfaces/unzipped.md)
 * [ZipAttributes](interfaces/zipattributes.md)
 * [ZipInputFile](interfaces/zipinputfile.md)
@@ -54,7 +61,7 @@
 * [FlateStreamHandler](README.md#flatestreamhandler)
 * [StringStreamHandler](README.md#stringstreamhandler)
 * [UnzipCallback](README.md#unzipcallback)
-* [ZipProgressHandler](README.md#zipprogresshandler)
+* [UnzipFileHandler](README.md#unzipfilehandler)
 * [ZippableFile](README.md#zippablefile)
 
 ### Functions
@@ -152,15 +159,17 @@ Callback for asynchronous ZIP decompression
 
 ___
 
-### ZipProgressHandler
+### UnzipFileHandler
 
-Ƭ  **ZipProgressHandler**: (bytesRead: number,bytesOut: number) => void
+Ƭ  **UnzipFileHandler**: (err: Error \| string,name: string,file: [UnzipFile](interfaces/unzipfile.md)) => void
 
-Callback for ZIP compression progress
+Handler for streaming ZIP decompression
 
-**`param`** Any error that occurred
+**`param`** Any errors that have occurred
 
-**`param`** The decompressed ZIP archive
+**`param`** The name of the file being processed
+
+**`param`** The file that was found in the archive
 
 ___
 

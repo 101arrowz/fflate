@@ -1,9 +1,9 @@
 {
   "name": "fflate",
-  "version": "0.4.8",
+  "version": "0.5.0",
   "description": "High performance (de)compression in an 8kB package",
   "main": "./lib/index.js",
-  "module": "./esm/index.mjs",
+  "module": "./esm/browser.js",
   "types": "./lib/index.d.ts",
   "unpkg": "./umd/index.js",
   "jsdelivr": "./umd/index.js",
@@ -16,6 +16,14 @@
       "node": "./esm/index.mjs",
       "require": "./lib/index.js",
       "default": "./esm/browser.js"
+    },
+    "./node": {
+      "import": "./esm/index.mjs",
+      "require": "./lib/node.js"
+    },
+    "./browser": {
+      "import": "./esm/browser.js",
+      "require": "./lib/browser.js"
     }
   },
   "targets": {
@@ -52,9 +60,9 @@
     "non-blocking"
   ],
   "scripts": {
-    "build": "yarn build:lib && yarn build:docs && yarn build:rewrite && yarn build:demo",
+    "build": "yarn build:lib && yarn build:docs && yarn build:demo",
     "script": "node -r ts-node/register scripts/$SC.ts",
-    "build:lib": "tsc && tsc --project tsconfig.esm.json && yarn build:umd",
+    "build:lib": "tsc && tsc --project tsconfig.esm.json && yarn build:umd && yarn build:rewrite",
     "build:umd": "SC=buildUMD yarn script",
     "build:rewrite": "SC=rewriteBuilds yarn script",
     "build:demo": "tsc --project tsconfig.demo.json && parcel build demo/index.html --public-url \"./\" && SC=cpGHPages yarn script",
