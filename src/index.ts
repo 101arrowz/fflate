@@ -2718,6 +2718,7 @@ export function zipSync(data: Zippable, opts: ZipOptions = {}) {
   for (let i = 0; i < files.length; ++i) {
     const f = files[i];
     wzh(out, f.o, f, f.f, f.u, f.c.length);
+    out.set(f.c, f.o + 30 + f.f.length);
     wzh(out, o, f, f.f, f.u, f.c.length, f.o), o += 46 + f.f.length;
   }
   wzf(out, o, files.length, cdl, oe);
