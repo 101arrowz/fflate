@@ -979,6 +979,8 @@ const b2 = (d: Uint8Array, b: number) => d[b] | (d[b + 1] << 8);
 // read 4 bytes
 const b4 = (d: Uint8Array, b: number) => (d[b] | (d[b + 1] << 8) | (d[b + 2] << 16)) + (d[b + 3] << 23) * 2;
 
+const b8 = (d: Uint8Array, b: number) => b4(d, b) | (b4(d, b) * 4294967296);
+
 // write bytes
 const wbytes = (d: Uint8Array, b: number, v: number) => {
   for (; v; ++b) d[b] = v, v >>>= 8;
@@ -1986,11 +1988,12 @@ export type StringStreamHandler = (data: string, final: boolean) => void;
 export type UnzipCallback = (err: Error | string, data: Unzipped) => void;
 
 /**
- * Callback for ZIP compression progress
- * @param err Any error that occurred
- * @param data The decompressed ZIP archive
+ * Handler for streaming ZIP decompression
+ * @param err Any errors that have occurred
+ * @param name The name of the file being processed
+ * @param file The file that was found in the archive
  */
-export type ZipProgressHandler = (bytesRead: number, bytesOut: number) => void;
+export type UnzipFileHandler = (err: Error | string, name: string, file: UnzipFile) => void;
 
 // flattened Zippable
 type FlatZippable<A extends boolean> = Record<string, [Uint8Array, (A extends true ? AsyncZipOptions : ZipOptions)]>;
@@ -2039,11 +2042,10 @@ export class DecodeUTF8 {
   private t: TextDecoder;
   /**
    * Creates a UTF-8 decoding stream
-   * @param opts The compression options
-   * @param cb The callback to call whenever data is deflated
+   * @param cb The callback to call whenever data is decoded
    */
-  constructor(handler?: StringStreamHandler) {
-    this.ondata = handler;
+  constructor(cb?: StringStreamHandler) {
+    this.ondata = cb;
     if (tds) this.t = new TextDecoder();
     else this.p = et;
   }
@@ -2078,11 +2080,10 @@ export class DecodeUTF8 {
 export class EncodeUTF8 {
   /**
    * Creates a UTF-8 decoding stream
-   * @param opts The compression options
-   * @param cb The callback to call whenever data is deflated
+   * @param cb The callback to call whenever data is encoded
    */
-  constructor(handler?: FlateStreamHandler) {
-    this.ondata = handler;
+  constructor(cb?: FlateStreamHandler) {
+    this.ondata = cb;
   }
 
   /**
@@ -2165,15 +2166,15 @@ const slzh = (d: Uint8Array, b: number) => b + 30 + b2(d, b + 26) + b2(d, b + 28
 
 // read zip header
 const zh = (d: Uint8Array, b: number, z: boolean) => {
-  const fnl = b2(d, b + 28), fn = strFromU8(d.subarray(b + 46, b + 46 + fnl), !(b2(d, b + 8) & 2048)), es = b + 46 + fnl;
-  const [sc, su, off] = z ? z64e(d, es) : [b4(d, b + 20), b4(d, b + 24), b4(d, b + 42)];
+  const fnl = b2(d, b + 28), fn = strFromU8(d.subarray(b + 46, b + 46 + fnl), !(b2(d, b + 8) & 2048)), es = b + 46 + fnl, bs = b4(d, b + 20);
+  const [sc, su, off] = z && bs == 4294967295 ? z64e(d, es) : [bs, b4(d, b + 24), b4(d, b + 42)];
   return [b2(d, b + 10), sc, su, fn, es + b2(d, b + 30) + b2(d, b + 32), off] as const;
 }
 
 // read zip64 extra field
 const z64e = (d: Uint8Array, b: number) => {
   for (; b2(d, b) != 1; b += 4 + b2(d, b + 2));
-  return [b4(d, b + 12), b4(d, b + 4), b4(d, b + 20)] as const;
+  return [b8(d, b + 12), b8(d, b + 4), b8(d, b + 20)] as const;
 }
 
 // zip header file
@@ -2262,7 +2263,7 @@ export interface ZipInputFile extends ZipAttributes {
    * the spec in PKZIP's APPNOTE.txt, section 4.4.5. For example, 0 = no
    * compression, 8 = deflate, 14 = LZMA
    */
-  compression?: number;
+  compression: number;
 
   /**
    * Bits 1 and 2 of the general purpose bit flag, specified in PKZIP's
@@ -2317,6 +2318,7 @@ export class ZipPassThrough implements ZipInputFile {
   size: number;
   os?: number;
   attrs?: number;
+  compression: number;
   ondata: AsyncFlateStreamHandler;
   private c: CRCV;
 
@@ -2328,6 +2330,7 @@ export class ZipPassThrough implements ZipInputFile {
     this.filename = filename;
     this.c = crc();
     this.size = 0;
+    this.compression = 0;
   }
 
   /**
@@ -2470,16 +2473,22 @@ type ZIFE = {
 
 type ZipInternalFile = ZHF & ZIFE;
 
+// TODO: Better tree shaking
+
 /**
  * A zippable archive to which files can incrementally be added
  */
 export class Zip {
   private u: ZipInternalFile[];
   private d: number;
+
   /**
    * Creates an empty ZIP archive to which files can be added
+   * @param cb The callback to call whenever data for the generated ZIP archive
+   *           is available
    */
-  constructor() {
+  constructor(cb?: AsyncFlateStreamHandler) {
+    this.ondata = cb;
     this.u = [];
     this.d = 1;
   }
@@ -2713,6 +2722,245 @@ export function zipSync(data: Zippable, opts: ZipOptions = {}) {
   }
   wzf(out, o, files.length, cdl, oe);
   return out;
+}
+
+/**
+ * A decoder for files in ZIP streams
+ */
+export interface UnzipDecoder {  
+  /**
+   * The handler to call whenever data is available
+   */
+  ondata: AsyncFlateStreamHandler;
+  
+  /**
+   * Pushes a chunk to be decompressed
+   * @param data The data in this chunk. Do not consume (detach) this data.
+   * @param final Whether this is the last chunk in the data stream
+   */
+  push(data: Uint8Array, final: boolean): void;
+
+  /**
+   * A method to terminate any internal workers used by the stream. Subsequent
+   * calls to push() should silently fail.
+   */
+  terminate?: AsyncTerminable
+}
+
+/**
+ * A constructor for a decoder for unzip streams
+ */
+export interface UnzipDecoderConstructor {
+  /**
+   * Creates an instance of the decoder
+   */
+  new(): UnzipDecoder;
+
+  /**
+   * The compression format for the data stream. This number is determined by
+   * the spec in PKZIP's APPNOTE.txt, section 4.4.5. For example, 0 = no
+   * compression, 8 = deflate, 14 = LZMA
+   */
+  compression: number;
+}
+
+/**
+ * Streaming file extraction from ZIP archives
+ */
+export interface UnzipFile {
+  /**
+   * The handler to call whenever data is available
+   */
+  ondata: AsyncFlateStreamHandler;
+
+  /**
+   * Starts reading from the stream. Calling this function will always enable
+   * this stream, but ocassionally the stream will be enabled even without
+   * this being called.
+   */
+  start(): void;
+
+  /**
+   * A method to terminate any internal workers used by the stream. ondata
+   * will not be called any further.
+   */
+  terminate: AsyncTerminable
+}
+
+/**
+ * Streaming pass-through decompression for ZIP archives
+ */
+export class UnzipPassThrough implements UnzipDecoder {
+  static compression = 0;
+  ondata: AsyncFlateStreamHandler;
+  push(data: Uint8Array, final: boolean) {
+    this.ondata(null, data, final);
+  }
+}
+
+/**
+ * Streaming DEFLATE decompression for ZIP archives. Prefer AsyncZipInflate for
+ * better performance.
+ */
+export class UnzipInflate implements UnzipDecoder {
+  static compression = 8;
+  private i: Inflate;
+  ondata: AsyncFlateStreamHandler;
+
+  /**
+   * Creates a DEFLATE decompression that can be used in ZIP archives
+   */
+  constructor() {
+    this.i = new Inflate((dat, final) => {
+      this.ondata(null, dat, final);
+    });
+  }
+
+  push(data: Uint8Array, final: boolean) {
+    try {
+      this.i.push(data, final);
+    } catch(e) {
+      this.ondata(e, data, final);
+    }
+  }
+}
+
+/**
+ * Asynchronous streaming DEFLATE decompression for ZIP archives
+ */
+export class AsyncUnzipInflate implements UnzipDecoder {
+  static compression = 8;
+  private i: AsyncInflate;
+  ondata: AsyncFlateStreamHandler;
+  terminate: AsyncTerminable;
+
+  /**
+   * Creates a DEFLATE decompression that can be used in ZIP archives
+   */
+  constructor() {
+    this.i = new AsyncInflate((err, dat, final) => {
+      this.ondata(err, dat, final);
+    });
+    this.terminate = this.i.terminate;
+  }
+
+  push(data: Uint8Array, final: boolean) {
+    this.i.push(slc(data, 0), final);
+  }
+}
+
+/**
+ * A ZIP archive decompression stream that emits files as they are discovered
+ */
+export class Unzip {
+  private d: UnzipDecoder;
+  private c: number;
+  private p: Uint8Array;
+  private k: Array<[Uint8Array, boolean]>[];
+  private o: Record<number, UnzipDecoderConstructor>;
+
+  /**
+   * Creates a ZIP decompression stream
+   * @param cb The callback to call whenever a file in the ZIP archive is found
+   */
+  constructor(cb?: UnzipFileHandler) {
+    this.onfile = cb;
+    this.k = [];
+    this.o = {
+      0: UnzipPassThrough
+    };
+    this.p = et;
+  }
+  
+  /**
+   * Pushes a chunk to be unzipped
+   * @param chunk The chunk to push
+   * @param final Whether this is the last chunk
+   */
+  push(chunk: Uint8Array, final: boolean) {
+    const add = this.c == -1 && this.d;
+    if (this.c && !add) {
+      const len = Math.min(this.c, chunk.length);
+      const toAdd = chunk.subarray(0, len);
+      this.c -= len;
+      if (this.d) this.d.push(toAdd, !this.c);
+      else this.k[0].push([toAdd, !this.c]);
+      chunk = chunk.subarray(len);
+    }
+    let f = 0, i = 0, buf: Uint8Array;
+    if (add || !this.c) {
+      const dl = chunk.length, pl = this.p.length, l = dl + pl;
+      if (!dl) {
+        if (!pl) return;
+        buf = this.p
+      } else if (!pl) buf = chunk;
+      else {
+        buf = new Uint8Array(l);
+        buf.set(this.p), buf.set(chunk, this.p.length);
+      }
+      this.p = et;
+      for (; i < l - 4; ++i) {
+        const sig = b4(buf, i);
+        if (sig == 0x4034B50) {
+          f = 1;
+          if (add) add.push(et, true);
+          this.d = null;
+          this.c = 0;
+          const bf = b2(buf, i + 6), cmp = b2(buf, i + 8), u = bf & 2048, dd = bf & 8, fnl = b2(buf, i + 26), es = b2(buf, i + 28);
+          if (l > i + 30 + fnl + es) {
+            const chks = [];
+            this.k.unshift(chks);
+            f = 2;
+            let sc = b4(buf, i + 18);
+            const fn = strFromU8(buf.subarray(i + 30, i += 30 + fnl), !u);
+            if (dd) sc = -1;
+            if (sc == 4294967295) sc = z64e(buf, i)[0];
+            if (!this.o[cmp]) {
+              this.onfile('unknown compression type ' + cmp, fn, null);
+              break;
+            }
+            this.c = sc;
+            const file = {
+              start: () => {
+                if (!file.ondata) throw 'no callback';
+                if (!sc) file.ondata(null, new u8(0), true);
+                else {
+                  const d = new this.o[cmp]();
+                  d.ondata = (err, dat, final) => { file.ondata(err, dat, final); }
+                  for (const [dat, final] of chks) d.push(dat, final);
+                  if (this.k[0] == chks) this.d = d;
+                }
+              },
+              terminate: () => {
+                if (this.k[0] == chks && this.d.terminate) this.d.terminate();
+              }
+            } as UnzipFile;
+            this.onfile(null, fn, file);
+            i += es;
+          }
+          break;
+        }
+      }
+      if (add) add.push(f ? buf.subarray(0, i - 12 - (b4(buf, i - 12) == 0x8074B50 && 4)) : buf, !!f);
+      if (f & 2) return this.push(buf.subarray(i), final);
+      else if (f & 1) this.p = buf;
+      if (final && (f || this.c)) throw 'invalid zip file';
+    }
+  }
+
+  /**
+   * Registers a decoder with the stream, allowing for files compressed with
+   * the compression type provided to be expanded correctly
+   * @param decoder The decoder constructor
+   */
+  register(decoder: UnzipDecoderConstructor) {
+    this.o[decoder.compression] = decoder;
+  }
+
+  /**
+   * The handler to call whenever a file is discovered
+   */
+  onfile: UnzipFileHandler;
 }
 
 /**

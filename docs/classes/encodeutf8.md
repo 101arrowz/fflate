@@ -24,15 +24,15 @@ Streaming UTF-8 encoding
 
 ### constructor
 
-\+ **new EncodeUTF8**(`handler?`: [FlateStreamHandler](../README.md#flatestreamhandler)): [EncodeUTF8](encodeutf8.md)
+\+ **new EncodeUTF8**(`cb?`: [FlateStreamHandler](../README.md#flatestreamhandler)): [EncodeUTF8](encodeutf8.md)
 
 Creates a UTF-8 decoding stream
 
 #### Parameters:
 
-Name | Type |
------- | ------ |
-`handler?` | [FlateStreamHandler](../README.md#flatestreamhandler) |
+Name | Type | Description |
+------ | ------ | ------ |
+`cb?` | [FlateStreamHandler](../README.md#flatestreamhandler) | The callback to call whenever data is encoded  |
 
 **Returns:** [EncodeUTF8](encodeutf8.md)
 

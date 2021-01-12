@@ -24,15 +24,15 @@ Streaming UTF-8 decoding
 
 ### constructor
 
-\+ **new DecodeUTF8**(`handler?`: [StringStreamHandler](../README.md#stringstreamhandler)): [DecodeUTF8](decodeutf8.md)
+\+ **new DecodeUTF8**(`cb?`: [StringStreamHandler](../README.md#stringstreamhandler)): [DecodeUTF8](decodeutf8.md)
 
 Creates a UTF-8 decoding stream
 
 #### Parameters:
 
-Name | Type |
------- | ------ |
-`handler?` | [StringStreamHandler](../README.md#stringstreamhandler) |
+Name | Type | Description |
+------ | ------ | ------ |
+`cb?` | [StringStreamHandler](../README.md#stringstreamhandler) | The callback to call whenever data is decoded  |
 
 **Returns:** [DecodeUTF8](decodeutf8.md)
 

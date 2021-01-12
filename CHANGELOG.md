@@ -1,3 +1,7 @@
+## 0.5.0
+- Add streaming ZIP, UNZIP
+- Fix import issues with certain environments
+  - If you had problems with `worker_threads` being included in your bundle, try updating!
 ## 0.4.8
 - Support strict Content Security Policy
   - Remove `new Function`

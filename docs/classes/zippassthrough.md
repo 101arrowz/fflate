@@ -19,6 +19,7 @@ A pass-through stream to keep data uncompressed in a ZIP archive.
 ### Properties
 
 * [attrs](zippassthrough.md#attrs)
+* [compression](zippassthrough.md#compression)
 * [crc](zippassthrough.md#crc)
 * [filename](zippassthrough.md#filename)
 * [ondata](zippassthrough.md#ondata)
@@ -52,6 +53,14 @@ Name | Type | Description |
 • `Optional` **attrs**: number
 
 *Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[attrs](../interfaces/zipinputfile.md#attrs)*
+
+___
+
+### compression
+
+•  **compression**: number
+
+*Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[compression](../interfaces/zipinputfile.md#compression)*
 
 ___
 
