@@ -197,10 +197,7 @@ utfEncode.push('world!'.repeat(10), true);
 // The deflateStream has logged the compressed data
 
 const inflateStream = new fflate.Inflate();
-inflateStream.ondata = (decompressedChunk, final) => {
-  // print out a string of the compressed data
-  console.log(fflate.strFromU8(decompressedChunk));
-};
+inflateStream.ondata = (decompressedChunk, final) => { ... };
 
 let stringData = '';
 

@@ -1,6 +1,6 @@
 {
   "name": "fflate",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "High performance (de)compression in an 8kB package",
   "main": "./lib/index.js",
   "module": "./esm/browser.js",
@@ -96,8 +96,5 @@
     "react": "preact/compat",
     "react-dom": "preact/compat",
     "react-dom/test-utils": "preact/test-utils"
-  },
-  "dependencies": {
-    "@msgpack/msgpack": "^2.3.0"
   }
 }
