@@ -2888,8 +2888,8 @@ export class Unzip {
       else this.k[0].push([toAdd, !this.c]);
       chunk = chunk.subarray(len);
     }
-    let f = 0, i = 0, buf: Uint8Array;
     if (add || !this.c) {
+      let f = 0, i = 0, is: number, buf: Uint8Array;
       const dl = chunk.length, pl = this.p.length, l = dl + pl;
       if (!dl) {
         if (!pl) return;
@@ -2900,7 +2900,8 @@ export class Unzip {
         buf.set(this.p), buf.set(chunk, this.p.length);
       }
       this.p = et;
-      for (; i < l - 4; ++i) {
+      // not l - 4 because we need i to become l
+      for (; i < l; ++i) {
         const sig = b4(buf, i);
         if (sig == 0x4034B50) {
           f = 1;
@@ -2911,7 +2912,7 @@ export class Unzip {
           if (l > i + 30 + fnl + es) {
             const chks = [];
             this.k.unshift(chks);
-            f = 2;
+            f = 2, is = i;
             let sc = b4(buf, i + 18);
             const fn = strFromU8(buf.subarray(i + 30, i += 30 + fnl), !u);
             if (dd) sc = -1;
@@ -2942,7 +2943,7 @@ export class Unzip {
           break;
         }
       }
-      if (add) add.push(f ? buf.subarray(0, i - 12 - (b4(buf, i - 12) == 0x8074B50 && 4)) : buf, !!f);
+      if (add) add.push(f == 2 ? buf.subarray(0, is - 12 - (b4(buf, is - 12) == 0x8074B50 && 4)) : buf.subarray(0, i), !!f);
       if (f & 2) return this.push(buf.subarray(i), final);
       else if (f & 1) this.p = buf;
       if (final && (f || this.c)) throw 'invalid zip file';

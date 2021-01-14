@@ -32,7 +32,7 @@ here is a representation of what this is, bit by bit:
 
 `TTTTugtrwxrwxrwx0000000000ADVSHR`
 
-T = file type (rarely useful)
+TTTT = file type (rarely useful)
 
 u = setuid, g = setgid, t = sticky
 
