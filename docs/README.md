@@ -161,13 +161,9 @@ ___
 
 ### UnzipFileHandler
 
-Ƭ  **UnzipFileHandler**: (err: Error \| string,name: string,file: [UnzipFile](interfaces/unzipfile.md)) => void
+Ƭ  **UnzipFileHandler**: (file: [UnzipFile](interfaces/unzipfile.md)) => void
 
 Handler for streaming ZIP decompression
-
-**`param`** Any errors that have occurred
-
-**`param`** The name of the file being processed
 
 **`param`** The file that was found in the archive
 

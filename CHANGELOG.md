@@ -1,5 +1,9 @@
+## 0.6.0
+- Revamped streaming unzip for compatibility and performance improvements
+## 0.5.2
+- General bugfixes
 ## 0.5.0
-- Add streaming ZIP, UNZIP
+- Add streaming zip, unzip
 - Fix import issues with certain environments
   - If you had problems with `worker_threads` being included in your bundle, try updating!
 ## 0.4.8

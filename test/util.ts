@@ -5,7 +5,7 @@ import { suite } from 'uvu';
 import { performance } from 'perf_hooks';
 import { Worker } from 'worker_threads';
 
-const testFilesRaw = {
+const testFiles = {
   basic: Buffer.from('Hello world!'),
   text: 'https://www.gutenberg.org/files/2701/old/moby10b.txt',
   smallImage: 'https://hlevkin.com/hlevkin/TestImages/new/Rainier.bmp',
@@ -13,16 +13,18 @@ const testFilesRaw = {
   largeImage: 'https://www.hlevkin.com/hlevkin/TestImages/new/Sunrise.bmp'
 };
 
-export type TestFile = keyof typeof testFilesRaw;
+const testZipFiles = {
 
-const testFilesPromise = (async () => {
-  let res = {} as Record<TestFile, Buffer>;
-  for (const name in testFilesRaw) {
-    let data = testFilesRaw[name];
+};
+
+const dlCached = async <T extends Record<string, string | Buffer>>(files: T) => {
+  let res = {} as Record<keyof T, Buffer>;
+  for (const name in files) {
+    let data: string | Buffer = files[name];
     if (typeof data == 'string') {
       const fn = resolve(__dirname, 'data', name);
       if (!existsSync(fn)) {
-        console.log('Downloading ' + data + '...');
+        console.log('\nDownloading ' + data + '...');
         data = await new Promise((r, re) => get(data as string, res => {
           const len = +res.headers['content-length'];
           const buf = Buffer.allocUnsafe(len);
@@ -43,11 +45,14 @@ const testFilesPromise = (async () => {
         );
       }
     }
-    res[name] = data as Buffer;
+    res[name as keyof T] = data as Buffer;
   }
   return res;
-})();
+}
 
+export type TestFile = keyof typeof testFiles;
+
+const testFilesPromise = dlCached(testFiles);
 export type TestHandler = (file: Buffer, name: string, resetTimer: () => void) => unknown | Promise<unknown>;
 
 export const testSuites = async <T extends Record<string, TestHandler>>(suites: T) => {
@@ -55,15 +60,15 @@ export const testSuites = async <T extends Record<string, TestHandler>>(suites: 
   for (const k in suites) {
     perf[k] = new Promise(async setPerf => {
       const ste = suite(k);
-      let testFiles: typeof testFilesPromise extends Promise<infer T> ? T : never;
+      let localTestFiles: Record<TestFile, Buffer>;
       ste.before(() => testFilesPromise.then(v => {
-        testFiles = v;
+        localTestFiles = v;
       }));
       const localPerf: Record<string, number> = {};
-      for (const name in testFilesRaw) {
+      for (const name in testFiles) {
         ste(name, async () => {
           let ts = performance.now();
-          await suites[k](testFiles[name], name, () => {
+          await suites[k](localTestFiles[name], name, () => {
             ts = performance.now();
           });
           localPerf[name] = performance.now() - ts;
@@ -78,6 +83,15 @@ export const testSuites = async <T extends Record<string, TestHandler>>(suites: 
   const resolvedPerf = {} as Record<keyof T, Record<TestFile, number>>;
   for (const k in suites) resolvedPerf[k] = await perf[k];
   return resolvedPerf;
+};
+
+export const stream = (src: Uint8Array, dst: {
+  push(dat: Uint8Array, final: boolean): void;
+}) => {
+  const off = Math.min(65536, src.length >>> 3);
+  for (let i = 0; i < src.length;) {
+    dst.push(src.slice(i, i + off), (i += off) >= src.length);
+  }
 }
 
 // create worker string

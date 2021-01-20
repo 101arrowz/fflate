@@ -77,7 +77,7 @@ stream completes.
 
 If you don't want to have to generate this yourself, consider extending the
 ZipPassThrough class and overriding its process() method, or using one of
-ZipDeflate or AsyncZipDeflate
+ZipDeflate or AsyncZipDeflate.
 
 ___
 
@@ -93,10 +93,11 @@ ___
 
 ### flag
 
-• `Optional` **flag**: 0 \| 1 \| 2 \| 3
+• `Optional` **flag**: number
 
 Bits 1 and 2 of the general purpose bit flag, specified in PKZIP's
-APPNOTE.txt, section 4.4.4. This is unlikely to be necessary.
+APPNOTE.txt, section 4.4.4. Should be between 0 and 3. This is unlikely
+to be necessary.
 
 ___
 
@@ -150,7 +151,7 @@ stream completes.
 
 If you don't want to have to compute this yourself, consider extending the
 ZipPassThrough class and overriding its process() method, or using one of
-ZipDeflate or AsyncZipDeflate
+ZipDeflate or AsyncZipDeflate.
 
 ___
 
@@ -160,5 +161,5 @@ ___
 
 A method called when the stream is no longer needed, for clean-up
 purposes. This will not always be called after the stream completes,
-so, you may wish to call this.terminate() after the final chunk is
+so you may wish to call this.terminate() after the final chunk is
 processed if you have clean-up logic.

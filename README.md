@@ -76,8 +76,6 @@ import * as fflate from 'fflate/esm/browser.js';
 import * as fflate from 'fflate/esm/index.mjs';
 ```
 
-If you see `require('worker_threads')` in any code bundled for the browser, your bundler probably didn't resolve the `browser` field of `package.json`. You can enable it (e.g. [for Rollup](https://github.com/rollup/plugins/tree/master/packages/node-resolve#browser)) or you can manually import the ESM version at `fflate/esm/browser.js`. 
-
 And use:
 ```js
 // This is an ArrayBuffer of data
@@ -314,21 +312,24 @@ unzipper.register(fflate.UnzipInflate);
 const neededFiles = ['file1.txt', 'example.json'];
 
 // Can specify handler in constructor too
-unzipper.onfile = (err, filename, file) => {
-  if (err) {
-    // The filename will usually exist here too
-    console.log(`Error with file ${filename}: ${err}`);
-    return;
-  }
-  // filename is a string, file is a stream
-  if (neededFiles.includes(filename)) {
+unzipper.onfile = file => {
+  // file.name is a string, file is a stream
+  if (neededFiles.includes(file.name)) {
     file.ondata = (err, dat, final) => {
       // Stream output here
       console.log(dat, final);
     };
     
+    console.log('Reading:', file.name);
+
+    // File sizes are sometimes not set if the ZIP file did not encode
+    // them, so you may want to check that file.size != undefined
+    console.log('Compressed size', file.size);
+    console.log('Decompressed size', file.originalSize);
+
     // You should only start the stream if you plan to use it to improve
     // performance. Only after starting the stream will ondata be called.
+    // This method will throw if the compression method hasn't been registered
     file.start();
   }
 };
@@ -447,14 +448,14 @@ zip.end();
 
 // Streaming Unzip should register the asynchronous inflation algorithm
 // for parallel processing.
-const unzip = new Unzip((err, fn, stream) => {
-  if (fn.endsWith('.json')) {
+const unzip = new Unzip(stream => {
+  if (stream.name.endsWith('.json')) {
     stream.ondata = (err, chunk, final) => { ... };
     stream.start();
 
     if (needToCancel) {
-      // To cancel these streams, call file.terminate()
-      file.terminate();
+      // To cancel these streams, call .terminate()
+      stream.terminate();
     }
   }
 });
@@ -492,7 +493,7 @@ So what makes `fflate` different? It takes the brilliant innovations of `UZIP.js
 
 If you're willing to have 160 kB of extra weight and [much less browser support](https://caniuse.com/wasm), you could theoretically achieve more performance than `fflate` with a WASM build of Zlib like [`wasm-flate`](https://www.npmjs.com/package/wasm-flate). However, per some tests I conducted, the WASM interpreters of major browsers are not fast enough as of December 2020 for `wasm-flate` to be useful: `fflate` is around 2x faster.
 
-Before you decide that `fflate` is the end-all compression library, you should note that JavaScript simply cannot rival the performance of a native program. If you're only using Node.js, use the [native Zlib bindings](https://nodejs.org/api/zlib.html) that offer the best performance. Though note that even against Zlib, `fflate` is only around 30% slower in decompression and 10% slower in compression, and can still achieve better compression ratios!
+Before you decide that `fflate` is the end-all compression library, you should note that JavaScript simply cannot rival the performance of a native program. If you're only using Node.js, it's probably better to use the [native Zlib bindings](https://nodejs.org/api/zlib.html), which tend to offer the best performance. Though note that even against Zlib, `fflate` is only around 30% slower in decompression and 10% slower in compression, and can still achieve better compression ratios!
 
 ## Browser support
 `fflate` makes heavy use of typed arrays (`Uint8Array`, `Uint16Array`, etc.). Typed arrays can be polyfilled at the cost of performance, but the most recent browser that doesn't support them [is from 2011](https://caniuse.com/typedarrays), so I wouldn't bother.
