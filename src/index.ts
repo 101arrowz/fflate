@@ -174,6 +174,7 @@ type InflateState = {
 const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
   // source length
   const sl = dat.length;
+  if (!sl || (st && !st.l && sl < 5)) return buf || new u8(0);
   // have to estimate size
   const noBuf = !buf || (st as unknown as boolean);
   // no state
@@ -934,8 +935,7 @@ const cbify = <T extends AsyncOptions>(dat: Uint8Array, opts: T, fns: (() => unk
       cb(err, dat);
     }
   );
-  if (!opts.consume) dat = new u8(dat);
-  w.postMessage([dat, opts], [dat.buffer]);
+  w.postMessage([dat, opts], opts.consume ? [dat.buffer] : []);
   return () => { w.terminate(); };
 }
 
@@ -1441,7 +1441,7 @@ export class Gunzip {
   push(chunk: Uint8Array, final?: boolean) {
     (Inflate.prototype as unknown as { e: typeof Inflate.prototype['e'] }).e.call(this, chunk);
     if (this.v) {
-      const s = gzs(this.p);
+      const s = this.p.length > 3 ? gzs(this.p) : 4;
       if (s >= this.p.length && !final) return;
       this.p = this.p.subarray(s), this.v = 0;
     }

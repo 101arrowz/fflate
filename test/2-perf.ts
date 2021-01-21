@@ -20,6 +20,7 @@ const cache: Record<string, Record<string, Buffer>> = {
 const flattenedWorkers: Record<string, TestHandler> = {};
 for (const k in workers) {
   for (const l in workers[k]) {
+    if (l == 'zip' || l == 'unzip') continue;
     flattenedWorkers[k + '.' + l] = async (file, name, resetTimer) => {
       const fileClone = bClone(file);
       let buf = fileClone;

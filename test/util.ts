@@ -14,7 +14,9 @@ const testFiles = {
 };
 
 const testZipFiles = {
-
+  model3D: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/kmz/Box.kmz',
+  largeModel3D: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/3mf/truck.3mf',
+  repo: 'https://codeload.github.com/parcel-bundler/parcel/zip/v2'
 };
 
 const dlCached = async <T extends Record<string, string | Buffer>>(files: T) => {
@@ -50,22 +52,25 @@ const dlCached = async <T extends Record<string, string | Buffer>>(files: T) => 
   return res;
 }
 
-export type TestFile = keyof typeof testFiles;
-
 const testFilesPromise = dlCached(testFiles);
+const testZipFilesPromise = dlCached(testZipFiles);
+
 export type TestHandler = (file: Buffer, name: string, resetTimer: () => void) => unknown | Promise<unknown>;
 
-export const testSuites = async <T extends Record<string, TestHandler>>(suites: T) => {
-  const perf = {} as Record<keyof T, Promise<Record<TestFile, number>>>;
+export const testSuites = async <T extends Record<string, TestHandler>, D extends 'zip' | 'default' = 'default'>(suites: T, type?: D) => {
+  type DK = keyof (D extends 'zip' ? typeof testZipFiles : typeof testFiles);
+  const tf = type == 'zip' ? testZipFiles : testFiles;
+  const tfp = type == 'zip' ? testZipFilesPromise : testFilesPromise;
+  const perf = {} as Record<keyof T, Promise<Record<DK, number>>>;
   for (const k in suites) {
     perf[k] = new Promise(async setPerf => {
       const ste = suite(k);
-      let localTestFiles: Record<TestFile, Buffer>;
-      ste.before(() => testFilesPromise.then(v => {
-        localTestFiles = v;
-      }));
-      const localPerf: Record<string, number> = {};
-      for (const name in testFiles) {
+      let localTestFiles: Record<DK, Buffer>;
+      ste.before(async () => {
+        localTestFiles = (await tfp) as unknown as Record<DK, Buffer>;
+      });
+      const localPerf = {} as Record<DK, number>;
+      for (const name in tf) {
         ste(name, async () => {
           let ts = performance.now();
           await suites[k](localTestFiles[name], name, () => {
@@ -80,7 +85,7 @@ export const testSuites = async <T extends Record<string, TestHandler>>(suites: 
       ste.run();
     })
   }
-  const resolvedPerf = {} as Record<keyof T, Record<TestFile, number>>;
+  const resolvedPerf = {} as Record<keyof T, Record<DK, number>>;
   for (const k in suites) resolvedPerf[k] = await perf[k];
   return resolvedPerf;
 };
@@ -88,8 +93,8 @@ export const testSuites = async <T extends Record<string, TestHandler>>(suites: 
 export const stream = (src: Uint8Array, dst: {
   push(dat: Uint8Array, final: boolean): void;
 }) => {
-  const off = Math.min(65536, src.length >>> 3);
   for (let i = 0; i < src.length;) {
+    const off = Math.floor(Math.random() * Math.min(131072, src.length >>> 3));
     dst.push(src.slice(i, i + off), (i += off) >= src.length);
   }
 }
@@ -106,24 +111,14 @@ const cws = (pkg: string, method: string = '_cjsDefault') => `
   }
 `;
 
-// create callback worker string
-const cbws = (pkg: string, method: string, alias = 'run') => `
-  const { ${method}: ${alias} } = require('${pkg}');
-  const { Worker, workerData, parentPort } = require('worker_threads');
-  ${alias}(...(Array.isArray(workerData) ? workerData : [workerData]), (err, buf) => {
-    if (err) parentPort.postMessage({ err });
-    else parentPort.postMessage(buf, [buf.buffer]);
-  });
-`;
-
 export type Workerized = (workerData: Uint8Array | [Uint8Array, {}], transferable?: ArrayBuffer[]) => WorkerizedResult;
 export interface WorkerizedResult extends PromiseLike<Uint8Array> {
   timeout(ms: number): void;
 };
 
 // Worker creator
-const wc = (pkg: string, method?: string, cb = false): Workerized => {
-  const str = cb ? cbws(pkg, method) : cws(pkg, method);
+const wc = (pkg: string, method?: string): Workerized => {
+  const str = cws(pkg, method);
   return (workerData, transferable) => {
     const worker = new Worker(str, {
       eval: true,
@@ -166,7 +161,9 @@ export const workers = {
     gzip: wc(fflate, 'gzipSync'),
     gunzip: wc(fflate, 'gunzipSync'),
     zlib: wc(fflate, 'zlibSync'),
-    unzlib: wc(fflate, 'unzlibSync')
+    unzlib: wc(fflate, 'unzlibSync'),
+    zip: wc(fflate, 'zipSync'),
+    unzip: wc(fflate, 'unzipSync')
   },
   pako: {
     deflate: wc('pako', 'deflateRaw'),
@@ -184,12 +181,12 @@ export const workers = {
     inflate: wc('tiny-inflate')
   },
   zlib: {
-    deflate: wc('zlib', 'deflateRaw', true),
-    inflate: wc('zlib', 'inflateRaw', true),
-    gzip: wc('zlib', 'gzip', true),
-    gunzip: wc('zlib', 'gunzip', true),
-    zlib: wc('zlib', 'deflate', true),
-    unzlib: wc('zlib', 'inflate', true)
+    deflate: wc('zlib', 'deflateRawSync'),
+    inflate: wc('zlib', 'inflateRawSync'),
+    gzip: wc('zlib', 'gzipSync'),
+    gunzip: wc('zlib', 'gunzipSync'),
+    zlib: wc('zlib', 'deflateSync'),
+    unzlib: wc('zlib', 'inflateSync')
   }
 };
 

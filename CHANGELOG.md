@@ -1,5 +1,8 @@
 ## 0.6.0
 - Revamped streaming unzip for compatibility and performance improvements
+- Fixed streaming data bugs
+- Fixed inflation errors
+- Planned new tests
 ## 0.5.2
 - General bugfixes
 ## 0.5.0

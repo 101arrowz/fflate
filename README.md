@@ -40,7 +40,7 @@ import * as fflate from 'fflate';
 // However, you should import ONLY what you need to minimize bloat.
 // So, if you just need GZIP compression support:
 import { gzipSync } from 'fflate';
-// Woo! You just saved 15 kB off your bundle with one line.
+// Woo! You just saved 20 kB off your bundle with one line.
 ```
 
 If your environment doesn't support ES Modules (e.g. Node.js):
@@ -57,13 +57,18 @@ You should use either UNPKG or jsDelivr (i.e. only one of the following)
 
 Note that tree shaking is completely unsupported from the CDN. If you want
 a small build without build tools, please ask me and I will make one manually
-with only the features you need.
+with only the features you need. This build is about 27kB, or 9kB gzipped.
 
 You may also want to specify the version, e.g. with fflate@0.4.8
 -->
 <script src="https://unpkg.com/fflate/umd/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fflate/umd/index.js"></script>
 <!-- Now, the global variable fflate contains the library -->
+
+<!-- If you're going buildless but want ESM, import from Skypack -->
+<script type="module">
+  import * as fflate from 'https://cdn.skypack.dev/fflate?min';
+</script>
 ```
 
 If your environment doesn't support bundling:
@@ -373,7 +378,7 @@ if (needToCancel) {
 // If you wish to provide options, use the second argument.
 
 // The consume option will render the data inside aMassiveFile unusable,
-// but can dramatically improve performance and reduce memory usage.
+// but can improve performance and dramatically reduce memory usage.
 zlib(aMassiveFile, { consume: true, level: 9 }, (err, data) => {
   // Use the data
 });

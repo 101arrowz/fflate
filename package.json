@@ -62,7 +62,7 @@
   "scripts": {
     "build": "yarn build:lib && yarn build:docs && yarn build:demo",
     "script": "node -r ts-node/register scripts/$SC.ts",
-    "build:lib": "tsc && tsc --project tsconfig.esm.json && yarn build:umd && yarn build:rewrite",
+    "build:lib": "tsc && tsc --project tsconfig.esm.json && yarn build:rewrite && yarn build:umd",
     "build:umd": "SC=buildUMD yarn script",
     "build:rewrite": "SC=rewriteBuilds yarn script",
     "build:demo": "tsc --project tsconfig.demo.json && parcel build demo/index.html --public-url \"./\" && SC=cpGHPages yarn script",
