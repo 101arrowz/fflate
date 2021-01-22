@@ -22,6 +22,7 @@ A pass-through stream to keep data uncompressed in a ZIP archive.
 * [compression](zippassthrough.md#compression)
 * [crc](zippassthrough.md#crc)
 * [filename](zippassthrough.md#filename)
+* [mtime](zippassthrough.md#mtime)
 * [ondata](zippassthrough.md#ondata)
 * [os](zippassthrough.md#os)
 * [size](zippassthrough.md#size)
@@ -77,6 +78,14 @@ ___
 •  **filename**: string
 
 *Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[filename](../interfaces/zipinputfile.md#filename)*
+
+___
+
+### mtime
+
+• `Optional` **mtime**: GzipOptions[\"mtime\"]
+
+*Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[mtime](../interfaces/zipinputfile.md#mtime)*
 
 ___
 

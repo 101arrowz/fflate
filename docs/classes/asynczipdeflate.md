@@ -23,6 +23,7 @@ Asynchronous streaming DEFLATE compression for ZIP archives
 * [crc](asynczipdeflate.md#crc)
 * [filename](asynczipdeflate.md#filename)
 * [flag](asynczipdeflate.md#flag)
+* [mtime](asynczipdeflate.md#mtime)
 * [ondata](asynczipdeflate.md#ondata)
 * [os](asynczipdeflate.md#os)
 * [size](asynczipdeflate.md#size)
@@ -89,6 +90,14 @@ ___
 •  **flag**: 0 \| 1 \| 2 \| 3
 
 *Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[flag](../interfaces/zipinputfile.md#flag)*
+
+___
+
+### mtime
+
+• `Optional` **mtime**: GzipOptions[\"mtime\"]
+
+*Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[mtime](../interfaces/zipinputfile.md#mtime)*
 
 ___
 

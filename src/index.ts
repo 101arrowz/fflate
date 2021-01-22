@@ -2305,9 +2305,10 @@ export class ZipPassThrough implements ZipInputFile {
   filename: string;
   crc: number;
   size: number;
+  compression: number;
   os?: number;
   attrs?: number;
-  compression: number;
+  mtime?: GzipOptions['mtime'];
   ondata: AsyncFlateStreamHandler;
   private c: CRCV;
 
@@ -2364,6 +2365,7 @@ export class ZipDeflate implements ZipInputFile {
   flag: 0 | 1 | 2 | 3;
   os?: number;
   attrs?: number;
+  mtime?: GzipOptions['mtime'];
   ondata: AsyncFlateStreamHandler;
   private d: Deflate;
 
@@ -2410,6 +2412,7 @@ export class AsyncZipDeflate implements ZipInputFile {
   flag: 0 | 1 | 2 | 3;
   os?: number;
   attrs?: number;
+  mtime?: GzipOptions['mtime'];
   ondata: AsyncFlateStreamHandler;
   private d: AsyncDeflate;
   terminate: AsyncTerminable;
@@ -2576,7 +2579,7 @@ export class Zip {
 
   /**
    * A method to terminate any internal workers used by the stream. Subsequent
-   * calls to add() will silently fail.
+   * calls to add() will fail.
    */
   terminate() {
     for (const f of this.u) f.t();

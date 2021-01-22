@@ -61,7 +61,7 @@ with only the features you need. This build is about 27kB, or 9kB gzipped.
 
 You may also want to specify the version, e.g. with fflate@0.4.8
 -->
-<script src="https://unpkg.com/fflate/umd/index.js"></script>
+<script src="https://unpkg.com/fflate"></script>
 <script src="https://cdn.jsdelivr.net/npm/fflate/umd/index.js"></script>
 <!-- Now, the global variable fflate contains the library -->
 
@@ -77,8 +77,8 @@ If your environment doesn't support bundling:
 
 // For the browser:
 import * as fflate from 'fflate/esm/browser.js';
-// If for some reason the standard ESM import fails on Node:
-import * as fflate from 'fflate/esm/index.mjs';
+// If the standard ESM import fails on Node (i.e. older version):
+import * as fflate from 'fflate/esm';
 ```
 
 And use:

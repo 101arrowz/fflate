@@ -24,6 +24,7 @@ for better performance
 * [crc](zipdeflate.md#crc)
 * [filename](zipdeflate.md#filename)
 * [flag](zipdeflate.md#flag)
+* [mtime](zipdeflate.md#mtime)
 * [ondata](zipdeflate.md#ondata)
 * [os](zipdeflate.md#os)
 * [size](zipdeflate.md#size)
@@ -89,6 +90,14 @@ ___
 •  **flag**: 0 \| 1 \| 2 \| 3
 
 *Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[flag](../interfaces/zipinputfile.md#flag)*
+
+___
+
+### mtime
+
+• `Optional` **mtime**: GzipOptions[\"mtime\"]
+
+*Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[mtime](../interfaces/zipinputfile.md#mtime)*
 
 ___
 

@@ -81,6 +81,6 @@ ___
 ▸ **terminate**(): void
 
 A method to terminate any internal workers used by the stream. Subsequent
-calls to add() will silently fail.
+calls to add() will fail.
 
 **Returns:** void

@@ -4,9 +4,9 @@ import { join } from 'path';
 
 const p = (...fns: string[]) => join(__dirname, '..', ...fns);
 
-const src = readFileSync(p('lib', 'index.js'), 'utf8');
-const worker = readFileSync(p('lib', 'worker.js'), 'utf8');
-const nodeWorker = readFileSync(p('lib', 'node-worker.js'), 'utf8');
+const src = readFileSync(p('lib', 'index.cjs'), 'utf8');
+const worker = readFileSync(p('lib', 'worker.cjs'), 'utf8');
+const nodeWorker = readFileSync(p('lib', 'node-worker.cjs'), 'utf8');
 
 const opts: MinifyOptions = {
   mangle: {
@@ -30,7 +30,7 @@ minify(src, opts).then(async out => {
     ''
   );
   const res = "!function(f){typeof module!='undefined'&&typeof exports=='object'?module.exports=f():typeof define!='undefined'&&define.amd?define(['fflate',f]):(typeof self!='undefined'?self:this).fflate=f()}(function(){var _e={};" +
-    out.code!.replace(/exports\.(.*) = void 0;\n/, '').replace(/exports\./g, '_e.').replace(/require\("\.\/node-worker"\)/,
+    out.code!.replace(/exports\.(.*) = void 0;\n/, '').replace(/exports\./g, '_e.').replace(/require\("\.\/node-worker\.cjs"\)/,
     "(typeof module!='undefined'&&typeof exports=='object'?function(_f){" + nodeWkrOut + 'return _f}:function(_f){' + wkrOut + 'return _f})({})'
   ) + 'return _e})';
   if (!existsSync(p('umd'))) mkdirSync(p('umd'));
