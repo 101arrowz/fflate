@@ -20,8 +20,10 @@ for better performance
 ### Properties
 
 * [attrs](zipdeflate.md#attrs)
+* [comment](zipdeflate.md#comment)
 * [compression](zipdeflate.md#compression)
 * [crc](zipdeflate.md#crc)
+* [extra](zipdeflate.md#extra)
 * [filename](zipdeflate.md#filename)
 * [flag](zipdeflate.md#flag)
 * [mtime](zipdeflate.md#mtime)
@@ -38,16 +40,16 @@ for better performance
 
 ### constructor
 
-\+ **new ZipDeflate**(`filename`: string, `opts`: [DeflateOptions](../interfaces/deflateoptions.md)): [ZipDeflate](zipdeflate.md)
+\+ **new ZipDeflate**(`filename`: string, `opts?`: [DeflateOptions](../interfaces/deflateoptions.md)): [ZipDeflate](zipdeflate.md)
 
 Creates a DEFLATE stream that can be added to ZIP archives
 
 #### Parameters:
 
-Name | Type | Default value | Description |
------- | ------ | ------ | ------ |
-`filename` | string | - | The filename to associate with this data stream |
-`opts` | [DeflateOptions](../interfaces/deflateoptions.md) | {} | The compression options  |
+Name | Type | Description |
+------ | ------ | ------ |
+`filename` | string | The filename to associate with this data stream |
+`opts?` | [DeflateOptions](../interfaces/deflateoptions.md) | The compression options  |
 
 **Returns:** [ZipDeflate](zipdeflate.md)
 
@@ -58,6 +60,14 @@ Name | Type | Default value | Description |
 • `Optional` **attrs**: number
 
 *Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[attrs](../interfaces/zipinputfile.md#attrs)*
+
+___
+
+### comment
+
+• `Optional` **comment**: string
+
+*Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[comment](../interfaces/zipinputfile.md#comment)*
 
 ___
 
@@ -74,6 +84,14 @@ ___
 •  **crc**: number
 
 *Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[crc](../interfaces/zipinputfile.md#crc)*
+
+___
+
+### extra
+
+• `Optional` **extra**: Record\<number, Uint8Array>
+
+*Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[extra](../interfaces/zipinputfile.md#extra)*
 
 ___
 

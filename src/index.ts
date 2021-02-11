@@ -96,7 +96,11 @@ const hMap = ((cd: Uint8Array, mb: number, r: 0 | 1) => {
     }
   } else {
     co = new u16(s);
-    for (i = 0; i < s; ++i) co[i] = rev[le[cd[i] - 1]++] >>> (15 - cd[i]);
+    for (i = 0; i < s; ++i) {
+      if (cd[i]) {
+        co[i] = rev[le[cd[i] - 1]++] >>> (15 - cd[i]);
+      }
+    }
   }
   return co;
 });
@@ -127,13 +131,13 @@ const max = (a: Uint8Array | number[]) => {
 // read d, starting at bit p and mask with m
 const bits = (d: Uint8Array, p: number, m: number) => {
   const o = (p / 8) | 0;
-  return ((d[o] | (d[o + 1] << 8)) >>> (p & 7)) & m;
+  return ((d[o] | (d[o + 1] << 8)) >> (p & 7)) & m;
 }
 
 // read d, starting at bit p continuing for at least 16 bits
 const bits16 = (d: Uint8Array, p: number) => {
   const o = (p / 8) | 0;
-  return ((d[o] | (d[o + 1] << 8) | (d[o + 2] << 16)) >>> (p & 7));
+  return ((d[o] | (d[o + 1] << 8) | (d[o + 2] << 16)) >> (p & 7));
 }
 
 // get end of byte
@@ -579,11 +583,10 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
     let lc = 0, eb = 0, i = 0, li = 0, wi = 0, bs = 0;
     for (; i < s; ++i) {
       // hash value
+      // deopt when i > s - 3 - at end, deopt acceptable
       const hv = hsh(i);
-      // index mod 32768
-      let imod = i & 32767;
-      // previous index with this value
-      let pimod = head[hv];
+      // index mod 32768    previous index mod
+      let imod = i & 32767, pimod = head[hv];
       prev[imod] = pimod;
       head[hv] = imod;
       // We always should modify head and prev, but only add symbols if
@@ -674,7 +677,7 @@ const crct = /*#__PURE__*/ (() => {
 
 // CRC32
 const crc = (): CRCV => {
-  let c = 0xFFFFFFFF;
+  let c = -1;
   return {
     p(d) {
       // closures have awful performance
@@ -682,7 +685,7 @@ const crc = (): CRCV => {
       for (let i = 0; i < d.length; ++i) cr = crct[(cr & 255) ^ d[i]] ^ (cr >>> 8);
       c = cr;
     },
-    d() { return c ^ 0xFFFFFFFF }
+    d() { return ~c; }
   }
 }
 
@@ -695,13 +698,16 @@ const adler = (): CRCV => {
       let n = a, m = b;
       const l = d.length;
       for (let i = 0; i != l;) {
-        const e = Math.min(i + 5552, l);
-        for (; i < e; ++i) n += d[i], m += n;
-        n %= 65521, m %= 65521;
+        const e = Math.min(i + 2655, l);
+        for (; i < e; ++i) m += n += d[i];
+        n = (n & 65535) + 15 * (n >> 16), m = (m & 65535) + 15 * (m >> 16);
       }
       a = n, b = m;
     },
-    d() { return ((a >>> 8) << 16 | (b & 255) << 8 | (b >>> 8)) + ((a & 255) << 23) * 2; }
+    d() {
+      a %= 65521, b %= 65521;
+      return ((a >>> 8) << 16 | (b & 255) << 8 | (b >>> 8)) + ((a & 255) << 23) * 2;
+    }
   }
 }
 
@@ -1162,8 +1168,8 @@ export function deflate(data: Uint8Array, opts: AsyncDeflateOptions | FlateCallb
  * @param opts The compression options
  * @returns The deflated version of the data
  */
-export function deflateSync(data: Uint8Array, opts: DeflateOptions = {}) {
-  return dopt(data, opts, 0, 0);
+export function deflateSync(data: Uint8Array, opts?: DeflateOptions) {
+  return dopt(data, opts || {}, 0, 0);
 }
 
 /**
@@ -1409,7 +1415,8 @@ export function gzip(data: Uint8Array, opts: AsyncGzipOptions | FlateCallback, c
  * @param opts The compression options
  * @returns The gzipped version of the data
  */
-export function gzipSync(data: Uint8Array, opts: GzipOptions = {}) {
+export function gzipSync(data: Uint8Array, opts?: GzipOptions) {
+  if (!opts) opts = {};
   const c = crc(), l = data.length;
   c.p(data);
   const d = dopt(data, opts, gzhl(opts), 8), s = d.length;
@@ -1651,7 +1658,8 @@ export function zlib(data: Uint8Array, opts: AsyncZlibOptions | FlateCallback, c
  * @param opts The compression options
  * @returns The zlib-compressed version of the data
  */
-export function zlibSync(data: Uint8Array, opts: ZlibOptions = {}) {
+export function zlibSync(data: Uint8Array, opts: ZlibOptions) {
+  if (!opts) opts = {};
   const a = adler();
   a.p(data);
   const d = dopt(data, opts, 2, 4);
@@ -1921,6 +1929,23 @@ export interface ZipAttributes {
   attrs?: number;
 
   /**
+   * Extra metadata to add to the file. This field is defined by PKZIP's APPNOTE.txt,
+   * section 4.4.28. At most 65,535 bytes may be used in each ID. The ID must be an
+   * integer between 0 and 65,535, inclusive.
+   * 
+   * This field is incredibly rare and almost never needed except for compliance with
+   * proprietary standards and software.
+   */
+  extra?: Record<number, Uint8Array>;
+
+  /**
+   * The comment to attach to the file. This field is defined by PKZIP's APPNOTE.txt,
+   * section 4.4.26. The comment must be at most 65,535 bytes long UTF-8 encoded. This
+   * field is not read by consumer software.
+   */
+  comment?: string;
+
+  /**
    * When the file was last modified. Defaults to the current time.
    */
   mtime?: GzipOptions['mtime'];
@@ -2007,9 +2032,9 @@ const fltn = <A extends boolean>(d: A extends true ? AsyncZippable : Zippable, p
 }
 
 // text encoder
-const te = typeof TextEncoder != 'undefined' && new TextEncoder();
+const te = typeof TextEncoder != 'undefined' && /*#__PURE__*/ new TextEncoder();
 // text decoder
-const td = typeof TextDecoder != 'undefined' && new TextDecoder();
+const td = typeof TextDecoder != 'undefined' && /*#__PURE__*/ new TextDecoder();
 // text decoder stream
 let tds = 0;
 try {
@@ -2178,10 +2203,23 @@ const z64e = (d: Uint8Array, b: number) => {
 // zip header file
 type ZHF = Omit<ZipInputFile, 'terminate' | 'ondata' | 'filename'>;
 
+// extra field length
+const exfl = (ex?: ZHF['extra']) => {
+  let le = 0;
+  if (ex) {
+    for (const k in ex) {
+      const l = ex[k].length;
+      if (l > 65535) throw 'extra field too long';
+      le += l + 4;
+    }
+  }
+  return le;
+}
 
 // write zip header
-const wzh = (d: Uint8Array, b: number, f: ZHF, fn: Uint8Array, u: boolean, c?: number, ce?: number) => {
-  const fl = fn.length;
+const wzh = (d: Uint8Array, b: number, f: ZHF, fn: Uint8Array, u: boolean, c?: number, ce?: number, co?: Uint8Array) => {
+  const fl = fn.length, ex = f.extra, col = co && co.length;
+  let exl = exfl(ex);
   wbytes(d, b, ce != null ? 0x2014B50 : 0x4034B50), b += 4;
   if (ce != null) d[b++] = 20, d[b++] = f.os;
   d[b] = 20, b += 2; // spec compliance? what's that?
@@ -2195,13 +2233,25 @@ const wzh = (d: Uint8Array, b: number, f: ZHF, fn: Uint8Array, u: boolean, c?: n
     wbytes(d, b + 4, c);
     wbytes(d, b + 8, f.size);
   }
-  wbytes(d, b + 12, fl), b += 16;
+  wbytes(d, b + 12, fl);
+  wbytes(d, b + 14, exl), b += 16;
   if (ce != null) {
+    wbytes(d, b, col);
     wbytes(d, b + 6, f.attrs);
     wbytes(d, b + 10, ce), b += 14;
   }
   d.set(fn, b);
-  return b + fl;
+  b += fl;
+  if (exl) {
+    for (const k in ex) {
+      const exf = ex[k], l = exf.length;
+      wbytes(d, b, +k);
+      wbytes(d, b + 2, l);
+      d.set(exf, b + 4), b += 4 + l;
+    }
+  }
+  if (col) d.set(co, b), b += col;
+  return b;
 }
 
 // write zip footer (end of central directory)
@@ -2289,6 +2339,8 @@ type AsyncZipDat = ZHF & {
   c: Uint8Array;
   // filename
   f: Uint8Array;
+  // comment
+  m?: Uint8Array;
   // unicode
   u: boolean;
 };
@@ -2308,6 +2360,8 @@ export class ZipPassThrough implements ZipInputFile {
   compression: number;
   os?: number;
   attrs?: number;
+  comment?: string;
+  extra?: Record<number, Uint8Array>;
   mtime?: GzipOptions['mtime'];
   ondata: AsyncFlateStreamHandler;
   private c: CRCV;
@@ -2365,6 +2419,8 @@ export class ZipDeflate implements ZipInputFile {
   flag: 0 | 1 | 2 | 3;
   os?: number;
   attrs?: number;
+  comment?: string;
+  extra?: Record<number, Uint8Array>;
   mtime?: GzipOptions['mtime'];
   ondata: AsyncFlateStreamHandler;
   private d: Deflate;
@@ -2374,7 +2430,8 @@ export class ZipDeflate implements ZipInputFile {
    * @param filename The filename to associate with this data stream
    * @param opts The compression options
    */
-  constructor(filename: string, opts: DeflateOptions = {}) {
+  constructor(filename: string, opts?: DeflateOptions) {
+    if (!opts) opts = {};
     ZipPassThrough.call(this, filename);
     this.d = new Deflate(opts, (dat, final) => {
       this.ondata(null, dat, final);
@@ -2412,6 +2469,8 @@ export class AsyncZipDeflate implements ZipInputFile {
   flag: 0 | 1 | 2 | 3;
   os?: number;
   attrs?: number;
+  comment?: string;
+  extra?: Record<number, Uint8Array>;
   mtime?: GzipOptions['mtime'];
   ondata: AsyncFlateStreamHandler;
   private d: AsyncDeflate;
@@ -2422,7 +2481,8 @@ export class AsyncZipDeflate implements ZipInputFile {
    * @param filename The filename to associate with this data stream
    * @param opts The compression options
    */
-  constructor(filename: string, opts: DeflateOptions = {}) {
+  constructor(filename: string, opts?: DeflateOptions) {
+    if (!opts) opts = {};
     ZipPassThrough.call(this, filename);
     this.d = new AsyncDeflate(opts, (err, dat, final) => {
       this.ondata(err, dat, final);
@@ -2451,6 +2511,8 @@ type ZIFE = {
   c: number;
   // filename
   f: Uint8Array;
+  // comment
+  o?: Uint8Array;
   // unicode
   u: boolean;
   // byte offset
@@ -2490,7 +2552,10 @@ export class Zip {
    */
   add(file: ZipInputFile) {
     if (this.d & 2) throw 'stream finished';
-    const f = strToU8(file.filename), fl = f.length, u = fl != file.filename.length, hl = fl + 30;
+    const f = strToU8(file.filename), fl = f.length;
+    const com = file.comment, o = com && strToU8(com);
+    const u = fl != file.filename.length || (o && (com.length != o.length));
+    const hl = fl + exfl(file.extra) + 30;
     if (fl > 65535) throw 'filename too long';
     const header = new u8(hl);
     wzh(header, 0, file, f, u);
@@ -2505,6 +2570,7 @@ export class Zip {
     const uf = mrg(file, {
       f,
       u,
+      o,
       t: () => { 
         if (file.terminate) file.terminate();
       },
@@ -2566,11 +2632,11 @@ export class Zip {
 
   private e() {
     let bt = 0, l = 0, tl = 0;
-    for (const f of this.u) tl += 46 + f.f.length;
+    for (const f of this.u) tl += 46 + f.f.length + exfl(f.extra) + (f.o ? f.o.length : 0);
     const out = new u8(tl + 22);
     for (const f of this.u) {
-      wzh(out, bt, f, f.f, f.u, f.c, l);
-      bt += 46 + f.f.length, l += f.b;
+      wzh(out, bt, f, f.f, f.u, f.c, l, f.o);
+      bt += 46 + f.f.length + exfl(f.extra) + (f.o ? f.o.length : 0), l += f.b;
     }
     wzf(out, bt, this.u.length, tl, l)
     this.ondata(null, out, true);
@@ -2627,9 +2693,10 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
       try {
         const l = f.c.length;
         wzh(out, tot, f, f.f, f.u, l);
-        const loc = tot + 30 + f.f.length;
+        const badd = 30 + f.f.length + exfl(f.extra);
+        const loc = tot + badd;
         out.set(f.c, loc);
-        wzh(out, o, f, f.f, f.u, l, tot), o += 46 + f.f.length, tot = loc + l;
+        wzh(out, o, f, f.f, f.u, l, tot, f.m), o += 16 + badd + (f.m ? f.m.length : 0), tot = loc + l;
       } catch(e) {
         return cb(e, null);
       }
@@ -2645,6 +2712,8 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
     const c = crc(), size = file.length;
     c.p(file);
     const f = strToU8(fn), s = f.length;
+    const com = p.comment, m = com && strToU8(com), ms = m && m.length;
+    const exl = exfl(p.extra);
     const compression = p.level == 0 ? 0 : 8;
     const cbl: FlateCallback = (e, d) => {
       if (e) {
@@ -2657,11 +2726,12 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
           crc: c.d(),
           c: d,
           f,
-          u: s != fn.length,
+          m,
+          u: s != fn.length || (m && (com.length != ms)),
           compression
         });
-        o += 30 + s + l;
-        tot += 76 + 2 * s + l;
+        o += 30 + s + exl + l;
+        tot += 76 + 2 * (s + exl) + (ms || 0) + l;
         if (!--lft) cbf();
       }
     }
@@ -2685,7 +2755,8 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
  * @param opts The main options, merged with per-file options
  * @returns The generated ZIP archive
  */
-export function zipSync(data: Zippable, opts: ZipOptions = {}) {
+export function zipSync(data: Zippable, opts?: ZipOptions) {
+  if (!opts) opts = {};
   const r: FlatZippable<false> = {};
   const files: ZipDat[] = [];
   fltn(data, '', r, opts);
@@ -2695,6 +2766,8 @@ export function zipSync(data: Zippable, opts: ZipOptions = {}) {
     const [file, p] = r[fn];
     const compression = p.level == 0 ? 0 : 8;
     const f = strToU8(fn), s = f.length;
+    const com = p.comment, m = com && strToU8(com), ms = m && m.length;
+    const exl = exfl(p.extra);
     if (s > 65535) throw 'filename too long';
     const d = compression ? deflateSync(file, p) : file, l = d.length;
     const c = crc();
@@ -2704,19 +2777,21 @@ export function zipSync(data: Zippable, opts: ZipOptions = {}) {
       crc: c.d(),
       c: d,
       f,
-      u: s != fn.length,
+      m,
+      u: s != fn.length || (m && (com.length != ms)),
       o,
       compression
     }));
-    o += 30 + s + l;
-    tot += 76 + 2 * s + l;
+    o += 30 + s + exl + l;
+    tot += 76 + 2 * (s + exl) + (ms || 0) + l;
   }
   const out = new u8(tot + 22), oe = o, cdl = tot - o;
   for (let i = 0; i < files.length; ++i) {
     const f = files[i];
     wzh(out, f.o, f, f.f, f.u, f.c.length);
-    out.set(f.c, f.o + 30 + f.f.length);
-    wzh(out, o, f, f.f, f.u, f.c.length, f.o), o += 46 + f.f.length;
+    const badd = 30 + f.f.length + exfl(f.extra);
+    out.set(f.c, f.o + badd);
+    wzh(out, o, f, f.f, f.u, f.c.length, f.o, f.m), o += 16 + badd + (f.m ? f.m.length : 0);
   }
   wzf(out, o, files.length, cdl, oe);
   return out;

@@ -258,16 +258,16 @@ ___
 
 ### deflateSync
 
-▸ **deflateSync**(`data`: Uint8Array, `opts`: [DeflateOptions](interfaces/deflateoptions.md)): Uint8Array
+▸ **deflateSync**(`data`: Uint8Array, `opts?`: [DeflateOptions](interfaces/deflateoptions.md)): Uint8Array
 
 Compresses data with DEFLATE without any wrapper
 
 #### Parameters:
 
-Name | Type | Default value | Description |
------- | ------ | ------ | ------ |
-`data` | Uint8Array | - | The data to compress |
-`opts` | [DeflateOptions](interfaces/deflateoptions.md) | {} | The compression options |
+Name | Type | Description |
+------ | ------ | ------ |
+`data` | Uint8Array | The data to compress |
+`opts?` | [DeflateOptions](interfaces/deflateoptions.md) | The compression options |
 
 **Returns:** Uint8Array
 
@@ -381,16 +381,16 @@ ___
 
 ### gzipSync
 
-▸ **gzipSync**(`data`: Uint8Array, `opts`: [GzipOptions](interfaces/gzipoptions.md)): Uint8Array
+▸ **gzipSync**(`data`: Uint8Array, `opts?`: [GzipOptions](interfaces/gzipoptions.md)): Uint8Array
 
 Compresses data with GZIP
 
 #### Parameters:
 
-Name | Type | Default value | Description |
------- | ------ | ------ | ------ |
-`data` | Uint8Array | - | The data to compress |
-`opts` | [GzipOptions](interfaces/gzipoptions.md) | {} | The compression options |
+Name | Type | Description |
+------ | ------ | ------ |
+`data` | Uint8Array | The data to compress |
+`opts?` | [GzipOptions](interfaces/gzipoptions.md) | The compression options |
 
 **Returns:** Uint8Array
 
@@ -593,17 +593,17 @@ ___
 
 ### zipSync
 
-▸ **zipSync**(`data`: [Zippable](interfaces/zippable.md), `opts`: [ZipOptions](interfaces/zipoptions.md)): Uint8Array
+▸ **zipSync**(`data`: [Zippable](interfaces/zippable.md), `opts?`: [ZipOptions](interfaces/zipoptions.md)): Uint8Array
 
 Synchronously creates a ZIP file. Prefer using `zip` for better performance
 with more than one file.
 
 #### Parameters:
 
-Name | Type | Default value | Description |
------- | ------ | ------ | ------ |
-`data` | [Zippable](interfaces/zippable.md) | - | The directory structure for the ZIP archive |
-`opts` | [ZipOptions](interfaces/zipoptions.md) | {} | The main options, merged with per-file options |
+Name | Type | Description |
+------ | ------ | ------ |
+`data` | [Zippable](interfaces/zippable.md) | The directory structure for the ZIP archive |
+`opts?` | [ZipOptions](interfaces/zipoptions.md) | The main options, merged with per-file options |
 
 **Returns:** Uint8Array
 
@@ -648,9 +648,9 @@ Compress data with Zlib
 
 #### Parameters:
 
-Name | Type | Default value | Description |
------- | ------ | ------ | ------ |
-`data` | Uint8Array | - | The data to compress |
-`opts` | [ZlibOptions](interfaces/zliboptions.md) | {} | The compression options |
+Name | Type | Description |
+------ | ------ | ------ |
+`data` | Uint8Array | The data to compress |
+`opts` | [ZlibOptions](interfaces/zliboptions.md) | The compression options |
 
 **Returns:** Uint8Array

@@ -15,7 +15,9 @@ Options for asynchronously creating a ZIP archive
 ### Properties
 
 * [attrs](asynczipoptions.md#attrs)
+* [comment](asynczipoptions.md#comment)
 * [consume](asynczipoptions.md#consume)
+* [extra](asynczipoptions.md#extra)
 * [level](asynczipoptions.md#level)
 * [mem](asynczipoptions.md#mem)
 * [mtime](asynczipoptions.md#mtime)
@@ -49,6 +51,18 @@ If you want to set the Unix permissions, for instance, just bit shift by 16, e.g
 
 ___
 
+### comment
+
+• `Optional` **comment**: string
+
+*Inherited from [ZipAttributes](zipattributes.md).[comment](zipattributes.md#comment)*
+
+The comment to attach to the file. This field is defined by PKZIP's APPNOTE.txt,
+section 4.4.26. The comment must be at most 65,535 bytes long UTF-8 encoded. This
+field is not read by consumer software.
+
+___
+
 ### consume
 
 • `Optional` **consume**: boolean
@@ -57,6 +71,21 @@ ___
 
 Whether or not to "consume" the source data. This will make the typed array/buffer you pass in
 unusable but will increase performance and reduce memory usage.
+
+___
+
+### extra
+
+• `Optional` **extra**: Record\<number, Uint8Array>
+
+*Inherited from [ZipAttributes](zipattributes.md).[extra](zipattributes.md#extra)*
+
+Extra metadata to add to the file. This field is defined by PKZIP's APPNOTE.txt,
+section 4.4.28. At most 65,535 bytes may be used in each ID. The ID must be an
+integer between 0 and 65,535, inclusive.
+
+This field is incredibly rare and almost never needed except for compliance with
+proprietary standards and software.
 
 ___
 

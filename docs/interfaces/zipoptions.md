@@ -15,6 +15,8 @@ Options for creating a ZIP archive
 ### Properties
 
 * [attrs](zipoptions.md#attrs)
+* [comment](zipoptions.md#comment)
+* [extra](zipoptions.md#extra)
 * [level](zipoptions.md#level)
 * [mem](zipoptions.md#mem)
 * [mtime](zipoptions.md#mtime)
@@ -45,6 +47,33 @@ rwx = user permissions, rwx = group permissions, rwx = other permissions
 A = archive, D = directory, V = volume label, S = system file, H = hidden, R = read-only
 
 If you want to set the Unix permissions, for instance, just bit shift by 16, e.g. 0644 << 16
+
+___
+
+### comment
+
+• `Optional` **comment**: string
+
+*Inherited from [ZipAttributes](zipattributes.md).[comment](zipattributes.md#comment)*
+
+The comment to attach to the file. This field is defined by PKZIP's APPNOTE.txt,
+section 4.4.26. The comment must be at most 65,535 bytes long UTF-8 encoded. This
+field is not read by consumer software.
+
+___
+
+### extra
+
+• `Optional` **extra**: Record\<number, Uint8Array>
+
+*Inherited from [ZipAttributes](zipattributes.md).[extra](zipattributes.md#extra)*
+
+Extra metadata to add to the file. This field is defined by PKZIP's APPNOTE.txt,
+section 4.4.28. At most 65,535 bytes may be used in each ID. The ID must be an
+integer between 0 and 65,535, inclusive.
+
+This field is incredibly rare and almost never needed except for compliance with
+proprietary standards and software.
 
 ___
 

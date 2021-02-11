@@ -164,13 +164,13 @@ fn byte(dat: &[u8], bpos: usize) -> u8 {
    }
 }
 
-#[inline]
+#[inline(always)]
 fn bits(dat: &[u8], pos: usize, mask: u8) -> u8 {
     let b = pos >> 3;
     ((byte(dat, b) as u16 | ((byte(dat, b + 1) as u16) << 8)) >> (pos & 7)) as u8 & mask
 }
 
-#[inline]
+#[inline(always)]
 fn bits16(dat: &[u8], pos: usize, mask: u16) -> u16 {
     let b = pos >> 3;
     ((byte(dat, b) as u32
@@ -191,6 +191,8 @@ struct InflateState {
     dmap: [u16; 32768],
     clmap: [u16; 128],
     le: [u16; 16],
+    ldt: [u8; 320],
+    clt: [u8; 19],
     lbits: u8,
     dbits: u8,
     bfinal: bool,
@@ -213,6 +215,8 @@ impl Default for InflateState {
             dmap: [0; 32768],
             clmap: [0; 128],
             le: [0; 16],
+            ldt: [0; 320],
+            clt: [0; 19],
             lbits: 0,
             dbits: 0,
             bfinal: false,
@@ -246,13 +250,13 @@ impl From<InflateError> for Error {
 }
 
 pub trait OutputBuffer {
-    fn w(&mut self, value: u8);
-    fn wall(&mut self, slice: &[u8]) {
+    fn write(&mut self, value: u8);
+    fn write_all(&mut self, slice: &[u8]) {
         for &value in slice {
-            self.w(value);
+            self.write(value);
         }
     }
-    fn palloc(&mut self, extra_bytes: usize);
+    fn pre_alloc(&mut self, extra_bytes: usize);
     fn back(&self, back: usize) -> u8;
 }
 
@@ -293,14 +297,14 @@ impl<'a> SliceOutputBuffer<'a> {
 
 impl<'a> OutputBuffer for SliceOutputBuffer<'a> {
     #[inline(always)]
-    fn w(&mut self, value: u8) {
+    fn write(&mut self, value: u8) {
         if self.byte < self.buf.len() {
             self.buf[self.byte] = value;
         }
         self.byte += 1;
     }
     #[inline(always)]
-    fn wall(&mut self, slice: &[u8]) {
+    fn write_all(&mut self, slice: &[u8]) {
         let sl = slice.len();
         let end = self.byte + sl;
         if end <= self.buf.len() {
@@ -309,7 +313,7 @@ impl<'a> OutputBuffer for SliceOutputBuffer<'a> {
         self.byte = end;
     }
     #[inline(always)]
-    fn palloc(&mut self, _eb: usize) {}
+    fn pre_alloc(&mut self, _eb: usize) {}
     #[inline(always)]
     fn back(&self, back: usize) -> u8 {
         self.buf[self.byte - back]
@@ -319,10 +323,8 @@ impl<'a> OutputBuffer for SliceOutputBuffer<'a> {
 fn inflt(dat: &[u8], buf: &mut dyn OutputBuffer, st: &mut InflateState) -> Result<(), InflateError> {
     let mut pos = st.pos;
     let sl = dat.len();
-    if st.bfinal && st.head { return Ok(()) };
+    if sl == 0 || (st.head && sl < 5) { return Ok(()); }
     let tbts = sl << 3;
-    let mut ldt = [0u8; 320];
-    let mut clt = [0u8; 19];
     loop {
         if st.head {
             st.bfinal = bits(dat, pos, 1) != 0;
@@ -339,7 +341,7 @@ fn inflt(dat: &[u8], buf: &mut dyn OutputBuffer, st: &mut InflateState) -> Resul
                         }
                         break;
                     }
-                    buf.wall(&dat[s..t]);
+                    buf.write_all(&dat[s..t]);
                     continue;
                 }
                 1 => {
@@ -354,25 +356,25 @@ fn inflt(dat: &[u8], buf: &mut dyn OutputBuffer, st: &mut InflateState) -> Resul
                     let tl = hlit + (bits(dat, pos + 5, 31) + 1) as usize;
                     pos += 14;
                     for i in 0..hclen {
-                        clt[clim[i]] = bits(dat, pos + (i * 3) as usize, 7);
+                        st.clt[clim[i]] = bits(dat, pos + (i * 3) as usize, 7);
                     }
                     pos += hclen * 3;
                     for i in hclen..19 {
-                        clt[clim[i]] = 0;
+                        st.clt[clim[i]] = 0;
                     }
-                    let clb = *clt.iter().max().unwrap();
+                    let clb = *st.clt.iter().max().unwrap();
                     let clbmsk = (1 << clb) - 1;
                     if !st.last && pos + tl * (clb + 7) as usize > tbts {
                         break;
                     }
-                    hrmap(&clt, clb, &mut st.clmap, &mut st.le);
+                    hrmap(&st.clt, clb, &mut st.clmap, &mut st.le);
                     let mut i = 0;
                     loop {
                         let r = st.clmap[bits(dat, pos, clbmsk) as usize];
                         pos += (r & 15) as usize;
                         let s = (r >> 4) as u8;
                         if s < 16 {
-                            ldt[i] = s;
+                            st.ldt[i] = s;
                             i += 1;
                         } else {
                             let mut c = 0;
@@ -380,7 +382,7 @@ fn inflt(dat: &[u8], buf: &mut dyn OutputBuffer, st: &mut InflateState) -> Resul
                             if s == 16 {
                                 n = 3 + bits(dat, pos, 3);
                                 pos += 2;
-                                c = ldt[i - 1];
+                                c = st.ldt[i - 1];
                             }
                             else if s == 17 {
                                 n = 3 + bits(dat, pos, 7);
@@ -393,7 +395,7 @@ fn inflt(dat: &[u8], buf: &mut dyn OutputBuffer, st: &mut InflateState) -> Resul
                             let mut un = n as usize;
                             i += un;
                             while un > 0 {
-                                ldt[i - un] = c;
+                                st.ldt[i - un] = c;
                                 un -= 1;
                             }
                         }
@@ -401,8 +403,8 @@ fn inflt(dat: &[u8], buf: &mut dyn OutputBuffer, st: &mut InflateState) -> Resul
                             break;
                         }
                     }
-                    let lt = &ldt[0..hlit];
-                    let dt = &ldt[hlit..tl];
+                    let lt = &st.ldt[0..hlit];
+                    let dt = &st.ldt[hlit..tl];
                     st.lbits = *lt.iter().max().unwrap();
                     st.dbits = *dt.iter().max().unwrap();
                     hrmap(lt, st.lbits, &mut st.lmap, &mut st.le);
@@ -431,7 +433,7 @@ fn inflt(dat: &[u8], buf: &mut dyn OutputBuffer, st: &mut InflateState) -> Resul
             }
             let sym = c >> 4;
             if (sym >> 8) == 0 {
-                buf.w(sym as u8);
+                buf.write(sym as u8);
             } else if sym == 256 {
                 st.head = true;
                 break;
@@ -459,7 +461,7 @@ fn inflt(dat: &[u8], buf: &mut dyn OutputBuffer, st: &mut InflateState) -> Resul
                     return Err(InflateError::UnexpectedEOF);
                 }
                 while add != 0 {
-                    buf.w(buf.back(dt));
+                    buf.write(buf.back(dt));
                     add -= 1;
                 }
             }
@@ -473,7 +475,7 @@ fn inflt(dat: &[u8], buf: &mut dyn OutputBuffer, st: &mut InflateState) -> Resul
 }
 
 pub fn inflate(dat: &[u8], out: &mut dyn OutputBuffer) -> Result<(), InflateError> {
-    out.palloc(dat.len() * 3);
+    out.pre_alloc(dat.len() * 3);
     let mut st = InflateState::new();
     st.last = true;
     inflt(dat, out, &mut st)?;

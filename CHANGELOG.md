@@ -1,3 +1,8 @@
+## 0.7.0
+- Replace Adler-32 implementation (used in Zlib compression) with one more optimized for V8
+  - Advice from @SheetJSDev
+- Add support for extra fields, file comments in ZIP files
+- Work on Rust version
 ## 0.6.0
 - Revamped streaming unzip for compatibility and performance improvements
 - Fixed streaming data bugs

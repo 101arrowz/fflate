@@ -19,8 +19,10 @@ A stream that can be used to create a file in a ZIP archive
 ### Properties
 
 * [attrs](zipinputfile.md#attrs)
+* [comment](zipinputfile.md#comment)
 * [compression](zipinputfile.md#compression)
 * [crc](zipinputfile.md#crc)
+* [extra](zipinputfile.md#extra)
 * [filename](zipinputfile.md#filename)
 * [flag](zipinputfile.md#flag)
 * [mtime](zipinputfile.md#mtime)
@@ -57,6 +59,18 @@ If you want to set the Unix permissions, for instance, just bit shift by 16, e.g
 
 ___
 
+### comment
+
+• `Optional` **comment**: string
+
+*Inherited from [ZipAttributes](zipattributes.md).[comment](zipattributes.md#comment)*
+
+The comment to attach to the file. This field is defined by PKZIP's APPNOTE.txt,
+section 4.4.26. The comment must be at most 65,535 bytes long UTF-8 encoded. This
+field is not read by consumer software.
+
+___
+
 ### compression
 
 •  **compression**: number
@@ -78,6 +92,21 @@ stream completes.
 If you don't want to have to generate this yourself, consider extending the
 ZipPassThrough class and overriding its process() method, or using one of
 ZipDeflate or AsyncZipDeflate.
+
+___
+
+### extra
+
+• `Optional` **extra**: Record\<number, Uint8Array>
+
+*Inherited from [ZipAttributes](zipattributes.md).[extra](zipattributes.md#extra)*
+
+Extra metadata to add to the file. This field is defined by PKZIP's APPNOTE.txt,
+section 4.4.28. At most 65,535 bytes may be used in each ID. The ID must be an
+integer between 0 and 65,535, inclusive.
+
+This field is incredibly rare and almost never needed except for compliance with
+proprietary standards and software.
 
 ___
 

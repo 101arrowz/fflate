@@ -19,8 +19,10 @@ Asynchronous streaming DEFLATE compression for ZIP archives
 ### Properties
 
 * [attrs](asynczipdeflate.md#attrs)
+* [comment](asynczipdeflate.md#comment)
 * [compression](asynczipdeflate.md#compression)
 * [crc](asynczipdeflate.md#crc)
+* [extra](asynczipdeflate.md#extra)
 * [filename](asynczipdeflate.md#filename)
 * [flag](asynczipdeflate.md#flag)
 * [mtime](asynczipdeflate.md#mtime)
@@ -38,16 +40,16 @@ Asynchronous streaming DEFLATE compression for ZIP archives
 
 ### constructor
 
-\+ **new AsyncZipDeflate**(`filename`: string, `opts`: [DeflateOptions](../interfaces/deflateoptions.md)): [AsyncZipDeflate](asynczipdeflate.md)
+\+ **new AsyncZipDeflate**(`filename`: string, `opts?`: [DeflateOptions](../interfaces/deflateoptions.md)): [AsyncZipDeflate](asynczipdeflate.md)
 
 Creates a DEFLATE stream that can be added to ZIP archives
 
 #### Parameters:
 
-Name | Type | Default value | Description |
------- | ------ | ------ | ------ |
-`filename` | string | - | The filename to associate with this data stream |
-`opts` | [DeflateOptions](../interfaces/deflateoptions.md) | {} | The compression options  |
+Name | Type | Description |
+------ | ------ | ------ |
+`filename` | string | The filename to associate with this data stream |
+`opts?` | [DeflateOptions](../interfaces/deflateoptions.md) | The compression options  |
 
 **Returns:** [AsyncZipDeflate](asynczipdeflate.md)
 
@@ -58,6 +60,14 @@ Name | Type | Default value | Description |
 • `Optional` **attrs**: number
 
 *Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[attrs](../interfaces/zipinputfile.md#attrs)*
+
+___
+
+### comment
+
+• `Optional` **comment**: string
+
+*Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[comment](../interfaces/zipinputfile.md#comment)*
 
 ___
 
@@ -74,6 +84,14 @@ ___
 •  **crc**: number
 
 *Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[crc](../interfaces/zipinputfile.md#crc)*
+
+___
+
+### extra
+
+• `Optional` **extra**: Record\<number, Uint8Array>
+
+*Implementation of [ZipInputFile](../interfaces/zipinputfile.md).[extra](../interfaces/zipinputfile.md#extra)*
 
 ___
 
