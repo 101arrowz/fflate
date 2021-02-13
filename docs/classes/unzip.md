@@ -49,7 +49,7 @@ The handler to call whenever a file is discovered
 
 ### push
 
-▸ **push**(`chunk`: Uint8Array, `final`: boolean): any
+▸ **push**(`chunk`: Uint8Array, `final?`: boolean): any
 
 Pushes a chunk to be unzipped
 
@@ -58,7 +58,7 @@ Pushes a chunk to be unzipped
 Name | Type | Description |
 ------ | ------ | ------ |
 `chunk` | Uint8Array | The chunk to push |
-`final` | boolean | Whether this is the last chunk  |
+`final?` | boolean | Whether this is the last chunk  |
 
 **Returns:** any
 

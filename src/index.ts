@@ -2151,11 +2151,11 @@ export function strToU8(str: string, latin1?: boolean): Uint8Array {
     }
     let c = str.charCodeAt(i);
     if (c < 128 || latin1) w(c);
-    else if (c < 2048) w(192 | (c >>> 6)), w(128 | (c & 63));
+    else if (c < 2048) w(192 | (c >> 6)), w(128 | (c & 63));
     else if (c > 55295 && c < 57344)
       c = 65536 + (c & 1023 << 10) | (str.charCodeAt(++i) & 1023),
-      w(240 | (c >>> 18)), w(128 | ((c >>> 12) & 63)), w(128 | ((c >>> 6) & 63)), w(128 | (c & 63));
-    else w(224 | (c >>> 12)), w(128 | ((c >>> 6) & 63)), w(128 | (c & 63));
+      w(240 | (c >> 18)), w(128 | ((c >> 12) & 63)), w(128 | ((c >> 6) & 63)), w(128 | (c & 63));
+    else w(224 | (c >> 12)), w(128 | ((c >> 6) & 63)), w(128 | (c & 63));
   }
   return slc(ar, 0, ai);
 }
@@ -2936,7 +2936,7 @@ export class AsyncUnzipInflate implements UnzipDecoder {
   /**
    * Creates a DEFLATE decompression that can be used in ZIP archives
    */
-  constructor(_: string, sz: number) {
+  constructor(_: string, sz?: number) {
     if (sz < 320000) {
       this.i = new Inflate((dat, final) => {
         this.ondata(null, dat, final);
@@ -2983,7 +2983,7 @@ export class Unzip {
    * @param chunk The chunk to push
    * @param final Whether this is the last chunk
    */
-  push(chunk: Uint8Array, final: boolean) {
+  push(chunk: Uint8Array, final?: boolean) {
     if (!this.onfile) throw 'no callback';
     if (this.c > 0) {
       const len = Math.min(this.c, chunk.length);
@@ -3045,10 +3045,10 @@ export class Unzip {
           break;
         } else if (oc) {
           if (sig == 0x8074B50) {
-            is = i += 12 + (oc == -2 && 8), f = 2, this.c = 0;
+            is = i += 12 + (oc == -2 && 8), f = 3, this.c = 0;
             break;
           } else if (sig == 0x2014B50) {
-            is = i -= 4, f = 2, this.c = 0;
+            is = i -= 4, f = 3, this.c = 0;
             break;
           }
         }
