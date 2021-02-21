@@ -240,7 +240,6 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         pos += hcLen * 3;
         // code lengths bits
         const clb = max(clt), clbmsk = (1 << clb) - 1;
-        if (!noSt && pos + tl * (clb + 7) > tbts) break;
         // code lengths map
         const clm = hMap(clt, clb, 1);
         for (let i = 0; i < tl;) {
@@ -270,25 +269,30 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         lm = hMap(lt, lbt, 1);
         dm = hMap(dt, dbt, 1);
       } else throw 'invalid block type';
-      if (pos > tbts) throw 'unexpected EOF';
+      if (pos > tbts) {
+        if (noSt) throw 'unexpected EOF';
+        break;
+      }
     }
     // Make sure the buffer can hold this + the largest possible addition
     // Maximum chunk size (practically, theoretically infinite) is 2^17;
     if (noBuf) cbuf(bt + 131072);
     const lms = (1 << lbt) - 1, dms = (1 << dbt) - 1;
-    const mxa = lbt + dbt + 18;
-    while (noSt || pos + mxa < tbts) {
+    let lpos = pos;
+    for (;; lpos = pos) {
       // bits read, code
       const c = lm[bits16(dat, pos) & lms], sym = c >>> 4;
       pos += c & 15;
-      if (pos > tbts) throw 'unexpected EOF';
+      if (pos > tbts) {
+        if (noSt) throw 'unexpected EOF';
+        break;
+      }
       if (!c) throw 'invalid length/literal';
       if (sym < 256) buf[bt++] = sym;
       else if (sym == 256) {
-        lm = null;
+        lpos = pos, lm = null;
         break;
-      }
-      else {
+      } else {
         let add = sym - 254;
         // no extra bits needed if less
         if (sym > 264) {
@@ -306,7 +310,10 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
           const b = fdeb[dsym];
           dt += bits16(dat, pos) & ((1 << b) - 1), pos += b;
         }
-        if (pos > tbts) throw 'unexpected EOF';
+        if (pos > tbts) {
+          if (noSt) throw 'unexpected EOF';
+          break;
+        }
         if (noBuf) cbuf(bt + 131072);
         const end = bt + add;
         for (; bt < end; bt += 4) {
@@ -318,7 +325,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         bt = end;
       }
     }
-    st.l = lm, st.p = pos, st.b = bt;
+    st.l = lm, st.p = lpos, st.b = bt;
     if (lm) final = 1, st.m = lbt, st.d = dm, st.n = dbt;
   } while (!final)
   return bt == buf.length ? buf : slc(buf, 0, bt);
@@ -706,7 +713,7 @@ const adler = (): CRCV => {
     },
     d() {
       a %= 65521, b %= 65521;
-      return ((a >>> 8) << 16 | (b & 255) << 8 | (b >>> 8)) + ((a & 255) << 23) * 2;
+      return (a & 255) << 24 | (a >>> 8) << 16 | (b & 255) << 8 | (b >>> 8);
     }
   }
 }
@@ -983,9 +990,9 @@ const astrmify = <T>(fns: (() => unknown[])[], strm: Astrm, opts: T | 0, init: (
 const b2 = (d: Uint8Array, b: number) => d[b] | (d[b + 1] << 8);
 
 // read 4 bytes
-const b4 = (d: Uint8Array, b: number) => (d[b] | (d[b + 1] << 8) | (d[b + 2] << 16)) + (d[b + 3] << 23) * 2;
+const b4 = (d: Uint8Array, b: number) => (d[b] | (d[b + 1] << 8) | (d[b + 2] << 16) | (d[b + 3] << 24)) >>> 0;
 
-const b8 = (d: Uint8Array, b: number) => b4(d, b) | (b4(d, b) * 4294967296);
+const b8 = (d: Uint8Array, b: number) => b4(d, b) + (b4(d, b + 4) * 4294967296);
 
 // write bytes
 const wbytes = (d: Uint8Array, b: number, v: number) => {
@@ -1018,7 +1025,7 @@ const gzs = (d: Uint8Array) => {
 // gzip length
 const gzl = (d: Uint8Array) => {
   const l = d.length;
-  return (d[l - 4] | d[l - 3] << 8 | d[l - 2] << 16) + (2 * (d[l - 1] << 23));
+  return ((d[l - 4] | d[l - 3] << 8 | d[l - 2] << 16) | (d[l - 1] << 24)) >>> 0;
 }
 
 // gzip header length
@@ -2081,7 +2088,10 @@ export class DecodeUTF8 {
   push(chunk: Uint8Array, final?: boolean) {
     if (!this.ondata) throw 'no callback';
     if (!final) final = false;
-    if (this.t) return this.ondata(this.t.decode(chunk, { stream: !final }), final);
+    if (this.t) {
+      this.ondata(this.t.decode(chunk, { stream: true }), false);
+      if (final) this.ondata(this.t.decode(), true);
+    }
     const dat = new u8(this.p.length + chunk.length);
     dat.set(this.p);
     dat.set(chunk, this.p.length);
@@ -2227,7 +2237,7 @@ const wzh = (d: Uint8Array, b: number, f: ZHF, fn: Uint8Array, u: boolean, c?: n
   d[b++] = f.compression & 255, d[b++] = f.compression >> 8;
   const dt = new Date(f.mtime == null ? Date.now() : f.mtime), y = dt.getFullYear() - 1980;
   if (y < 0 || y > 119) throw 'date not in range 1980-2099';
-  wbytes(d, b, ((y << 24) * 2) | ((dt.getMonth() + 1) << 21) | (dt.getDate() << 16) | (dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >>> 1)), b += 4;
+  wbytes(d, b, (y << 25) | ((dt.getMonth() + 1) << 21) | (dt.getDate() << 16) | (dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >>> 1)), b += 4;
   if (c != null) {
     wbytes(d, b, f.crc);
     wbytes(d, b + 4, c);

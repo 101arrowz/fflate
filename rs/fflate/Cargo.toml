@@ -21,9 +21,10 @@ edition = "2018"
 
 [dependencies]
 lazy_static = "1.4"
+miniz_oxide = "*"
 
 [profile.release]
-opt-level = "s"
+opt-level = 3
 lto = true
 
 [features]

@@ -1,3 +1,6 @@
+## 0.6.4
+- Made streaming inflate consume all data possible
+- Optimized use of values near 32-bit boundary
 ## 0.6.3
 - Patch exports of async functions
 - Fix streaming unzip
