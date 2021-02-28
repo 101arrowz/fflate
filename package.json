@@ -1,6 +1,6 @@
 {
   "name": "fflate",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "High performance (de)compression in an 8kB package",
   "main": "./lib/index.cjs",
   "module": "./esm/browser.js",
@@ -41,7 +41,7 @@
     "email": "arjunbarrett@gmail.com",
     "url": "https://github.com/101arrowz/fflate/issues"
   },
-  "author": "Arjun Barrett",
+  "author": "Arjun Barrett <arjunbarrett@gmail.com>",
   "license": "MIT",
   "keywords": [
     "gzip",

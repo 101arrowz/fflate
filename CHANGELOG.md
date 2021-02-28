@@ -1,3 +1,6 @@
+## 0.6.5
+- Fixed streams not recognizing final chunk
+- Fixed streaming UTF-8 decoder bug
 ## 0.6.4
 - Made streaming inflate consume all data possible
 - Optimized use of values near 32-bit boundary

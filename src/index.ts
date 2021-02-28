@@ -2087,17 +2087,24 @@ export class DecodeUTF8 {
    */
   push(chunk: Uint8Array, final?: boolean) {
     if (!this.ondata) throw 'no callback';
-    if (!final) final = false;
+    final = !!final;
     if (this.t) {
-      this.ondata(this.t.decode(chunk, { stream: true }), false);
-      if (final) this.ondata(this.t.decode(), true);
+      this.ondata(this.t.decode(chunk, { stream: true }), final);
+      if (final) {
+        if (this.t.decode().length) throw 'invalid utf-8 data';
+        this.t = null;
+      }
+      return;
     }
+    if (!this.p) throw 'stream finished'
     const dat = new u8(this.p.length + chunk.length);
     dat.set(this.p);
     dat.set(chunk, this.p.length);
     const [ch, np] = dutf8(dat);
-    if (final && np.length) throw 'invalid utf-8 data';
-    this.p = np;
+    if (final) {
+      if (np.length) throw 'invalid utf-8 data';
+      this.p = null;
+    } else this.p = np;
     this.ondata(ch, final);
   }
 
@@ -2111,6 +2118,7 @@ export class DecodeUTF8 {
  * Streaming UTF-8 encoding
  */
 export class EncodeUTF8 {
+  private d: boolean;
   /**
    * Creates a UTF-8 decoding stream
    * @param cb The callback to call whenever data is encoded
@@ -2126,7 +2134,8 @@ export class EncodeUTF8 {
    */
   push(chunk: string, final?: boolean) {
     if (!this.ondata) throw 'no callback';
-    this.ondata(strToU8(chunk), final || false);
+    if (this.d) throw 'stream finished';
+    this.ondata(strToU8(chunk), this.d = final || false);
   }
 
   /**
@@ -2995,6 +3004,7 @@ export class Unzip {
    */
   push(chunk: Uint8Array, final?: boolean) {
     if (!this.onfile) throw 'no callback';
+    if (!this.k) throw 'stream finished';
     if (this.c > 0) {
       const len = Math.min(this.c, chunk.length);
       const toAdd = chunk.subarray(0, len);
@@ -3072,7 +3082,10 @@ export class Unzip {
       if (f & 2) return this.push(buf.subarray(i), final);
       this.p = buf.subarray(i);
     }
-    if (final && this.c) throw 'invalid zip file';
+    if (final) {
+      if (this.c) throw 'invalid zip file';
+      this.k = null;
+    }
   }
 
   /**
