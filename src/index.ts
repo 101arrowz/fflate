@@ -3004,7 +3004,7 @@ export class Unzip {
    */
   push(chunk: Uint8Array, final?: boolean) {
     if (!this.onfile) throw 'no callback';
-    if (!this.k) throw 'stream finished';
+    if (!this.p) throw 'stream finished';
     if (this.c > 0) {
       const len = Math.min(this.c, chunk.length);
       const toAdd = chunk.subarray(0, len);
@@ -3084,7 +3084,7 @@ export class Unzip {
     }
     if (final) {
       if (this.c) throw 'invalid zip file';
-      this.k = null;
+      this.p = null;
     }
   }
 
