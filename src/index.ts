@@ -3039,6 +3039,7 @@ export class Unzip {
             else if (dd) sc = -1;
             i += es;
             this.c = sc;
+            let d: UnzipDecoder;
             const file = {
               name: fn,
               compression: cmp,
@@ -3048,15 +3049,15 @@ export class Unzip {
                 else {
                   const ctr = this.o[cmp];
                   if (!ctr) throw 'unknown compression type ' + cmp;
-                  const d = sc < 0 ? new ctr(fn) : new ctr(fn, sc, su);
+                  d = sc < 0 ? new ctr(fn) : new ctr(fn, sc, su);
                   d.ondata = (err, dat, final) => { file.ondata(err, dat, final); }
                   for (const dat of chks) d.push(dat, false);
-                  if (this.k[0] == chks) this.d = d;
+                  if (this.k[0] == chks && this.c) this.d = d;
                   else d.push(et, true);
                 }
               },
               terminate: () => {
-                if (this.k[0] == chks && this.d.terminate) this.d.terminate();
+                if (d && d.terminate) d.terminate();
               }
             } as UnzipFile;
             if (sc >= 0) file.size = sc, file.originalSize = su;
