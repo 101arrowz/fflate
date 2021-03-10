@@ -15,8 +15,7 @@ const testFiles = {
 
 const testZipFiles = {
   model3D: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/kmz/Box.kmz',
-  largeModel3D: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/3mf/truck.3mf',
-  repo: 'https://codeload.github.com/parcel-bundler/parcel/zip/v2'
+  largeModel3D: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/3mf/truck.3mf'
 };
 
 const dlCached = async <T extends Record<string, string | Buffer>>(files: T) => {

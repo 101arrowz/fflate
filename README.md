@@ -339,6 +339,9 @@ unzipper.onfile = file => {
   }
 };
 
+// Try to keep under 5,000 files per chunk to avoid stack limit errors
+// For example, if all files are a few kB, multi-megabyte chunks are OK
+// If files are mostly under 100 bytes, 64kB chunks are the limit
 unzipper.push(zipChunk1);
 unzipper.push(zipChunk2);
 unzipper.push(zipChunk3, true);
