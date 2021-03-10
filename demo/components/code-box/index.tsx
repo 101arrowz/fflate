@@ -235,12 +235,16 @@ if (canStream) {
 const file = files[0];
 const gzipStream = new AsyncGzip({ level: 6 });
 // We can stream the file through GZIP to reduce memory usage
-const fakeResponse = new Response(
-  file.stream().pipeThrough(toNativeStream(gzipStream))
-);
-fakeResponse.arrayBuffer().then(buf => {
-  callback('Length ' + buf.byteLength);
-});`,
+const gzipped = file.stream().pipeThrough(toNativeStream(gzipStream));
+let gzSize = 0;
+gzipped.pipeTo(new WritableStream({
+  write(chunk) {
+    gzSize += chunk.length;
+  },
+  close() {
+    callback('Length ' + gzSize);
+  }
+}));`,
     uzip: `// UZIP doesn't support streaming to any extent
 callback(new Error('unsupported'));`,
     pako: `// Hundreds of lines of code to make this run on a Worker...
@@ -249,12 +253,16 @@ const file = files[0];
 // you need to create a custom async stream. I suppose you could copy the
 // code used in this demo, which is on GitHub under the demo/ directory.
 const gzipStream = pakoWorker.createGzip();
-const fakeResponse = new Response(
-  file.stream().pipeThrough(toNativeStream(gzipStream))
-);
-fakeResponse.arrayBuffer().then(buf => {
-  callback('Length ' + buf.byteLength);
-});`
+const gzipped = file.stream().pipeThrough(toNativeStream(gzipStream));
+let gzSize = 0;
+gzipped.pipeTo(new WritableStream({
+  write(chunk) {
+    gzSize += chunk.length;
+  },
+  close() {
+    callback('Length ' + gzSize);
+  }
+}));`
   };
 }
 
