@@ -25,7 +25,7 @@ Asynchronous streaming GZIP decompression
 
 ### constructor
 
-\+ **new AsyncGunzip**(`cb`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncGunzip](asyncgunzip.md)
+\+ **new AsyncGunzip**(`cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncGunzip](asyncgunzip.md)
 
 Creates an asynchronous GUNZIP stream
 
@@ -33,7 +33,7 @@ Creates an asynchronous GUNZIP stream
 
 Name | Type | Description |
 ------ | ------ | ------ |
-`cb` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated  |
+`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated  |
 
 **Returns:** [AsyncGunzip](asyncgunzip.md)
 

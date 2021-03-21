@@ -71,6 +71,16 @@ You may also want to specify the version, e.g. with fflate@0.4.8
 </script>
 ```
 
+If you are using Deno:
+```js
+// Don't use the ?dts Skypack flag; it isn't necessary for Deno support
+// The @deno-types comment adds TypeScript typings
+
+// @deno-types="https://cdn.skypack.dev/fflate/lib/index.d.ts"
+import * as fflate from 'https://cdn.skypack.dev/fflate?min';
+```
+
+
 If your environment doesn't support bundling:
 ```js
 // Again, try to import just what you need
