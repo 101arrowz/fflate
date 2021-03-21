@@ -1482,7 +1482,7 @@ export class AsyncGunzip {
    * Creates an asynchronous GUNZIP stream
    * @param cb The callback to call whenever data is deflated
    */
-  constructor(cb: AsyncFlateStreamHandler) {
+  constructor(cb?: AsyncFlateStreamHandler) {
     this.ondata = cb;
     astrmify([
       bInflt,
