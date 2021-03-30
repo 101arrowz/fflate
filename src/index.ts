@@ -673,10 +673,10 @@ type CRCV = {
 
 // CRC32 table
 const crct = /*#__PURE__*/ (() => {
-  const t = new u32(256);
+  const t = new Int32Array(256);
   for (let i = 0; i < 256; ++i) {
     let c = i, k = 9;
-    while (--k) c = ((c & 1) && 0xEDB88320) ^ (c >>> 1);
+    while (--k) c = ((c & 1) && -306674912) ^ (c >>> 1);
     t[i] = c;
   }
   return t;

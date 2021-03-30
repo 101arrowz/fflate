@@ -21,11 +21,14 @@ edition = "2018"
 
 [dependencies]
 lazy_static = "1.4"
+# TO REMOVE
 miniz_oxide = "*"
 
 [profile.release]
 opt-level = 3
 lto = true
+# TO FIX
+debug = true
 
 [features]
 std = []

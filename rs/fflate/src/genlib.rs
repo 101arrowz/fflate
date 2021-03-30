@@ -15,7 +15,7 @@ const fleb: [usize; 32] = [
     0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 0, 0, 0,
 ];
 
-const fl: [usize; 32] = [
+const fl: [u16; 32] = [
     3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131,
     163, 195, 227, 258, 0, 0, 0,
 ];
@@ -38,7 +38,7 @@ const fdeb: [usize; 32] = [
     13, 0, 0,
 ];
 
-const fd: [usize; 32] = [
+const fd: [u16; 32] = [
     1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537,
     2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577, 0, 0,
 ];
@@ -51,7 +51,7 @@ const clim: [usize; 19] = [
 
 const et: [u8; 0] = [];
 
-fn freb(b: &[usize], r: &mut [u32]) {
+fn freb(b: &[u16], r: &mut [u32]) {
     for i in 1..30 {
         let base = b[i];
         for j in base..b[i + 1] {
@@ -243,6 +243,49 @@ fn max(dat: &[u8]) -> u8 {
     m
 }
 
+pub trait OutputBuffer {
+    fn write(&mut self, value: u8);
+    fn write_all(&mut self, slice: &[u8]) {
+        for &value in slice {
+            self.write(value);
+        }
+    }
+    fn pre_alloc(&mut self, extra_bytes: usize);
+    fn copy_back(&mut self, back: usize, len: usize);
+}
+
+// #[cfg(feature = "std")]
+impl OutputBuffer for Vec<u8> {
+    #[inline(always)]
+    fn write(&mut self, value: u8) {
+        self.push(value);
+    }
+    #[inline(always)]
+    fn write_all(&mut self, slice: &[u8]) {
+        self.extend_from_slice(slice)
+    }
+    #[inline(always)]
+    fn pre_alloc(&mut self, extra_bytes: usize) {
+        self.reserve(extra_bytes);
+    }
+    #[inline(always)]
+    fn copy_back(&mut self, back: usize, len: usize) {
+        let l = self.len();
+        let st = l - back;
+        self.reserve(len);
+        unsafe {
+            self.set_len(l + len);
+        }
+        if len > back {
+            for i in 0..len {
+                self[l + i] = self[st + i];
+            }
+        } else {
+            self.copy_within(st..st + len, l);
+        }
+    }
+}
+
 // pub struct SliceOutputBuffer<'a > {
 //     buf: &'a mut [u8],
 //     byte: usize
@@ -292,7 +335,7 @@ fn max(dat: &[u8]) -> u8 {
 
 // }
 
-unsafe fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<(), InflateError> {
+unsafe fn inflt(dat: &[u8], buf: &mut dyn OutputBuffer, st: &mut InflateState) -> Result<(), InflateError> {
     let mut pos = st.pos;
     let sl = dat.len();
     if sl == 0 || (st.head && sl < 5) { return Ok(()); }
@@ -312,7 +355,7 @@ unsafe fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<
                         }
                         break;
                     }
-                    buf.extend_from_slice(&dat[s..t]);
+                    buf.write_all(&dat[s..t]);
                     continue;
                 }
                 1 => {
@@ -393,32 +436,26 @@ unsafe fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<
         let lms = (1u16 << st.lbits) - 1;
         let dms = (1u16 << st.dbits) - 1;
         let top = tbts - (st.lbits + st.dbits + 18) as usize;
-        let lm = st.lmap;
-        let dm = st.dmap;
-        let lst = st.last;
-        while lst || pos < top {
-            let c = lm[
+        while st.last || pos < top {
+            let c = st.lmap[
                 bits16(dat, pos, lms) as usize
             ];
-            if c == 0 {
-                return Err(InflateError::InvalidLengthOrLiteral);
-            }
             pos += (c & 15) as usize;
             let sym = c >> 4;
             if (sym & 256) == 0 {
-                buf.push(sym as u8);
+                buf.write(sym as u8);
             } else if sym == 256 {
                 st.head = true;
                 break;
             } else {
-                let mut add = (sym as usize) - 254;
+                let mut add = sym - 254;
                 if add > 10 {
-                    let i = add - 3;
+                    let i = add as usize - 3;
                     let b = fleb[i];
-                    add = bits(dat, pos, (1 << b) - 1) as usize + fl[i];
+                    add = bits(dat, pos, (1 << b) - 1) as u16 + fl[i];
                     pos += b;
                 }
-                let d = dm[
+                let d = st.dmap[
                     bits16(dat, pos, dms) as usize
                 ];
                 if d == 0 {
@@ -435,18 +472,7 @@ unsafe fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<
                 if pos > tbts {
                     return Err(InflateError::UnexpectedEOF);
                 }
-                let len = add as usize;
-                let l = buf.len();
-                let st = l - dt;
-                buf.reserve(len);
-                buf.set_len(l + len);
-                if len > dt {
-                    for i in 0..len {
-                        buf[l + i] = buf[st + i];
-                    }
-                } else {
-                    buf.copy_within(st..st + len, l);
-                }
+                buf.copy_back(dt, add as usize);
             }
         }
         st.pos = pos;
@@ -457,7 +483,7 @@ unsafe fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<
     Ok(())
 }
 
-pub fn inflate(dat: &[u8], out: &mut Vec<u8>) -> Result<(), InflateError> {
+pub fn inflate(dat: &[u8], out: &mut dyn OutputBuffer) -> Result<(), InflateError> {
     let mut st = InflateState::new();
     st.last = true;
     unsafe {

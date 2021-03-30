@@ -15,7 +15,7 @@ const fleb: [usize; 32] = [
     0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 0, 0, 0,
 ];
 
-const fl: [usize; 32] = [
+const fl: [u16; 32] = [
     3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131,
     163, 195, 227, 258, 0, 0, 0,
 ];
@@ -38,7 +38,7 @@ const fdeb: [usize; 32] = [
     13, 0, 0,
 ];
 
-const fd: [usize; 32] = [
+const fd: [u16; 32] = [
     1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537,
     2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577, 0, 0,
 ];
@@ -51,7 +51,7 @@ const clim: [usize; 19] = [
 
 const et: [u8; 0] = [];
 
-fn freb(b: &[usize], r: &mut [u32]) {
+fn freb(b: &[u16], r: &mut [u32]) {
     for i in 1..30 {
         let base = b[i];
         for j in base..b[i + 1] {
@@ -99,7 +99,9 @@ fn hrmap(cd: &[u8], mb: u8, co: &mut [u16], le: &mut [u16]) {
             le[cl] += 1;
             let m = v + (1 << r);
             let sv = ((i as u16) << 4) | cl as u16;
-            rev[v..m].iter().for_each(|i| co[i >> rvb] = sv);
+            for j in v..m {
+                co[rev[j] >> rvb] = sv;
+            }
         }
     }
 }
@@ -149,17 +151,27 @@ lazy_static! {
 }
 
 #[inline(always)]
-unsafe fn bits(dat: &[u8], pos: usize, mask: u8) -> u8 {
+fn mbits(dat: &[u8], pos: usize, mask: u8) -> u8 {
+    (dat[pos >> 3] >> (pos & 7)) & mask
+}
+
+fn mbits16(dat: &[u8], pos: usize, mask: u16) -> u16 {
     let b = pos >> 3;
-    ((*dat.get_unchecked(b) as u16 | ((*dat.get_unchecked(b + 1) as u16) << 8)) >> (pos & 7)) as u8 & mask
+    ((dat[b] as u16 | ((dat[b + 1] as u16) << 8)) >> (pos & 7)) & mask
 }
 
 #[inline(always)]
-unsafe fn bits16(dat: &[u8], pos: usize, mask: u16) -> u16 {
+fn bits(dat: &[u8], pos: usize, mask: u8) -> u8 {
     let b = pos >> 3;
-    ((*dat.get_unchecked(b) as u32
-        | ((*dat.get_unchecked(b + 1) as u32) << 8)
-        | ((*dat.get_unchecked(b + 2) as u32) << 16))
+    ((dat[b] as u16 | ((dat[b + 1] as u16) << 8)) >> (pos & 7)) as u8 & mask
+}
+
+#[inline(always)]
+fn bits16(dat: &[u8], pos: usize, mask: u16) -> u16 {
+    let b = pos >> 3;
+    ((dat[b] as u32
+        | ((dat[b + 1] as u32) << 8)
+        | ((dat[b + 2] as u32) << 16))
         >> (pos & 7)) as u16
         & mask
 }
@@ -243,60 +255,84 @@ fn max(dat: &[u8]) -> u8 {
     m
 }
 
-// pub struct SliceOutputBuffer<'a > {
-//     buf: &'a mut [u8],
-//     byte: usize
-// }
+pub trait OutputBuffer {
+    fn write(&mut self, value: u8);
+    fn write_all(&mut self, slice: &[u8]) {
+        for &value in slice {
+            self.write(value);
+        }
+    }
+    fn pre_alloc(&mut self, extra_bytes: usize);
+    fn back(&self, back: usize) -> u8;
+}
 
-// impl<'a> SliceOutputBuffer<'a> {
-//     #[inline(always)]
-//     pub fn new(slice: &'a mut [u8]) -> SliceOutputBuffer<'a> {
-//         SliceOutputBuffer {
-//             buf: slice,
-//             byte: 0
-//         }
-//     }
-// }
+// #[cfg(feature = "std")]
+impl OutputBuffer for Vec<u8> {
+    #[inline(always)]
+    fn write(&mut self, value: u8) {
+        self.push(value);
+    }
+    #[inline(always)]
+    fn write_all(&mut self, slice: &[u8]) {
+        self.extend(slice.iter());
+    }
+    #[inline(always)]
+    fn pre_alloc(&mut self, extra_bytes: usize) {
+        self.reserve(extra_bytes);
+    }
+    #[inline(always)]
+    fn back(&self, back: usize) -> u8 {
+        self[self.len() - back]
+    }
+}
 
-// impl<'a> OutputBuffer for SliceOutputBuffer<'a> {
-//     #[inline(always)]
-//     fn write(&mut self, value: u8) {
-//         if self.byte < self.buf.len() {
-//             self.buf[self.byte] = value;
-//         }
-//         self.byte += 1;
-//     }
-//     #[inline(always)]
-//     fn write_all(&mut self, slice: &[u8]) {
-//         let sl = slice.len();
-//         let end = self.byte + sl;
-//         if end <= self.buf.len() {
-//             self.buf[self.byte..end].copy_from_slice(slice);
-//         }
-//         self.byte = end;
-//     }
-//     #[inline(always)]
-//     fn pre_alloc(&mut self, _eb: usize) {}
-//     fn copy_back(&mut self, back: usize, mut len: usize) {
-//         if len > back {
-//             while len != 0 {
-//                 let st = self.byte - back;
-//                 OutputBuffer::write_all(self, &self.buf[st..std::cmp::min(st + len as usize, self.byte)]);
-//                 len -= back;
-//             }
-//         } else {
-//             let st = self.byte - back;
-//             OutputBuffer::write_all(self, &self.buf[st..st + len])
-//         }
-//     }
+pub struct SliceOutputBuffer<'a > {
+    buf: &'a mut [u8],
+    byte: usize
+}
 
-// }
+impl<'a> SliceOutputBuffer<'a> {
+    #[inline(always)]
+    pub fn new(slice: &'a mut [u8]) -> SliceOutputBuffer<'a> {
+        SliceOutputBuffer {
+            buf: slice,
+            byte: 0
+        }
+    }
+}
 
-unsafe fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<(), InflateError> {
+impl<'a> OutputBuffer for SliceOutputBuffer<'a> {
+    #[inline(always)]
+    fn write(&mut self, value: u8) {
+        if self.byte < self.buf.len() {
+            self.buf[self.byte] = value;
+        }
+        self.byte += 1;
+    }
+    #[inline(always)]
+    fn write_all(&mut self, slice: &[u8]) {
+        let sl = slice.len();
+        let end = self.byte + sl;
+        if end <= self.buf.len() {
+            self.buf[self.byte..end].copy_from_slice(slice);
+        }
+        self.byte = end;
+    }
+    #[inline(always)]
+    fn pre_alloc(&mut self, _eb: usize) {}
+    #[inline(always)]
+    fn back(&self, back: usize) -> u8 {
+        self.buf[self.byte - back]
+    }
+}
+
+fn inflt(dat: &[u8], buf: &mut dyn OutputBuffer, st: &mut InflateState) -> Result<(), InflateError> {
     let mut pos = st.pos;
     let sl = dat.len();
     if sl == 0 || (st.head && sl < 5) { return Ok(()); }
     let tbts = sl << 3;
+    let tbts1 = tbts - 8;
+    let tbts2 = tbts1 - 8;
     loop {
         if st.head {
             st.bfinal = bits(dat, pos, 1) != 0;
@@ -312,7 +348,7 @@ unsafe fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<
                         }
                         break;
                     }
-                    buf.extend_from_slice(&dat[s..t]);
+                    buf.write_all(&dat[s..t]);
                     continue;
                 }
                 1 => {
@@ -391,35 +427,64 @@ unsafe fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<
         }
         st.head = false;
         let lms = (1u16 << st.lbits) - 1;
+        let lms8 = lms as u8;
         let dms = (1u16 << st.dbits) - 1;
+        let dms8 = dms as u8;
+        let topl = tbts - st.lbits as usize;
+        let topd = tbts - st.dbits as usize;
         let top = tbts - (st.lbits + st.dbits + 18) as usize;
-        let lm = st.lmap;
-        let dm = st.dmap;
-        let lst = st.last;
-        while lst || pos < top {
-            let c = lm[
-                bits16(dat, pos, lms) as usize
+        while st.last || pos < top {
+            let c = st.lmap[
+                if pos > topl {
+                    return Err(InflateError::UnexpectedEOF);
+                } else if st.lbits < 10 {
+                    if pos > tbts1 {
+                        mbits(dat, pos, lms8) as usize
+                    } else {
+                        bits(dat, pos, lms8) as usize
+                    }
+                } else {
+                    if pos > tbts2 {
+                        mbits16(dat, pos, lms) as usize
+                    } else {
+                        bits16(dat, pos, lms) as usize
+                    }
+                }
             ];
+            pos += (c & 15) as usize;
             if c == 0 {
                 return Err(InflateError::InvalidLengthOrLiteral);
             }
-            pos += (c & 15) as usize;
             let sym = c >> 4;
-            if (sym & 256) == 0 {
-                buf.push(sym as u8);
+            if (sym >> 8) == 0 {
+                buf.write(sym as u8);
             } else if sym == 256 {
                 st.head = true;
                 break;
             } else {
-                let mut add = (sym as usize) - 254;
+                let mut add = sym - 254;
                 if add > 10 {
-                    let i = add - 3;
+                    let i = add as usize - 3;
                     let b = fleb[i];
-                    add = bits(dat, pos, (1 << b) - 1) as usize + fl[i];
+                    add = bits(dat, pos, (1 << b) - 1) as u16 + fl[i];
                     pos += b;
                 }
-                let d = dm[
-                    bits16(dat, pos, dms) as usize
+                let d = st.dmap[
+                    if pos > topd {
+                        return Err(InflateError::UnexpectedEOF);
+                    } else if st.dbits < 10 {
+                        if pos > tbts1 {
+                            mbits(dat, pos, dms8) as usize
+                        } else {
+                            bits(dat, pos, dms8) as usize
+                        }
+                    } else {
+                        if pos > tbts2 {
+                            mbits16(dat, pos, dms) as usize
+                        } else {
+                            bits16(dat, pos, dms) as usize
+                        }
+                    }
                 ];
                 if d == 0 {
                     return Err(InflateError::InvalidDistance);
@@ -435,17 +500,9 @@ unsafe fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<
                 if pos > tbts {
                     return Err(InflateError::UnexpectedEOF);
                 }
-                let len = add as usize;
-                let l = buf.len();
-                let st = l - dt;
-                buf.reserve(len);
-                buf.set_len(l + len);
-                if len > dt {
-                    for i in 0..len {
-                        buf[l + i] = buf[st + i];
-                    }
-                } else {
-                    buf.copy_within(st..st + len, l);
+                while add != 0 {
+                    buf.write(buf.back(dt));
+                    add -= 1;
                 }
             }
         }
@@ -457,11 +514,46 @@ unsafe fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<
     Ok(())
 }
 
-pub fn inflate(dat: &[u8], out: &mut Vec<u8>) -> Result<(), InflateError> {
+pub fn inflate(dat: &[u8], out: &mut dyn OutputBuffer) -> Result<(), InflateError> {
     let mut st = InflateState::new();
     st.last = true;
-    unsafe {
-        inflt(dat, out, &mut st)?;
-    }
+    inflt(dat, out, &mut st)?;
     Ok(())
 }
+
+// // pub struct Inflate<'a> {
+// //     pub sink: &'a mut dyn OutputBuffer,
+// //     state: InflateState
+// // }
+
+// // impl<'a> Inflate<'a> {
+// //     pub fn push(&mut self, data: &[u8]) -> Result<usize, InflateError> {
+// //         inflt(data, self.sink, &mut self.state)?;
+// //         let bytes = self.state.pos >> 3;
+// //         self.state.pos &= 7;
+// //         Ok(bytes)
+// //     }
+// //     pub fn end(&mut self) -> Result<(), InflateError> {
+// //         self.state.last = true;
+// //         self.push(&et)?;
+// //         Ok(())
+// //     }
+// //     pub fn new(sink: &'a mut dyn OutputBuffer) -> Inflate<'a> {
+// //         Inflate {
+// //             state: InflateState::new(),
+// //             sink: sink
+// //         }
+// //     }
+// // }
+
+// #[cfg(feature = "std")]
+// impl<'a> Write for Inflate<'a> {
+//     #[inline(always)]
+//     fn write(&mut self, data: &[u8]) -> Result<usize, Error> {
+//         Ok(self.push(data)?)
+//     }
+//     #[inline(always)]
+//     fn flush(&mut self) -> Result<(), Error> {
+//         Ok(self.end()?)
+//     }
+// }
