@@ -26,7 +26,7 @@ unlinkSync(join(libDir, 'worker.d.ts')), unlinkSync(join(libDir, 'node-worker.d.
 const workerImport = /import (.*) from '\.\/node-worker';/;
 const workerRequire = /var (.*) = require\("\.\/node-worker"\);/;
 const defaultExport = /export default/;
-writeFileSync(join(esmDir, 'index.mjs'), esm.replace(workerImport, name => nwk.replace(defaultExport, `var ${name.slice(7, name.indexOf(' ', 8))} =`)));
+writeFileSync(join(esmDir, 'index.mjs'), "import { createRequire } from 'module';\nvar require = createRequire('/');\n" + esm.replace(workerImport, name => nwk.replace(defaultExport, `var ${name.slice(7, name.indexOf(' ', 8))} =`)));
 writeFileSync(join(esmDir, 'browser.js'), esm.replace(workerImport, name => wk.replace(defaultExport, `var ${name.slice(7, name.indexOf(' ', 8))} =`)));
 writeFileSync(join(libDir, 'node.cjs'), lib.replace(workerRequire, name => {
   name = name.slice(4, name.indexOf(' ', 5));

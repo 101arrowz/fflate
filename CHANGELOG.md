@@ -1,3 +1,5 @@
+## 0.6.10
+- Fixed async operations on Node.js with native ESM
 ## 0.6.5
 - Fixed streams not recognizing final chunk
 - Fixed streaming UTF-8 decoder bug
