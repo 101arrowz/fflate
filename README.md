@@ -275,7 +275,7 @@ const zipped = fflate.zipSync({
 // |-> other
 // |   |-> tmp.txt
 // myImageData.bmp
-// superTinyFile.bin
+// superTinyFile.png
 
 // When decompressing, folders are not nested; all filepaths are fully
 // written out in the keys. For example, the return value may be:
