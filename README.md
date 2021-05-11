@@ -243,7 +243,7 @@ const zipped = fflate.zipSync({
   'dir1': {
     'nested': {
       // You can use Unicode in filenames
-      '你好.txt': std('Hey there!')
+      '你好.txt': strToU8('Hey there!')
     },
     // You can also manually write out a directory path
     'other/tmp.txt': new Uint8Array([97, 98, 99, 100])
