@@ -174,6 +174,64 @@ type InflateState = {
   i?: boolean;
 };
 
+/**
+ * Codes for errors generated within this library
+ */
+export const FlateErrorCode = {
+  UnexpectedEOF: 0,
+  InvalidBlockType: 1,
+  InvalidLengthLiteral: 2,
+  InvalidDistance: 3,
+  StreamFinished: 4,
+  NoStreamHandler: 5,
+  InvalidHeader: 6,
+  NoCallback: 7,
+  InvalidUTF8: 8,
+  ExtraFieldTooLong: 9,
+  InvalidDate: 10,
+  FilenameTooLong: 11,
+  StreamFinishing: 12,
+  InvalidZipData: 13,
+  UnknownCompressionMethod: 14
+} as const;
+
+// error codes
+const ec = [
+  'unexpected EOF',
+  'invalid block type',
+  'invalid length/literal',
+  'invalid distance',
+  'stream finished',
+  'no stream handler',
+  0 as unknown as string, // determined by compression function
+  'no callback',
+  'invalid UTF-8 data',
+  'extra field too long',
+  'date not in range 1980-2099',
+  'filename too long',
+  'stream finishing',
+  'invalid zip data'
+  // determined by unknown compression method
+];
+
+/**
+ * An error generated within this library
+ */
+export interface FlateError extends Error {
+  /**
+   * The code associated with this error
+   */
+  code: number;
+};
+
+const err = (ind: number, msg?: string | 0, nt?: 1) => {
+  const e: Partial<FlateError> = new Error(msg || ec[ind]);
+  e.code = ind;
+  if (Error.captureStackTrace) Error.captureStackTrace(e, err);
+  if (!nt) throw e;
+  return e as FlateError;
+}
+
 // expands raw DEFLATE data
 const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
   // source length
@@ -212,7 +270,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         // go to end of byte boundary
         const s = shft(pos) + 4, l = dat[s - 4] | (dat[s - 3] << 8), t = s + l;
         if (t > sl) {
-          if (noSt) throw 'unexpected EOF';
+          if (noSt) err(0);
           break;
         }
         // ensure size
@@ -268,9 +326,9 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         dbt = max(dt);
         lm = hMap(lt, lbt, 1);
         dm = hMap(dt, dbt, 1);
-      } else throw 'invalid block type';
+      } else err(1);
       if (pos > tbts) {
-        if (noSt) throw 'unexpected EOF';
+        if (noSt) err(0);
         break;
       }
     }
@@ -284,10 +342,10 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
       const c = lm[bits16(dat, pos) & lms], sym = c >>> 4;
       pos += c & 15;
       if (pos > tbts) {
-        if (noSt) throw 'unexpected EOF';
+        if (noSt) err(0);
         break;
       }
-      if (!c) throw 'invalid length/literal';
+      if (!c) err(2);
       if (sym < 256) buf[bt++] = sym;
       else if (sym == 256) {
         lpos = pos, lm = null;
@@ -303,7 +361,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         }
         // dist
         const d = dm[bits16(dat, pos) & dms], dsym = d >>> 4;
-        if (!d) throw 'invalid distance';
+        if (!d) err(3);
         pos += d & 15;
         let dt = fd[dsym];
         if (dsym > 3) {
@@ -311,7 +369,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
           dt += bits16(dat, pos) & ((1 << b) - 1), pos += b;
         }
         if (pos > tbts) {
-          if (noSt) throw 'unexpected EOF';
+          if (noSt) err(0);
           break;
         }
         if (noBuf) cbuf(bt + 131072);
@@ -784,14 +842,14 @@ export type FlateStreamHandler = (data: Uint8Array, final: boolean) => void;
  * @param data The data output from the stream processor
  * @param final Whether this is the final block
  */
-export type AsyncFlateStreamHandler = (err: Error, data: Uint8Array, final: boolean) => void;
+export type AsyncFlateStreamHandler = (err: FlateError, data: Uint8Array, final: boolean) => void;
 
 /**
  * Callback for asynchronous (de)compression methods
  * @param err Any error that occurred
  * @param data The resulting data. Only present if `err` is null
  */
-export type FlateCallback = (err: Error | string, data: Uint8Array) => void;
+export type FlateCallback = (err: FlateError, data: Uint8Array) => void;
 
 // async callback-based compression
 interface AsyncOptions {
@@ -907,7 +965,7 @@ const cbfs = (v: Record<string, unknown>) => {
 }
 
 // use a worker to execute code
-const wrkr = <T, R>(fns: (() => unknown[])[], init: (ev: MessageEvent<T>) => void, id: number, cb: (err: Error, msg: R) => void) => {
+const wrkr = <T, R>(fns: (() => unknown[])[], init: (ev: MessageEvent<T>) => void, id: number, cb: (err: FlateError, msg: R) => void) => {
   if (!ch[id]) {
     let fnStr = '', td: Record<string, unknown> = {}, m = fns.length - 1;
     for (let i = 0; i < m; ++i)
@@ -919,7 +977,7 @@ const wrkr = <T, R>(fns: (() => unknown[])[], init: (ev: MessageEvent<T>) => voi
 }
 
 // base async inflate fn
-const bInflt = () => [u8, u16, u32, fleb, fdeb, clim, fl, fd, flrm, fdrm, rev, hMap, max, bits, bits16, shft, slc, inflt, inflateSync, pbf, gu8];
+const bInflt = () => [u8, u16, u32, fleb, fdeb, clim, fl, fd, flrm, fdrm, rev, ec, hMap, max, bits, bits16, shft, slc, err, inflt, inflateSync, pbf, gu8];
 const bDflt = () => [u8, u16, u32, fleb, fdeb, clim, revfl, revfd, flm, flt, fdm, fdt, rev, deo, et, hMap, wbits, wbits16, hTree, ln, lc, clen, wfblk, wblk, shft, slc, dflt, dopt, deflateSync, pbf]
 
 // gzip extra
@@ -978,9 +1036,9 @@ const astrmify = <T>(fns: (() => unknown[])[], strm: Astrm, opts: T | 0, init: (
     }
   )
   w.postMessage(opts);
-  strm.push = function(d, f) {
-    if (t) throw 'stream finished';
-    if (!strm.ondata) throw 'no stream handler';
+  strm.push = (d, f) => {
+    if (t) err(4);
+    if (!strm.ondata) err(5);
     w.postMessage([d, t = f], [d.buffer]);
   };
   strm.terminate = () => { w.terminate(); };
@@ -1014,7 +1072,7 @@ const gzh = (c: Uint8Array, o: GzipOptions) => {
 
 // gzip start
 const gzs = (d: Uint8Array) => {
-  if (d[0] != 31 || d[1] != 139 || d[2] != 8) throw 'invalid gzip data';
+  if (d[0] != 31 || d[1] != 139 || d[2] != 8) err(6, 'invalid gzip data');
   const flg = d[3];
   let st = 10;
   if (flg & 4) st += d[10] | (d[11] << 8) + 2;
@@ -1039,8 +1097,8 @@ const zlh = (c: Uint8Array, o: ZlibOptions) => {
 
 // zlib valid
 const zlv = (d: Uint8Array) => {
-  if ((d[0] & 15) != 8 || (d[0] >>> 4) > 7 || ((d[0] << 8 | d[1]) % 31)) throw 'invalid zlib data';
-  if (d[1] & 32) throw 'invalid zlib data: preset dictionaries not supported';
+  if ((d[0] & 15) != 8 || (d[0] >>> 4) > 7 || ((d[0] << 8 | d[1]) % 31)) err(6, 'invalid zlib data');
+  if (d[1] & 32) err(6, 'invalid zlib data: preset dictionaries not supported');
 }
 
 /**
@@ -1095,8 +1153,8 @@ export class Deflate {
    * @param final Whether this is the last chunk
    */
   push(chunk: Uint8Array, final?: boolean) {
-    if (this.d) throw 'stream finished';
-    if (!this.ondata) throw 'no stream handler';
+    if (this.d) err(4);
+    if (!this.ondata) err(5);
     this.d = final;
     this.p(chunk, final || false);
   }
@@ -1163,7 +1221,7 @@ export function deflate(data: Uint8Array, opts: AsyncDeflateOptions, cb: FlateCa
 export function deflate(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
 export function deflate(data: Uint8Array, opts: AsyncDeflateOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (typeof cb != 'function') throw 'no callback';
+  if (typeof cb != 'function') err(7);
   return cbify(data, opts as AsyncDeflateOptions, [
     bDflt,
   ], ev => pbf(deflateSync(ev.data[0], ev.data[1])), 0, cb);
@@ -1198,8 +1256,8 @@ export class Inflate {
   ondata: FlateStreamHandler;
 
   private e(c: Uint8Array) {
-    if (this.d) throw 'stream finished';
-    if (!this.ondata) throw 'no stream handler';
+    if (this.d) err(4);
+    if (!this.ondata) err(5);
     const l = this.p.length;
     const n = new u8(l + c.length);
     n.set(this.p), n.set(c, l), this.p = n;
@@ -1280,7 +1338,7 @@ export function inflate(data: Uint8Array, opts: AsyncInflateOptions, cb: FlateCa
 export function inflate(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
 export function inflate(data: Uint8Array, opts: AsyncInflateOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (typeof cb != 'function') throw 'no callback';
+  if (typeof cb != 'function') err(7);
   return cbify(data, opts as AsyncInflateOptions, [
     bInflt
   ], ev => pbf(inflateSync(ev.data[0], gu8(ev.data[1]))), 1, cb);
@@ -1408,7 +1466,7 @@ export function gzip(data: Uint8Array, opts: AsyncGzipOptions, cb: FlateCallback
 export function gzip(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
 export function gzip(data: Uint8Array, opts: AsyncGzipOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (typeof cb != 'function') throw 'no callback';
+  if (typeof cb != 'function') err(7);
   return cbify(data, opts as AsyncGzipOptions, [
     bDflt,
     gze,
@@ -1460,7 +1518,7 @@ export class Gunzip {
       this.p = this.p.subarray(s), this.v = 0;
     }
     if (final) {
-      if (this.p.length < 8) throw 'invalid gzip stream';
+      if (this.p.length < 8) err(6, 'invalid gzip data');
       this.p = this.p.subarray(0, -8);
     }
     // necessary to prevent TS from using the closure value
@@ -1526,7 +1584,7 @@ export function gunzip(data: Uint8Array, opts: AsyncGunzipOptions, cb: FlateCall
 export function gunzip(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
 export function gunzip(data: Uint8Array, opts: AsyncGunzipOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (typeof cb != 'function') throw 'no callback';
+  if (typeof cb != 'function') err(7);
   return cbify(data, opts as AsyncGunzipOptions, [
     bInflt,
     guze,
@@ -1651,7 +1709,7 @@ export function zlib(data: Uint8Array, opts: AsyncZlibOptions, cb: FlateCallback
 export function zlib(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
 export function zlib(data: Uint8Array, opts: AsyncZlibOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (typeof cb != 'function') throw 'no callback';
+  if (typeof cb != 'function') err(7);
   return cbify(data, opts as AsyncZlibOptions, [
     bDflt,
     zle,
@@ -1701,7 +1759,7 @@ export class Unzlib {
       this.p = this.p.subarray(2), this.v = 0;
     }
     if (final) {
-      if (this.p.length < 4) throw 'invalid zlib stream';
+      if (this.p.length < 4) err(6, 'invalid zlib data');
       this.p = this.p.subarray(0, -4);
     }
     // necessary to prevent TS from using the closure value
@@ -1767,7 +1825,7 @@ export function unzlib(data: Uint8Array, opts: AsyncGunzipOptions, cb: FlateCall
 export function unzlib(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
 export function unzlib(data: Uint8Array, opts: AsyncGunzipOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (typeof cb != 'function') throw 'no callback';
+  if (typeof cb != 'function') err(7);
   return cbify(data, opts as AsyncUnzlibOptions, [
     bInflt,
     zule,
@@ -1815,7 +1873,7 @@ export class Decompress {
    * @param final Whether this is the last chunk
    */
   push(chunk: Uint8Array, final?: boolean) {
-    if (!this.ondata) throw 'no stream handler';
+    if (!this.ondata) err(5);
     if (!this.s) {
       if (this.p && this.p.length) {
         const n = new u8(this.p.length + chunk.length);
@@ -1881,7 +1939,7 @@ export function decompress(data: Uint8Array, opts: AsyncInflateOptions, cb: Flat
 export function decompress(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
 export function decompress(data: Uint8Array, opts: AsyncInflateOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (typeof cb != 'function') throw 'no callback';
+  if (typeof cb != 'function') err(7);
   return (data[0] == 31 && data[1] == 139 && data[2] == 8)
     ? gunzip(data, opts as AsyncInflateOptions, cb)
     : ((data[0] & 15) != 8 || (data[0] >> 4) > 7 || ((data[0] << 8 | data[1]) % 31))
@@ -2017,7 +2075,7 @@ export type StringStreamHandler = (data: string, final: boolean) => void;
  * @param err Any error that occurred
  * @param data The decompressed ZIP archive
  */
-export type UnzipCallback = (err: Error | string, data: Unzipped) => void;
+export type UnzipCallback = (err: FlateError, data: Unzipped) => void;
 
 /**
  * Handler for streaming ZIP decompression
@@ -2086,23 +2144,23 @@ export class DecodeUTF8 {
    * @param final Whether this is the last chunk
    */
   push(chunk: Uint8Array, final?: boolean) {
-    if (!this.ondata) throw 'no callback';
+    if (!this.ondata) err(5);
     final = !!final;
     if (this.t) {
       this.ondata(this.t.decode(chunk, { stream: true }), final);
       if (final) {
-        if (this.t.decode().length) throw 'invalid utf-8 data';
+        if (this.t.decode().length) err(8);
         this.t = null;
       }
       return;
     }
-    if (!this.p) throw 'stream finished'
+    if (!this.p) err(4);
     const dat = new u8(this.p.length + chunk.length);
     dat.set(this.p);
     dat.set(chunk, this.p.length);
     const [ch, np] = dutf8(dat);
     if (final) {
-      if (np.length) throw 'invalid utf-8 data';
+      if (np.length) err(8);
       this.p = null;
     } else this.p = np;
     this.ondata(ch, final);
@@ -2133,8 +2191,8 @@ export class EncodeUTF8 {
    * @param final Whether this is the last chunk
    */
   push(chunk: string, final?: boolean) {
-    if (!this.ondata) throw 'no callback';
-    if (this.d) throw 'stream finished';
+    if (!this.ondata) err(5);
+    if (this.d) err(4);
     this.ondata(strToU8(chunk), this.d = final || false);
   }
 
@@ -2195,7 +2253,7 @@ export function strFromU8(dat: Uint8Array, latin1?: boolean) {
   } else if (td) return td.decode(dat)
   else {
     const [out, ext] = dutf8(dat);
-    if (ext.length) throw 'invalid utf-8 data';
+    if (ext.length) err(8);
     return out;
   } 
 };
@@ -2228,7 +2286,7 @@ const exfl = (ex?: ZHF['extra']) => {
   if (ex) {
     for (const k in ex) {
       const l = ex[k].length;
-      if (l > 65535) throw 'extra field too long';
+      if (l > 65535) err(9);
       le += l + 4;
     }
   }
@@ -2245,7 +2303,7 @@ const wzh = (d: Uint8Array, b: number, f: ZHF, fn: Uint8Array, u: boolean, c?: n
   d[b++] = (f.flag << 1) | (c == null && 8), d[b++] = u && 8;
   d[b++] = f.compression & 255, d[b++] = f.compression >> 8;
   const dt = new Date(f.mtime == null ? Date.now() : f.mtime), y = dt.getFullYear() - 1980;
-  if (y < 0 || y > 119) throw 'date not in range 1980-2099';
+  if (y < 0 || y > 119) err(10);
   wbytes(d, b, (y << 25) | ((dt.getMonth() + 1) << 21) | (dt.getDate() << 16) | (dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >>> 1)), b += 4;
   if (c != null) {
     wbytes(d, b, f.crc);
@@ -2416,7 +2474,7 @@ export class ZipPassThrough implements ZipInputFile {
    * @param final Whether this is the last chunk
    */
   push(chunk: Uint8Array, final?: boolean) {
-    if (!this.ondata) throw 'no callback - add to ZIP archive before pushing';
+    if (!this.ondata) err(5);
     this.c.p(chunk);
     this.size += chunk.length;
     if (final) this.crc = this.c.d();
@@ -2570,12 +2628,12 @@ export class Zip {
    * @param file The file stream to add
    */
   add(file: ZipInputFile) {
-    if (this.d & 2) throw 'stream finished';
+    if (this.d & 2) err(4);
     const f = strToU8(file.filename), fl = f.length;
     const com = file.comment, o = com && strToU8(com);
     const u = fl != file.filename.length || (o && (com.length != o.length));
     const hl = fl + exfl(file.extra) + 30;
-    if (fl > 65535) throw 'filename too long';
+    if (fl > 65535) err(11);
     const header = new u8(hl);
     wzh(header, 0, file, f, u);
     let chks: Uint8Array[] = [header];
@@ -2634,8 +2692,8 @@ export class Zip {
    */
   end() {
     if (this.d & 2) {
-      if (this.d & 1) throw 'stream finishing';
-      throw 'stream finished';
+      if (this.d & 1) err(12);
+      err(4);
     }
     if (this.d) this.e();
     else this.u.push({
@@ -2694,7 +2752,7 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions, cb: FlateCallbac
 export function zip(data: AsyncZippable, cb: FlateCallback): AsyncTerminable;
 export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
-  if (typeof cb != 'function') throw 'no callback';
+  if (typeof cb != 'function') err(7);
   const r: FlatZippable<true> = {};
   fltn(data, '', r, opts as AsyncZipOptions);
   const k = Object.keys(r);
@@ -2704,6 +2762,10 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
   const tAll = () => {
     for (let i = 0; i < term.length; ++i) term[i]();
   }
+  let cbd: FlateCallback = (a, b) => {
+    mt(() => { cb(a, b); });
+  }
+  mt(() => { cbd = cb; });
   const cbf = () => {
     const out = new u8(tot + 22), oe = o, cdl = tot - o;
     tot = 0;
@@ -2717,11 +2779,11 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
         out.set(f.c, loc);
         wzh(out, o, f, f.f, f.u, l, tot, f.m), o += 16 + badd + (f.m ? f.m.length : 0), tot = loc + l;
       } catch(e) {
-        return cb(e, null);
+        return cbd(e, null);
       }
     }
     wzf(out, o, files.length, cdl, oe);
-    cb(null, out);
+    cbd(null, out);
   }
   if (!lft) cbf();
   // Cannot use lft because it can decrease
@@ -2737,7 +2799,7 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
     const cbl: FlateCallback = (e, d) => {
       if (e) {
         tAll();
-        cb(e, null);
+        cbd(e, null);
       } else {
         const l = d.length;
         files[i] = mrg(p, {
@@ -2754,7 +2816,7 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
         if (!--lft) cbf();
       }
     }
-    if (s > 65535) cbl('filename too long', null);
+    if (s > 65535) cbl(err(11, 0, 1), null);
     if (!compression) cbl(null, file);
     else if (size < 160000) {
       try {
@@ -2787,7 +2849,7 @@ export function zipSync(data: Zippable, opts?: ZipOptions) {
     const f = strToU8(fn), s = f.length;
     const com = p.comment, m = com && strToU8(com), ms = m && m.length;
     const exl = exfl(p.extra);
-    if (s > 65535) throw 'filename too long';
+    if (s > 65535) err(11);
     const d = compression ? deflateSync(file, p) : file, l = d.length;
     const c = crc();
     c.p(file);
@@ -3003,8 +3065,8 @@ export class Unzip {
    * @param final Whether this is the last chunk
    */
   push(chunk: Uint8Array, final?: boolean) {
-    if (!this.onfile) throw 'no callback';
-    if (!this.p) throw 'stream finished';
+    if (!this.onfile) err(5);
+    if (!this.p) err(4);
     if (this.c > 0) {
       const len = Math.min(this.c, chunk.length);
       const toAdd = chunk.subarray(0, len);
@@ -3044,11 +3106,11 @@ export class Unzip {
               name: fn,
               compression: cmp,
               start: () => {
-                if (!file.ondata) throw 'no callback';
+                if (!file.ondata) err(5);
                 if (!sc) file.ondata(null, et, true);
                 else {
                   const ctr = this.o[cmp];
-                  if (!ctr) throw 'unknown compression type ' + cmp;
+                  if (!ctr) err(14, 'unknown compression type ' + cmp);
                   d = sc < 0 ? new ctr(fn) : new ctr(fn, sc, su);
                   d.ondata = (err, dat, final) => { file.ondata(err, dat, final); }
                   for (const dat of chks) d.push(dat, false);
@@ -3084,7 +3146,7 @@ export class Unzip {
       this.p = buf.subarray(i);
     }
     if (final) {
-      if (this.c) throw 'invalid zip file';
+      if (this.c) err(13);
       this.p = null;
     }
   }
@@ -3104,6 +3166,8 @@ export class Unzip {
   onfile: UnzipFileHandler;
 }
 
+const mt = typeof queueMicrotask == 'function' ? queueMicrotask : setTimeout;
+
 /**
  * Asynchronously decompresses a ZIP archive
  * @param data The raw compressed ZIP file
@@ -3111,58 +3175,63 @@ export class Unzip {
  * @returns A function that can be used to immediately terminate the unzipping
  */
 export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
-  if (typeof cb != 'function') throw 'no callback';
+  if (typeof cb != 'function') err(7);
   const term: AsyncTerminable[] = [];
   const tAll = () => {
     for (let i = 0; i < term.length; ++i) term[i]();
   }
   const files: Unzipped = {};
+  let cbd: UnzipCallback = (a, b) => {
+    mt(() => { cb(a, b); });
+  }
+  mt(() => { cbd = cb; });
   let e = data.length - 22;
   for (; b4(data, e) != 0x6054B50; --e) {
     if (!e || data.length - e > 65558) {
-      cb('invalid zip file', null);
-      return;
+      cbd(err(13, 0, 1), null);
+      return tAll;
     }
   };
   let lft = b2(data, e + 8);
-  if (!lft) cb(null, {});
-  let c = lft;
-  let o = b4(data, e + 16);
-  const z = o == 4294967295;
-  if (z) {
-    e = b4(data, e - 12);
-    if (b4(data, e) != 0x6064B50) {
-      cb('invalid zip file', null);
-      return;
-    }
-    c = lft = b4(data, e + 32);
-    o = b4(data, e + 48);
-  }
-  for (let i = 0; i < c; ++i) {
-    const [c, sc, su, fn, no, off] = zh(data, o, z), b = slzh(data, off);
-    o = no
-    const cbl: FlateCallback = (e, d) => {
-      if (e) {
-        tAll();
-        cb(e, null);
-      } else {
-        files[fn] = d;
-        if (!--lft) cb(null, files);
+  if (lft) {
+    let c = lft;
+    let o = b4(data, e + 16);
+    const z = o == 4294967295;
+    if (z) {
+      e = b4(data, e - 12);
+      if (b4(data, e) != 0x6064B50) {
+        cbd(err(13, 0, 1), null);
+        return tAll;
       }
+      c = lft = b4(data, e + 32);
+      o = b4(data, e + 48);
     }
-    if (!c) cbl(null, slc(data, b, b + sc))
-    else if (c == 8) {
-      const infl = data.subarray(b, b + sc);
-      if (sc < 320000) {
-        try {
-          cbl(null, inflateSync(infl, new u8(su)));
-        } catch(e) {
-          cbl(e, null);
+    for (let i = 0; i < c; ++i) {
+      const [c, sc, su, fn, no, off] = zh(data, o, z), b = slzh(data, off);
+      o = no
+      const cbl: FlateCallback = (e, d) => {
+        if (e) {
+          tAll();
+          cbd(e, null);
+        } else {
+          files[fn] = d;
+          if (!--lft) cbd(null, files);
         }
       }
-      else term.push(inflate(infl, { size: su }, cbl));
-    } else cbl('unknown compression type ' + c, null);
-  }
+      if (!c) cbl(null, slc(data, b, b + sc))
+      else if (c == 8) {
+        const infl = data.subarray(b, b + sc);
+        if (sc < 320000) {
+          try {
+            cbl(null, inflateSync(infl, new u8(su)));
+          } catch(e) {
+            cbl(e, null);
+          }
+        }
+        else term.push(inflate(infl, { size: su }, cbl));
+      } else cbl(err(14, 'unknown compression type ' + c, 1), null);
+    }
+  } else cbd(null, {});
   return tAll;
 }
 
@@ -3176,7 +3245,7 @@ export function unzipSync(data: Uint8Array) {
   const files: Unzipped = {};
   let e = data.length - 22;
   for (; b4(data, e) != 0x6054B50; --e) {
-    if (!e || data.length - e > 65558) throw 'invalid zip file';
+    if (!e || data.length - e > 65558) err(13);
   };
   let c = b2(data, e + 8);
   if (!c) return {};
@@ -3184,7 +3253,7 @@ export function unzipSync(data: Uint8Array) {
   const z = o == 4294967295;
   if (z) {
     e = b4(data, e - 12);
-    if (b4(data, e) != 0x6064B50) throw 'invalid zip file';
+    if (b4(data, e) != 0x6064B50) err(13);
     c = b4(data, e + 32);
     o = b4(data, e + 48);
   }
@@ -3193,7 +3262,7 @@ export function unzipSync(data: Uint8Array) {
     o = no;
     if (!c) files[fn] = slc(data, b, b + sc);
     else if (c == 8) files[fn] = inflateSync(data.subarray(b, b + sc), new u8(su));
-    else throw 'unknown compression type ' + c;
+    else err(14, 'unknown compression type ' + c);
   }
   return files;
 }

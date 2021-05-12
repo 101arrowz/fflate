@@ -42,6 +42,7 @@
 * [AsyncZippable](interfaces/asynczippable.md)
 * [AsyncZlibOptions](interfaces/asynczliboptions.md)
 * [DeflateOptions](interfaces/deflateoptions.md)
+* [FlateError](interfaces/flateerror.md)
 * [GzipOptions](interfaces/gzipoptions.md)
 * [UnzipDecoder](interfaces/unzipdecoder.md)
 * [UnzipDecoderConstructor](interfaces/unzipdecoderconstructor.md)
@@ -63,6 +64,10 @@
 * [UnzipCallback](README.md#unzipcallback)
 * [UnzipFileHandler](README.md#unzipfilehandler)
 * [ZippableFile](README.md#zippablefile)
+
+### Variables
+
+* [FlateErrorCode](README.md#flateerrorcode)
 
 ### Functions
 
@@ -91,7 +96,7 @@
 
 ### AsyncFlateStreamHandler
 
-Ƭ  **AsyncFlateStreamHandler**: (err: Error,data: Uint8Array,final: boolean) => void
+Ƭ  **AsyncFlateStreamHandler**: (err: [Error](interfaces/flateerror.md#error),data: Uint8Array,final: boolean) => void
 
 Handler for asynchronous data (de)compression streams
 
@@ -113,7 +118,7 @@ ___
 
 ### FlateCallback
 
-Ƭ  **FlateCallback**: (err: Error \| string,data: Uint8Array) => void
+Ƭ  **FlateCallback**: (err: [Error](interfaces/flateerror.md#error) \| string,data: Uint8Array) => void
 
 Callback for asynchronous (de)compression methods
 
@@ -149,7 +154,7 @@ ___
 
 ### UnzipCallback
 
-Ƭ  **UnzipCallback**: (err: Error \| string,data: [Unzipped](interfaces/unzipped.md)) => void
+Ƭ  **UnzipCallback**: (err: [Error](interfaces/flateerror.md#error) \| string,data: [Unzipped](interfaces/unzipped.md)) => void
 
 Callback for asynchronous ZIP decompression
 
@@ -174,6 +179,34 @@ ___
 Ƭ  **ZippableFile**: Uint8Array \| []
 
 A file that can be used to create a ZIP archive
+
+## Variables
+
+### FlateErrorCode
+
+• `Const` **FlateErrorCode**: object = { UnexpectedEOF: 0, InvalidBlockType: 1, InvalidLengthLiteral: 2, InvalidDistance: 3, StreamFinished: 4, NoStreamHandler: 5, InvalidHeader: 6, NoCallback: 7, InvalidUTF8: 8, ExtraFieldTooLong: 9, InvalidDate: 10, FilenameTooLong: 11, StreamFinishing: 12, InvalidZipData: 13, UnknownCompressionMethod: 14} as const
+
+Codes for errors generated within this library
+
+#### Type declaration:
+
+Name | Type |
+------ | ------ |
+`ExtraFieldTooLong` | 9 |
+`FilenameTooLong` | 11 |
+`InvalidBlockType` | 1 |
+`InvalidDate` | 10 |
+`InvalidDistance` | 3 |
+`InvalidHeader` | 6 |
+`InvalidLengthLiteral` | 2 |
+`InvalidUTF8` | 8 |
+`InvalidZipData` | 13 |
+`NoCallback` | 7 |
+`NoStreamHandler` | 5 |
+`StreamFinished` | 4 |
+`StreamFinishing` | 12 |
+`UnexpectedEOF` | 0 |
+`UnknownCompressionMethod` | 14 |
 
 ## Functions
 

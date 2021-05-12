@@ -485,7 +485,7 @@ See the [documentation](https://github.com/101arrowz/fflate/blob/master/docs/REA
 
 ## Bundle size estimates
 
-Since `fflate` uses ES Modules, this table should give you a general idea of `fflate`'s bundle size for the features you need. The maximum bundle size that is possible with `fflate` is about 27kB if you use every single feature, but feature parity with `pako` is only around 10kB (as opposed to 45kB from `pako`). If your bundle size increases dramatically after adding `fflate`, please [create an issue](https://github.com/101arrowz/fflate/issues/new).
+Since `fflate` uses ES Modules, this table should give you a general idea of `fflate`'s bundle size for the features you need. The maximum bundle size that is possible with `fflate` is about 30kB if you use every single feature, but feature parity with `pako` is only around 10kB (as opposed to 45kB from `pako`). If your bundle size increases dramatically after adding `fflate`, please [create an issue](https://github.com/101arrowz/fflate/issues/new).
 
 | Feature                 | Bundle size (minified)         | Nearest competitor     |
 |-------------------------|--------------------------------|------------------------|

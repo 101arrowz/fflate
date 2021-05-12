@@ -1,3 +1,9 @@
+## 0.7.0
+- Improved errors
+  - Now errors are error objects instead of strings
+  - Check the error code to apply custom logic based on error type
+- Made async operations always call callbacks asynchronously
+- Fixed bug that caused errors to not appear in asynchronous operations in browsers
 ## 0.6.10
 - Fixed async operations on Node.js with native ESM
 ## 0.6.5
