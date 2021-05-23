@@ -761,7 +761,7 @@ const adler = (): CRCV => {
     p(d) {
       // closures have awful performance
       let n = a, m = b;
-      const l = d.length;
+      const l = d.length | 0;
       for (let i = 0; i != l;) {
         const e = Math.min(i + 2655, l);
         for (; i < e; ++i) m += n += d[i];
