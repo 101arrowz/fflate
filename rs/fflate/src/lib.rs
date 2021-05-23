@@ -9,7 +9,7 @@
 use lazy_static::lazy_static;
 
 // #[cfg(feature = "std")]
-use std::{vec::Vec, io::{Read, Write, Error, ErrorKind}, ops::Range};
+use std::{convert::TryInto, io::{Read, Write, Error, ErrorKind}, ops::Range, vec::Vec};
 
 const fleb: [usize; 32] = [
     0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 0, 0, 0,
@@ -149,19 +149,13 @@ lazy_static! {
 }
 
 #[inline(always)]
-unsafe fn bits(dat: &[u8], pos: usize, mask: u8) -> u8 {
-    let b = pos >> 3;
-    ((*dat.get_unchecked(b) as u16 | ((*dat.get_unchecked(b + 1) as u16) << 8)) >> (pos & 7)) as u8 & mask
+fn read_u16(buf: &[u8], bt: usize) -> u16 {
+    u16::from_le_bytes(buf[bt..bt + 2].try_into().unwrap())
 }
 
 #[inline(always)]
-unsafe fn bits16(dat: &[u8], pos: usize, mask: u16) -> u16 {
-    let b = pos >> 3;
-    ((*dat.get_unchecked(b) as u32
-        | ((*dat.get_unchecked(b + 1) as u32) << 8)
-        | ((*dat.get_unchecked(b + 2) as u32) << 16))
-        >> (pos & 7)) as u16
-        & mask
+fn read_u32(buf: &[u8], bt: usize) -> u32 {
+    u32::from_le_bytes(buf[bt..bt + 4].try_into().unwrap())
 }
 
 #[inline(always)]
@@ -294,18 +288,21 @@ fn max(dat: &[u8]) -> u8 {
 
 unsafe fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<(), InflateError> {
     let mut pos = st.pos;
+    let mut bb: u32;
     let sl = dat.len();
     if sl == 0 || (st.head && sl < 5) { return Ok(()); }
     let tbts = sl << 3;
     loop {
         if st.head {
-            st.bfinal = bits(dat, pos, 1) != 0;
-            let btype = bits(dat, pos + 1, 3);
+            bb = if (pos >> 3) + 4 > sl { read_u16(buf, pos >> 3) as u32 } else { read_u32(buf, pos >> 3) };
+            let off = pos & 7;
+            st.bfinal = (bb >> off) & 1 != 0;
+            let btype = (bb >> (off + 1)) & 3;
             pos += 3;
             match btype {
                 0 => {
                     let s = shft(pos) + 4;
-                    let t = s + (dat[s - 4] as u16 | ((dat[s - 3] as u16) << 8)) as usize;
+                    let t = s + read_u16(dat, s) as usize;
                     if t > dat.len() {
                         if st.last {
                             return Err(InflateError::UnexpectedEOF);
@@ -390,16 +387,14 @@ unsafe fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<
             }
         }
         st.head = false;
-        let lms = (1u16 << st.lbits) - 1;
-        let dms = (1u16 << st.dbits) - 1;
+        let lms = (1usize << st.lbits) - 1;
+        let dms = (1usize << st.dbits) - 1;
         let top = tbts - (st.lbits + st.dbits + 18) as usize;
         let lm = st.lmap;
         let dm = st.dmap;
         let lst = st.last;
         while lst || pos < top {
-            let c = lm[
-                bits16(dat, pos, lms) as usize
-            ];
+            let c = lm[gbits16(dat, pos, lms)];
             if c == 0 {
                 return Err(InflateError::InvalidLengthOrLiteral);
             }
@@ -418,9 +413,7 @@ unsafe fn inflt(dat: &[u8], buf: &mut Vec<u8>, st: &mut InflateState) -> Result<
                     add = bits(dat, pos, (1 << b) - 1) as usize + fl[i];
                     pos += b;
                 }
-                let d = dm[
-                    bits16(dat, pos, dms) as usize
-                ];
+                let d = dm[gbits16(dat, pos, dms)];
                 if d == 0 {
                     return Err(InflateError::InvalidDistance);
                 }

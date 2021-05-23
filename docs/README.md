@@ -96,7 +96,7 @@
 
 ### AsyncFlateStreamHandler
 
-Ƭ  **AsyncFlateStreamHandler**: (err: [Error](interfaces/flateerror.md#error),data: Uint8Array,final: boolean) => void
+Ƭ  **AsyncFlateStreamHandler**: (err: [FlateError](interfaces/flateerror.md),data: Uint8Array,final: boolean) => void
 
 Handler for asynchronous data (de)compression streams
 
@@ -118,7 +118,7 @@ ___
 
 ### FlateCallback
 
-Ƭ  **FlateCallback**: (err: [Error](interfaces/flateerror.md#error) \| string,data: Uint8Array) => void
+Ƭ  **FlateCallback**: (err: [FlateError](interfaces/flateerror.md),data: Uint8Array) => void
 
 Callback for asynchronous (de)compression methods
 
@@ -154,7 +154,7 @@ ___
 
 ### UnzipCallback
 
-Ƭ  **UnzipCallback**: (err: [Error](interfaces/flateerror.md#error) \| string,data: [Unzipped](interfaces/unzipped.md)) => void
+Ƭ  **UnzipCallback**: (err: [FlateError](interfaces/flateerror.md),data: [Unzipped](interfaces/unzipped.md)) => void
 
 Callback for asynchronous ZIP decompression
 

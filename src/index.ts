@@ -203,7 +203,7 @@ const ec = [
   'invalid distance',
   'stream finished',
   'no stream handler',
-  0 as unknown as string, // determined by compression function
+  , // determined by compression function
   'no callback',
   'invalid UTF-8 data',
   'extra field too long',
@@ -1037,8 +1037,8 @@ const astrmify = <T>(fns: (() => unknown[])[], strm: Astrm, opts: T | 0, init: (
   )
   w.postMessage(opts);
   strm.push = (d, f) => {
-    if (t) err(4);
     if (!strm.ondata) err(5);
+    if (t) strm.ondata(err(4, 0, 1), null, !!f);
     w.postMessage([d, t = f], [d.buffer]);
   };
   strm.terminate = () => { w.terminate(); };
@@ -1153,8 +1153,8 @@ export class Deflate {
    * @param final Whether this is the last chunk
    */
   push(chunk: Uint8Array, final?: boolean) {
-    if (this.d) err(4);
     if (!this.ondata) err(5);
+    if (this.d) err(4);
     this.d = final;
     this.p(chunk, final || false);
   }
@@ -1256,8 +1256,8 @@ export class Inflate {
   ondata: FlateStreamHandler;
 
   private e(c: Uint8Array) {
-    if (this.d) err(4);
     if (!this.ondata) err(5);
+    if (this.d) err(4);
     const l = this.p.length;
     const n = new u8(l + c.length);
     n.set(this.p), n.set(c, l), this.p = n;
@@ -2628,61 +2628,65 @@ export class Zip {
    * @param file The file stream to add
    */
   add(file: ZipInputFile) {
-    if (this.d & 2) err(4);
-    const f = strToU8(file.filename), fl = f.length;
-    const com = file.comment, o = com && strToU8(com);
-    const u = fl != file.filename.length || (o && (com.length != o.length));
-    const hl = fl + exfl(file.extra) + 30;
-    if (fl > 65535) err(11);
-    const header = new u8(hl);
-    wzh(header, 0, file, f, u);
-    let chks: Uint8Array[] = [header];
-    const pAll = () => {
-      for (const chk of chks) this.ondata(null, chk, false);
-      chks = [];
-    };
-    let tr = this.d;
-    this.d = 0;
-    const ind = this.u.length;
-    const uf = mrg(file, {
-      f,
-      u,
-      o,
-      t: () => { 
-        if (file.terminate) file.terminate();
-      },
-      r: () => {
-        pAll();
-        if (tr) {
-          const nxt = this.u[ind + 1];
-          if (nxt) nxt.r();
-          else this.d = 1;
-        }
-        tr = 1;
-      }
-    } as ZIFE);
-    let cl = 0;
-    file.ondata = (err, dat, final) => {
-      if (err) {
-        this.ondata(err, dat, final);
-        this.terminate();
-      } else {
-        cl += dat.length;
-        chks.push(dat);
-        if (final) {
-          const dd = new u8(16);
-          wbytes(dd, 0, 0x8074B50)
-          wbytes(dd, 4, file.crc);
-          wbytes(dd, 8, cl);
-          wbytes(dd, 12, file.size);
-          chks.push(dd);
-          uf.c = cl, uf.b = hl + cl + 16, uf.crc = file.crc, uf.size = file.size;
-          if (tr) uf.r();
+    if (!this.ondata) err(5);
+    // finishing or finished
+    if (this.d & 2) this.ondata(err(4 + (this.d & 1) * 8, 0, 1), null, false);
+    else {
+      const f = strToU8(file.filename), fl = f.length;
+      const com = file.comment, o = com && strToU8(com);
+      const u = fl != file.filename.length || (o && (com.length != o.length));
+      const hl = fl + exfl(file.extra) + 30;
+      if (fl > 65535) this.ondata(err(11, 0, 1), null, false);
+      const header = new u8(hl);
+      wzh(header, 0, file, f, u);
+      let chks: Uint8Array[] = [header];
+      const pAll = () => {
+        for (const chk of chks) this.ondata(null, chk, false);
+        chks = [];
+      };
+      let tr = this.d;
+      this.d = 0;
+      const ind = this.u.length;
+      const uf = mrg(file, {
+        f,
+        u,
+        o,
+        t: () => { 
+          if (file.terminate) file.terminate();
+        },
+        r: () => {
+          pAll();
+          if (tr) {
+            const nxt = this.u[ind + 1];
+            if (nxt) nxt.r();
+            else this.d = 1;
+          }
           tr = 1;
-        } else if (tr) pAll();
+        }
+      } as ZIFE);
+      let cl = 0;
+      file.ondata = (err, dat, final) => {
+        if (err) {
+          this.ondata(err, dat, final);
+          this.terminate();
+        } else {
+          cl += dat.length;
+          chks.push(dat);
+          if (final) {
+            const dd = new u8(16);
+            wbytes(dd, 0, 0x8074B50)
+            wbytes(dd, 4, file.crc);
+            wbytes(dd, 8, cl);
+            wbytes(dd, 12, file.size);
+            chks.push(dd);
+            uf.c = cl, uf.b = hl + cl + 16, uf.crc = file.crc, uf.size = file.size;
+            if (tr) uf.r();
+            tr = 1;
+          } else if (tr) pAll();
+        }
       }
+      this.u.push(uf);
     }
-    this.u.push(uf);
   }
 
   /**
@@ -2692,8 +2696,8 @@ export class Zip {
    */
   end() {
     if (this.d & 2) {
-      if (this.d & 1) err(12);
-      err(4);
+      this.ondata(err(4 + (this.d & 1) * 8, 0, 1), null, true);
+      return;
     }
     if (this.d) this.e();
     else this.u.push({
@@ -3110,7 +3114,7 @@ export class Unzip {
                 if (!sc) file.ondata(null, et, true);
                 else {
                   const ctr = this.o[cmp];
-                  if (!ctr) err(14, 'unknown compression type ' + cmp);
+                  if (!ctr) file.ondata(err(14, 'unknown compression type ' + cmp, 1), null, false);
                   d = sc < 0 ? new ctr(fn) : new ctr(fn, sc, su);
                   d.ondata = (err, dat, final) => { file.ondata(err, dat, final); }
                   for (const dat of chks) d.push(dat, false);
