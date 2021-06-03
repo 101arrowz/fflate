@@ -47,6 +47,8 @@
 * [UnzipDecoder](interfaces/unzipdecoder.md)
 * [UnzipDecoderConstructor](interfaces/unzipdecoderconstructor.md)
 * [UnzipFile](interfaces/unzipfile.md)
+* [UnzipFileData](interfaces/unzipfiledata.md)
+* [UnzipOptions](interfaces/unzipoptions.md)
 * [Unzipped](interfaces/unzipped.md)
 * [ZipAttributes](interfaces/zipattributes.md)
 * [ZipInputFile](interfaces/zipinputfile.md)
@@ -530,16 +532,17 @@ ___
 
 ### unzipSync
 
-▸ **unzipSync**(`data`: Uint8Array): [Unzipped](interfaces/unzipped.md)
+▸ **unzipSync**(`data`: Uint8Array, `opts`: [UnzipOptions](interfaces/unzipoptions.md)): [Unzipped](interfaces/unzipped.md)
 
 Synchronously decompresses a ZIP archive. Prefer using `unzip` for better
 performance with more than one file.
 
 #### Parameters:
 
-Name | Type | Description |
------- | ------ | ------ |
-`data` | Uint8Array | The raw compressed ZIP file |
+Name | Type | Default value | Description |
+------ | ------ | ------ | ------ |
+`data` | Uint8Array | - | The raw compressed ZIP file |
+`opts` | [UnzipOptions](interfaces/unzipoptions.md) | {} | - |
 
 **Returns:** [Unzipped](interfaces/unzipped.md)
 

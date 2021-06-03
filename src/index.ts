@@ -782,14 +782,14 @@ const adler = (): CRCV => {
 export interface DeflateOptions {
   /**
    * The level of compression to use, ranging from 0-9.
-   * 
+   *
    * 0 will store the data without compression.
    * 1 is fastest but compresses the worst, 9 is slowest but compresses the best.
    * The default level is 6.
-   * 
+   *
    * Typically, binary data benefits much more from higher values than text data.
    * In both cases, higher values usually take disproportionately longer than the reduction in final size that results.
-   * 
+   *
    * For example, a 1 MB text file could:
    * - become 1.01 MB with level 0 in 1ms
    * - become 400 kB with level 1 in 10ms
@@ -798,11 +798,11 @@ export interface DeflateOptions {
   level?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   /**
    * The memory level to use, ranging from 0-12. Increasing this increases speed and compression ratio at the cost of memory.
-   * 
+   *
    * Note that this is exponential: while level 0 uses 4 kB, level 4 uses 64 kB, level 8 uses 1 MB, and level 12 uses 16 MB.
    * It is recommended not to lower the value below 4, since that tends to hurt performance.
    * In addition, values above 8 tend to help very little on most data and can even hurt performance.
-   * 
+   *
    * The default value is automatically determined based on the size of the input data.
    */
   mem?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
@@ -1197,7 +1197,7 @@ export class AsyncDeflate {
    */
   // @ts-ignore
   push(chunk: Uint8Array, final?: boolean): void;
-  
+
   /**
    * A method to terminate the stream's internal worker. Subsequent calls to
    * push() will silently fail.
@@ -1392,7 +1392,7 @@ export class Gzip {
   push(chunk: Uint8Array, final?: boolean) {
     Deflate.prototype.push.call(this, chunk, final);
   }
-  
+
   private p(c: Uint8Array, f: boolean) {
     this.c.p(c);
     this.l += c.length;
@@ -1637,7 +1637,7 @@ export class Zlib {
   push(chunk: Uint8Array, final?: boolean) {
     Deflate.prototype.push.call(this, chunk, final);
   }
-  
+
   private p(c: Uint8Array, f: boolean) {
     this.c.p(c);
     const raw = dopt(c, this.o, this.v && 2, f && 4, !f);
@@ -1906,7 +1906,7 @@ export class AsyncDecompress {
    * @param cb The callback to call whenever data is decompressed
    */
   constructor(cb?: AsyncFlateStreamHandler) { this.ondata = cb; }
-  
+
   /**
    * The handler to call whenever data is available
    */
@@ -1976,19 +1976,19 @@ export interface ZipAttributes {
    * The file's attributes. These are traditionally somewhat complicated
    * and platform-dependent, so using them is scarcely necessary. However,
    * here is a representation of what this is, bit by bit:
-   * 
+   *
    * `TTTTugtrwxrwxrwx0000000000ADVSHR`
-   * 
+   *
    * TTTT = file type (rarely useful)
-   * 
+   *
    * u = setuid, g = setgid, t = sticky
-   * 
+   *
    * rwx = user permissions, rwx = group permissions, rwx = other permissions
-   * 
+   *
    * 0000000000 = unused
-   * 
+   *
    * A = archive, D = directory, V = volume label, S = system file, H = hidden, R = read-only
-   * 
+   *
    * If you want to set the Unix permissions, for instance, just bit shift by 16, e.g. 0644 << 16
    */
   attrs?: number;
@@ -1997,7 +1997,7 @@ export interface ZipAttributes {
    * Extra metadata to add to the file. This field is defined by PKZIP's APPNOTE.txt,
    * section 4.4.28. At most 65,535 bytes may be used in each ID. The ID must be an
    * integer between 0 and 65,535, inclusive.
-   * 
+   *
    * This field is incredibly rare and almost never needed except for compliance with
    * proprietary standards and software.
    */
@@ -2020,6 +2020,32 @@ export interface ZipAttributes {
  * Options for creating a ZIP archive
  */
 export interface ZipOptions extends DeflateOptions, ZipAttributes {}
+
+export interface UnzipFileData {
+  /**
+   * The filename to associate with the data provided to this stream. If you
+   * want a file in a subdirectory, use forward slashes as a separator (e.g.
+   * `directory/filename.ext`). This will still work on Windows.
+   */
+  filename: string;
+
+  /**
+   * The compressed size of the file
+   */
+   size?: number;
+
+   /**
+    * The original size of the file
+    */
+   originalSize?: number;
+}
+
+/**
+ * Options for expanding a ZIP archive
+ */
+export interface UnzipOptions {
+  filter?: (file: UnzipFileData) => boolean;
+}
 
 /**
  * Options for asynchronously creating a ZIP archive
@@ -2255,7 +2281,7 @@ export function strFromU8(dat: Uint8Array, latin1?: boolean) {
     const [out, ext] = dutf8(dat);
     if (ext.length) err(8);
     return out;
-  } 
+  }
 };
 
 // deflate bit flag
@@ -2355,7 +2381,7 @@ export interface ZipInputFile extends ZipAttributes {
    * The size of the file in bytes. This attribute may be invalid after
    * the file is added to the ZIP archive; it must be correct only before the
    * stream completes.
-   * 
+   *
    * If you don't want to have to compute this yourself, consider extending the
    * ZipPassThrough class and overriding its process() method, or using one of
    * ZipDeflate or AsyncZipDeflate.
@@ -2366,7 +2392,7 @@ export interface ZipInputFile extends ZipAttributes {
    * A CRC of the original file contents. This attribute may be invalid after
    * the file is added to the ZIP archive; it must be correct only before the
    * stream completes.
-   * 
+   *
    * If you don't want to have to generate this yourself, consider extending the
    * ZipPassThrough class and overriding its process() method, or using one of
    * ZipDeflate or AsyncZipDeflate.
@@ -2390,18 +2416,18 @@ export interface ZipInputFile extends ZipAttributes {
   /**
    * The handler to be called when data is added. After passing this stream to
    * the ZIP file object, this handler will always be defined. To call it:
-   * 
+   *
    * `stream.ondata(error, chunk, final)`
-   * 
+   *
    * error = any error that occurred (null if there was no error)
-   * 
+   *
    * chunk = a Uint8Array of the data that was added (null if there was an
    * error)
-   * 
+   *
    * final = boolean, whether this is the final chunk in the stream
    */
   ondata?: AsyncFlateStreamHandler;
-  
+
   /**
    * A method called when the stream is no longer needed, for clean-up
    * purposes. This will not always be called after the stream completes,
@@ -2516,7 +2542,7 @@ export class ZipDeflate implements ZipInputFile {
     this.compression = 8;
     this.flag = dbf(opts.level);
   }
-  
+
   process(chunk: Uint8Array, final: boolean) {
     try {
       this.d.push(chunk, final);
@@ -2568,7 +2594,7 @@ export class AsyncZipDeflate implements ZipInputFile {
     this.flag = dbf(opts.level);
     this.terminate = this.d.terminate;
   }
-  
+
   process(chunk: Uint8Array, final: boolean) {
     this.d.push(chunk, final);
   }
@@ -2651,7 +2677,7 @@ export class Zip {
         f,
         u,
         o,
-        t: () => { 
+        t: () => {
           if (file.terminate) file.terminate();
         },
         r: () => {
@@ -2885,12 +2911,12 @@ export function zipSync(data: Zippable, opts?: ZipOptions) {
 /**
  * A decoder for files in ZIP streams
  */
-export interface UnzipDecoder {  
+export interface UnzipDecoder {
   /**
    * The handler to call whenever data is available
    */
   ondata: AsyncFlateStreamHandler;
-  
+
   /**
    * Pushes a chunk to be decompressed
    * @param data The data in this chunk. Do not consume (detach) this data.
@@ -3062,7 +3088,7 @@ export class Unzip {
     };
     this.p = et;
   }
-  
+
   /**
    * Pushes a chunk to be unzipped
    * @param chunk The chunk to push
@@ -3178,9 +3204,12 @@ const mt = typeof queueMicrotask == 'function' ? queueMicrotask : setTimeout;
  * @param cb The callback to call with the decompressed files
  * @returns A function that can be used to immediately terminate the unzipping
  */
-export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
+export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable;
+export function unzip(data: Uint8Array, opts: UnzipOptions | UnzipCallback = {}, cb?: UnzipCallback) {
+  if (!cb) cb = opts as UnzipCallback, opts = {};
   if (typeof cb != 'function') err(7);
   const term: AsyncTerminable[] = [];
+  const filter = (opts as UnzipOptions).filter;
   const tAll = () => {
     for (let i = 0; i < term.length; ++i) term[i]();
   }
@@ -3213,6 +3242,13 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
     for (let i = 0; i < c; ++i) {
       const [c, sc, su, fn, no, off] = zh(data, o, z), b = slzh(data, off);
       o = no
+      if (filter && !filter({
+        filename: fn,
+        size: sc,
+        originalSize: su,
+      })) {
+        continue;
+      }
       const cbl: FlateCallback = (e, d) => {
         if (e) {
           tAll();
@@ -3245,8 +3281,9 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
  * @param data The raw compressed ZIP file
  * @returns The decompressed files
  */
-export function unzipSync(data: Uint8Array) {
+export function unzipSync(data: Uint8Array, opts: UnzipOptions = {}) {
   const files: Unzipped = {};
+  const filter = opts.filter;
   let e = data.length - 22;
   for (; b4(data, e) != 0x6054B50; --e) {
     if (!e || data.length - e > 65558) err(13);
@@ -3264,6 +3301,13 @@ export function unzipSync(data: Uint8Array) {
   for (let i = 0; i < c; ++i) {
     const [c, sc, su, fn, no, off] = zh(data, o, z), b = slzh(data, off);
     o = no;
+    if (filter && !filter({
+      filename: fn,
+      size: sc,
+      originalSize: su,
+    })) {
+      continue;
+    }
     if (!c) files[fn] = slc(data, b, b + sc);
     else if (c == 8) files[fn] = inflateSync(data.subarray(b, b + sc), new u8(su));
     else err(14, 'unknown compression type ' + c);
