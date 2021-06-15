@@ -249,7 +249,7 @@ const zipped = fflate.zipSync({
     'other/tmp.txt': new Uint8Array([97, 98, 99, 100])
   },
   // You can also provide compression options
-  'myImageData.bmp': [aMassiveFile, {
+  'massiveImage.bmp': [aMassiveFile, {
     level: 9,
     mem: 12,
     // ZIP-specific: mtime works here too, defaults to current time
@@ -274,13 +274,21 @@ const zipped = fflate.zipSync({
 // |   |-> 你好.txt
 // |-> other
 // |   |-> tmp.txt
-// myImageData.bmp
+// massiveImage.bmp
 // superTinyFile.png
 
 // When decompressing, folders are not nested; all filepaths are fully
 // written out in the keys. For example, the return value may be:
-// { 'nested/directory/a2.txt': Uint8Array(2) [97, 97] })
-const decompressed = fflate.unzipSync(zipped);
+// { 'nested/directory/structure.txt': Uint8Array(2) [97, 97] }
+const decompressed = fflate.unzipSync(zipped, {
+  // You may optionally supply a filter for files. By default, all files in a
+  // ZIP archive are extracted, but a filter can save resources by telling
+  // the library not to decompress certain files
+  filter(file) {
+    // Don't decompress the massive image or any files larger than 10 MiB
+    return file.name != 'massiveImage.bmp' && file.originalSize <= 10_000_000;
+  }
+});
 ```
 
 If you need extremely high performance or custom ZIP compression formats, you can use the highly-extensible ZIP streams. They take streams as both input and output. You can even use custom compression/decompression algorithms from other libraries, as long as they [are defined in the ZIP spec](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) (see section 4.4.5). If you'd like more info on using custom compressors, [feel free to ask](https://github.com/101arrowz/fflate/discussions).
@@ -441,7 +449,7 @@ zip({ f1: aMassiveFile, 'f2.txt': anotherMassiveFile }, {
 });
 
 // unzip is the only async function without support for consume option
-// Also parallelized, so unzip is also often much faster than unzipSync
+// It is parallelized, so unzip is also often much faster than unzipSync
 unzip(aMassiveZIPFile, (err, unzipped) => {
   // If the archive has data.xml, log it here
   console.log(unzipped['data.xml']);

@@ -1,3 +1,7 @@
+## 0.7.1
+- Removed requirement for `setTimeout`
+- Added support for unzip file filters (thanks to [@manucorporat](https://github.com/manucorporat): #67)
+- Fixed streaming gunzip and unzlib bug causing corruption
 ## 0.7.0
 - Improved errors
   - Now errors are error objects instead of strings
