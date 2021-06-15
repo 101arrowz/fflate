@@ -47,6 +47,8 @@
 * [UnzipDecoder](interfaces/unzipdecoder.md)
 * [UnzipDecoderConstructor](interfaces/unzipdecoderconstructor.md)
 * [UnzipFile](interfaces/unzipfile.md)
+* [UnzipFileInfo](interfaces/unzipfileinfo.md)
+* [UnzipOptions](interfaces/unzipoptions.md)
 * [Unzipped](interfaces/unzipped.md)
 * [ZipAttributes](interfaces/zipattributes.md)
 * [ZipInputFile](interfaces/zipinputfile.md)
@@ -62,6 +64,7 @@
 * [FlateStreamHandler](README.md#flatestreamhandler)
 * [StringStreamHandler](README.md#stringstreamhandler)
 * [UnzipCallback](README.md#unzipcallback)
+* [UnzipFileFilter](README.md#unzipfilefilter)
 * [UnzipFileHandler](README.md#unzipfilehandler)
 * [ZippableFile](README.md#zippablefile)
 
@@ -161,6 +164,18 @@ Callback for asynchronous ZIP decompression
 **`param`** Any error that occurred
 
 **`param`** The decompressed ZIP archive
+
+___
+
+### UnzipFileFilter
+
+Ƭ  **UnzipFileFilter**: (file: [UnzipFileInfo](interfaces/unzipfileinfo.md)) => boolean
+
+A filter for files to be extracted during the unzipping process
+
+**`param`** The info for the current file being processed
+
+**`returns`** Whether or not to extract the current file
 
 ___
 
@@ -513,6 +528,20 @@ ___
 
 ### unzip
 
+▸ **unzip**(`data`: Uint8Array, `opts`: [AsyncUnzipOptions](interfaces/asyncunzipoptions.md), `cb`: [UnzipCallback](README.md#unzipcallback)): [AsyncTerminable](interfaces/asyncterminable.md)
+
+Asynchronously decompresses a ZIP archive
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`data` | Uint8Array | The raw compressed ZIP file |
+`opts` | [AsyncUnzipOptions](interfaces/asyncunzipoptions.md) | The ZIP extraction options |
+`cb` | [UnzipCallback](README.md#unzipcallback) | The callback to call with the decompressed files |
+
+**Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
+
 ▸ **unzip**(`data`: Uint8Array, `cb`: [UnzipCallback](README.md#unzipcallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously decompresses a ZIP archive
@@ -530,7 +559,7 @@ ___
 
 ### unzipSync
 
-▸ **unzipSync**(`data`: Uint8Array): [Unzipped](interfaces/unzipped.md)
+▸ **unzipSync**(`data`: Uint8Array, `opts?`: [UnzipOptions](interfaces/unzipoptions.md)): [Unzipped](interfaces/unzipped.md)
 
 Synchronously decompresses a ZIP archive. Prefer using `unzip` for better
 performance with more than one file.
@@ -540,6 +569,7 @@ performance with more than one file.
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The raw compressed ZIP file |
+`opts?` | [UnzipOptions](interfaces/unzipoptions.md) | The ZIP extraction options |
 
 **Returns:** [Unzipped](interfaces/unzipped.md)
 
@@ -675,7 +705,7 @@ ___
 
 ### zlibSync
 
-▸ **zlibSync**(`data`: Uint8Array, `opts`: [ZlibOptions](interfaces/zliboptions.md)): Uint8Array
+▸ **zlibSync**(`data`: Uint8Array, `opts?`: [ZlibOptions](interfaces/zliboptions.md)): Uint8Array
 
 Compress data with Zlib
 
@@ -684,6 +714,6 @@ Compress data with Zlib
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to compress |
-`opts` | [ZlibOptions](interfaces/zliboptions.md) | The compression options |
+`opts?` | [ZlibOptions](interfaces/zliboptions.md) | The compression options |
 
 **Returns:** Uint8Array

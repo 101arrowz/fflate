@@ -141,7 +141,7 @@ const bits16 = (d: Uint8Array, p: number) => {
 }
 
 // get end of byte
-const shft = (p: number) => ((p / 8) | 0) + (p & 7 && 1);
+const shft = (p: number) => ((p + 7) / 8) | 0;
 
 // typed array slice - allows garbage collector to free original reference,
 // while being more compatible than .slice
@@ -236,7 +236,7 @@ const err = (ind: number, msg?: string | 0, nt?: 1) => {
 const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
   // source length
   const sl = dat.length;
-  if (!sl || (st && !st.l && sl < 5)) return buf || new u8(0);
+  if (!sl || (st && st.f && !st.l)) return buf || new u8(0);
   // have to estimate size
   const noBuf = !buf || (st as unknown as boolean);
   // no state
@@ -262,7 +262,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
   do {
     if (!lm) {
       // BFINAL - this is only 1 when last chunk is next
-      st.f = final = bits(dat, pos, 1);
+      final = bits(dat, pos, 1);
       // type: 0 = no compression, 1 = fixed huffman, 2 = dynamic huffman
       const type = bits(dat, pos + 1, 3);
       pos += 3;
@@ -278,7 +278,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         // Copy over uncompressed data
         buf.set(dat.subarray(s, t), bt);
         // Get new bitpos, update byte count
-        st.b = bt += l, st.p = pos = t * 8;
+        st.b = bt += l, st.p = pos = t * 8, st.f = final;
         continue;
       }
       else if (type == 1) lm = flrm, dm = fdrm, lbt = 9, dbt = 5;
@@ -383,7 +383,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         bt = end;
       }
     }
-    st.l = lm, st.p = lpos, st.b = bt;
+    st.l = lm, st.p = lpos, st.b = bt, st.f = final;
     if (lm) final = 1, st.m = lbt, st.d = dm, st.n = dbt;
   } while (!final)
   return bt == buf.length ? buf : slc(buf, 0, bt);
@@ -1723,7 +1723,7 @@ export function zlib(data: Uint8Array, opts: AsyncZlibOptions | FlateCallback, c
  * @param opts The compression options
  * @returns The zlib-compressed version of the data
  */
-export function zlibSync(data: Uint8Array, opts: ZlibOptions) {
+export function zlibSync(data: Uint8Array, opts?: ZlibOptions) {
   if (!opts) opts = {};
   const a = adler();
   a.p(data);
@@ -2022,6 +2022,16 @@ export interface ZipAttributes {
 export interface ZipOptions extends DeflateOptions, ZipAttributes {}
 
 /**
+ * Options for expanding a ZIP archive
+ */
+export interface UnzipOptions {
+  /**
+   * A filter function to extract only certain files from a ZIP archive
+   */
+  filter?: UnzipFileFilter;
+}
+
+/**
  * Options for asynchronously creating a ZIP archive
  */
 export interface AsyncZipOptions extends AsyncDeflateOptions, ZipAttributes {}
@@ -2029,7 +2039,7 @@ export interface AsyncZipOptions extends AsyncDeflateOptions, ZipAttributes {}
 /**
  * Options for asynchronously expanding a ZIP archive
  */
-export interface AsyncUnzipOptions extends AsyncOptions {}
+export interface AsyncUnzipOptions extends UnzipOptions {}
 
 /**
  * A file that can be used to create a ZIP archive
@@ -2926,6 +2936,41 @@ export interface UnzipDecoderConstructor {
 }
 
 /**
+ * Information about a file to be extracted from a ZIP archive
+ */
+export interface UnzipFileInfo {
+  /**
+   * The name of the file
+   */
+  name: string;
+
+  /**
+   * The compressed size of the file
+   */
+  size: number;
+
+  /**
+   * The original size of the file
+   */
+  originalSize: number;
+
+  /**
+   * The compression format for the data stream. This number is determined by
+   * the spec in PKZIP's APPNOTE.txt, section 4.4.5. For example, 0 = no
+   * compression, 8 = deflate, 14 = LZMA. If the filter function returns true
+   * but this value is not 8, the unzip function will throw.
+   */
+  compression: number;
+}
+
+/**
+ * A filter for files to be extracted during the unzipping process
+ * @param file The info for the current file being processed
+ * @returns Whether or not to extract the current file
+ */
+export type UnzipFileFilter = (file: UnzipFileInfo) => boolean;
+
+/**
  * Streaming file extraction from ZIP archives
  */
 export interface UnzipFile {
@@ -2948,12 +2993,14 @@ export interface UnzipFile {
   compression: number;
 
   /**
-   * The compressed size of the file
+   * The compressed size of the file. Will not be present for archives created
+   * in a streaming fashion.
    */
   size?: number;
 
   /**
-   * The original size of the file
+   * The original size of the file. Will not be present for archives created
+   * in a streaming fashion.
    */
   originalSize?: number;
 
@@ -3004,7 +3051,7 @@ export class UnzipInflate implements UnzipDecoder {
     try {
       this.i.push(data, final);
     } catch(e) {
-      this.ondata(e, data, final);
+      this.ondata(e, null, final);
     }
   }
 }
@@ -3170,15 +3217,26 @@ export class Unzip {
   onfile: UnzipFileHandler;
 }
 
-const mt = typeof queueMicrotask == 'function' ? queueMicrotask : setTimeout;
+const mt = typeof queueMicrotask == 'function' ? queueMicrotask : typeof setTimeout == 'function' ? setTimeout : (fn: Function) => { fn(); };
 
+
+/**
+ * Asynchronously decompresses a ZIP archive
+ * @param data The raw compressed ZIP file
+ * @param opts The ZIP extraction options
+ * @param cb The callback to call with the decompressed files
+ * @returns A function that can be used to immediately terminate the unzipping
+ */
+export function unzip(data: Uint8Array, opts: AsyncUnzipOptions, cb: UnzipCallback): AsyncTerminable;
 /**
  * Asynchronously decompresses a ZIP archive
  * @param data The raw compressed ZIP file
  * @param cb The callback to call with the decompressed files
  * @returns A function that can be used to immediately terminate the unzipping
  */
-export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
+export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable;
+export function unzip(data: Uint8Array, opts: AsyncUnzipOptions | UnzipCallback, cb?: UnzipCallback): AsyncTerminable {
+  if (!cb) cb = opts as UnzipCallback, opts = {};
   if (typeof cb != 'function') err(7);
   const term: AsyncTerminable[] = [];
   const tAll = () => {
@@ -3210,6 +3268,7 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
       c = lft = b4(data, e + 32);
       o = b4(data, e + 48);
     }
+    const fltr = opts && (opts as AsyncUnzipOptions).filter;
     for (let i = 0; i < c; ++i) {
       const [c, sc, su, fn, no, off] = zh(data, o, z), b = slzh(data, off);
       o = no
@@ -3218,22 +3277,29 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
           tAll();
           cbd(e, null);
         } else {
-          files[fn] = d;
+          if (d) files[fn] = d;
           if (!--lft) cbd(null, files);
         }
       }
-      if (!c) cbl(null, slc(data, b, b + sc))
-      else if (c == 8) {
-        const infl = data.subarray(b, b + sc);
-        if (sc < 320000) {
-          try {
-            cbl(null, inflateSync(infl, new u8(su)));
-          } catch(e) {
-            cbl(e, null);
+      if (!fltr || fltr({
+        name: fn,
+        size: sc,
+        originalSize: su,
+        compression: c
+      })) {
+        if (!c) cbl(null, slc(data, b, b + sc))
+        else if (c == 8) {
+          const infl = data.subarray(b, b + sc);
+          if (sc < 320000) {
+            try {
+              cbl(null, inflateSync(infl, new u8(su)));
+            } catch(e) {
+              cbl(e, null);
+            }
           }
-        }
-        else term.push(inflate(infl, { size: su }, cbl));
-      } else cbl(err(14, 'unknown compression type ' + c, 1), null);
+          else term.push(inflate(infl, { size: su }, cbl));
+        } else cbl(err(14, 'unknown compression type ' + c, 1), null);
+      } else cbl(null, null);
     }
   } else cbd(null, {});
   return tAll;
@@ -3243,9 +3309,10 @@ export function unzip(data: Uint8Array, cb: UnzipCallback): AsyncTerminable {
  * Synchronously decompresses a ZIP archive. Prefer using `unzip` for better
  * performance with more than one file.
  * @param data The raw compressed ZIP file
+ * @param opts The ZIP extraction options
  * @returns The decompressed files
  */
-export function unzipSync(data: Uint8Array) {
+export function unzipSync(data: Uint8Array, opts?: UnzipOptions) {
   const files: Unzipped = {};
   let e = data.length - 22;
   for (; b4(data, e) != 0x6054B50; --e) {
@@ -3261,12 +3328,20 @@ export function unzipSync(data: Uint8Array) {
     c = b4(data, e + 32);
     o = b4(data, e + 48);
   }
+  const fltr = opts && opts.filter;
   for (let i = 0; i < c; ++i) {
     const [c, sc, su, fn, no, off] = zh(data, o, z), b = slzh(data, off);
     o = no;
-    if (!c) files[fn] = slc(data, b, b + sc);
-    else if (c == 8) files[fn] = inflateSync(data.subarray(b, b + sc), new u8(su));
-    else err(14, 'unknown compression type ' + c);
+    if (!fltr || fltr({
+      name: fn,
+      size: sc,
+      originalSize: su,
+      compression: c
+    })) {
+      if (!c) files[fn] = slc(data, b, b + sc);
+      else if (c == 8) files[fn] = inflateSync(data.subarray(b, b + sc), new u8(su));
+      else err(14, 'unknown compression type ' + c);
+    }
   }
   return files;
 }

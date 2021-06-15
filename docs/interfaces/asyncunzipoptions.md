@@ -4,7 +4,7 @@ Options for asynchronously expanding a ZIP archive
 
 ## Hierarchy
 
-* AsyncOptions
+* [UnzipOptions](unzipoptions.md)
 
   ↳ **AsyncUnzipOptions**
 
@@ -12,15 +12,14 @@ Options for asynchronously expanding a ZIP archive
 
 ### Properties
 
-* [consume](asyncunzipoptions.md#consume)
+* [filter](asyncunzipoptions.md#filter)
 
 ## Properties
 
-### consume
+### filter
 
-• `Optional` **consume**: boolean
+• `Optional` **filter**: [UnzipFileFilter](../README.md#unzipfilefilter)
 
-*Inherited from [AsyncDeflateOptions](asyncdeflateoptions.md).[consume](asyncdeflateoptions.md#consume)*
+*Inherited from [UnzipOptions](unzipoptions.md).[filter](unzipoptions.md#filter)*
 
-Whether or not to "consume" the source data. This will make the typed array/buffer you pass in
-unusable but will increase performance and reduce memory usage.
+A filter function to extract only certain files from a ZIP archive

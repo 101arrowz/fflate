@@ -54,7 +54,8 @@ ___
 
 • `Optional` **originalSize**: number
 
-The original size of the file
+The original size of the file. Will not be present for archives created
+in a streaming fashion.
 
 ___
 
@@ -62,7 +63,8 @@ ___
 
 • `Optional` **size**: number
 
-The compressed size of the file
+The compressed size of the file. Will not be present for archives created
+in a streaming fashion.
 
 ___
 
