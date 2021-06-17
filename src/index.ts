@@ -67,7 +67,7 @@ const hMap = ((cd: Uint8Array, mb: number, r: 0 | 1) => {
   const l = new u16(mb);
   // length of cd must be 288 (total # of codes)
   for (; i < s; ++i) {
-    if (cd[i] - 1 >= 0) {
+    if (cd[i] > 0) {
       ++l[cd[i] - 1];
     }
   }
