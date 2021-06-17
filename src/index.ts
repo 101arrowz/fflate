@@ -67,9 +67,7 @@ const hMap = ((cd: Uint8Array, mb: number, r: 0 | 1) => {
   const l = new u16(mb);
   // length of cd must be 288 (total # of codes)
   for (; i < s; ++i) {
-    if (cd[i] > 0) {
-      ++l[cd[i] - 1];
-    }
+    if (cd[i]) ++l[cd[i] - 1];
   }
   // u16 "map": index -> minimum code for bit length = index
   const le = new u16(mb);
