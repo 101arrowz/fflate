@@ -624,14 +624,11 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
     for (let i = 0; i <= s; i += 65535) {
       // end
       const e = i + 65535;
-      if (e < s) {
-        // write full block
-        pos = wfblk(w, pos, dat.subarray(i, e));
-      } else {
+      if (e >= s) {
         // write final block
-        w[i] = lst;
-        pos = wfblk(w, pos, dat.subarray(i, s));
+        w[pos >> 3] = lst;
       }
+      pos = wfblk(w, pos + 1, dat.subarray(i, e));
     }
   } else {
     const opt = deo[lvl - 1];
@@ -844,14 +841,14 @@ export type FlateStreamHandler = (data: Uint8Array, final: boolean) => void;
  * @param data The data output from the stream processor
  * @param final Whether this is the final block
  */
-export type AsyncFlateStreamHandler = (err: FlateError, data: Uint8Array, final: boolean) => void;
+export type AsyncFlateStreamHandler = (err: FlateError | null, data: Uint8Array, final: boolean) => void;
 
 /**
  * Callback for asynchronous (de)compression methods
  * @param err Any error that occurred
  * @param data The resulting data. Only present if `err` is null
  */
-export type FlateCallback = (err: FlateError, data: Uint8Array) => void;
+export type FlateCallback = (err: FlateError | null, data: Uint8Array) => void;
 
 // async callback-based compression
 interface AsyncOptions {
@@ -2087,7 +2084,7 @@ export type StringStreamHandler = (data: string, final: boolean) => void;
  * @param err Any error that occurred
  * @param data The decompressed ZIP archive
  */
-export type UnzipCallback = (err: FlateError, data: Unzipped) => void;
+export type UnzipCallback = (err: FlateError | null, data: Unzipped) => void;
 
 /**
  * Handler for streaming ZIP decompression

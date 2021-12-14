@@ -1,6 +1,6 @@
 {
   "name": "fflate",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "High performance (de)compression in an 8kB package",
   "main": "./lib/index.cjs",
   "module": "./esm/browser.js",

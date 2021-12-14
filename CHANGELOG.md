@@ -1,3 +1,7 @@
+## 0.7.2
+- Fixed TypeScript typing for errors when using `strictNullChecks`
+- Fixed failure to compress files above 64kB with `{ level: 0 }`
+- Fixed AMD module definition in UMD build
 ## 0.7.1
 - Removed requirement for `setTimeout`
 - Added support for unzip file filters (thanks to [@manucorporat](https://github.com/manucorporat): #67)
