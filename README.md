@@ -367,7 +367,7 @@ unzipper.push(zipChunk3, true);
 
 As you may have guessed, there is an asynchronous version of every method as well. Unlike most libraries, this will cause the compression or decompression run in a separate thread entirely and automatically by using Web (or Node) Workers (as of now, Deno is unsupported). This means that the processing will not block the main thread at all. 
 
-Note that there is a significant initial overhead to using workers of about 70ms, so it's best to avoid the asynchronous API unless necessary. However, if you're compressing multiple large files at once, or the synchronous API causes the main thread to hang for too long, the callback APIs are an order of magnitude better.
+Note that there is a significant initial overhead to using workers of about 70ms for each asynchronous function. For instance, if you call `unzip` ten times, the overhead only applies for the first call, but if you call `unzip` and `zlib`, they will each cause the 70ms delay. Therefore, it's best to avoid the asynchronous API unless necessary. However, if you're compressing multiple large files at once, or the synchronous API causes the main thread to hang for too long, the callback APIs are an order of magnitude better.
 ```js
 import {
   gzip, zlib, AsyncGzip, zip, unzip, strFromU8,
