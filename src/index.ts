@@ -151,7 +151,7 @@ const slc = <T extends Uint8Array | Uint16Array | Uint32Array>(v: T, s: number, 
   if (s == null || s < 0) s = 0;
   if (e == null || e > v.length) e = v.length;
   // can't use .constructor in case user-supplied
-  const n = new (v instanceof u16 ? u16 : v instanceof u32 ? u32 : u8)(e - s) as T;
+  const n = new (v.BYTES_PER_ELEMENT == 2 ? u16 : v.BYTES_PER_ELEMENT == 4 ? u32 : u8)(e - s) as T;
   n.set(v.subarray(s, e));
   return n;
 }
@@ -930,7 +930,7 @@ const mrg = <A, B>(a: A, b: B) => {
 const wcln = (fn: () => unknown[], fnStr: string, td: Record<string, unknown>) => {
   const dt = fn();
   const st = fn.toString();
-  const ks = st.slice(st.indexOf('[') + 1, st.lastIndexOf(']')).replace(/ /g, '').split(',');
+  const ks = st.slice(st.indexOf('[') + 1, st.lastIndexOf(']')).replace(/\s+/g, '').split(',');
   for (let i = 0; i < dt.length; ++i) {
     let v = dt[i], k = ks[i];
     if (typeof v == 'function') {
@@ -958,7 +958,9 @@ const ch: CachedWorker[] = [];
 const cbfs = (v: Record<string, unknown>) => {
   const tl: ArrayBuffer[] = [];
   for (const k in v) {
-    if (v[k] instanceof u8 || v[k] instanceof u16 || v[k] instanceof u32) tl.push((v[k] = new (v[k].constructor as typeof u8)(v[k] as Uint8Array)).buffer);
+    if ((v[k] as Uint8Array).buffer) {
+      tl.push((v[k] = new (v[k].constructor as typeof u8)(v[k] as Uint8Array)).buffer);
+    }
   }
   return tl;
 }
@@ -977,7 +979,7 @@ const wrkr = <T, R>(fns: (() => unknown[])[], init: (ev: MessageEvent<T>) => voi
 
 // base async inflate fn
 const bInflt = () => [u8, u16, u32, fleb, fdeb, clim, fl, fd, flrm, fdrm, rev, ec, hMap, max, bits, bits16, shft, slc, err, inflt, inflateSync, pbf, gu8];
-const bDflt = () => [u8, u16, u32, fleb, fdeb, clim, revfl, revfd, flm, flt, fdm, fdt, rev, deo, et, hMap, wbits, wbits16, hTree, ln, lc, clen, wfblk, wblk, shft, slc, dflt, dopt, deflateSync, pbf]
+const bDflt = () => [u8, u16, u32, fleb, fdeb, clim, revfl, revfd, flm, flt, fdm, fdt, rev, deo, et, hMap, wbits, wbits16, hTree, ln, lc, clen, wfblk, wblk, shft, slc, dflt, dopt, deflateSync, pbf];
 
 // gzip extra
 const gze = () => [gzh, gzhl, wbytes, crc, crct];
@@ -1967,7 +1969,7 @@ export interface ZipAttributes {
   /**
    * The operating system of origin for this file. The value is defined
    * by PKZIP's APPNOTE.txt, section 4.4.2.2. For example, 0 (the default)
-   * is MS/DOS, 3 is UNIX, 19 is macOS.
+   * is MS/DOS, 3 is Unix, 19 is macOS.
    */
   os?: number;
 
@@ -1988,7 +1990,9 @@ export interface ZipAttributes {
    * 
    * A = archive, D = directory, V = volume label, S = system file, H = hidden, R = read-only
    * 
-   * If you want to set the Unix permissions, for instance, just bit shift by 16, e.g. 0644 << 16
+   * If you want to set the Unix permissions, for instance, just bit shift by 16, e.g. 0o644 << 16.
+   * Note that attributes usually only work in conjunction with the `os` setting: you must use
+   * `os` = 3 (Unix) if you want to set Unix permissions
    */
   attrs?: number;
 
@@ -2043,25 +2047,25 @@ export interface AsyncUnzipOptions extends UnzipOptions {}
 /**
  * A file that can be used to create a ZIP archive
  */
-export type ZippableFile = Uint8Array | [Uint8Array, ZipOptions];
+export type ZippableFile = Uint8Array | Zippable | [Uint8Array | Zippable, ZipOptions];
 
 /**
  * A file that can be used to asynchronously create a ZIP archive
  */
-export type AsyncZippableFile = Uint8Array | [Uint8Array, AsyncZipOptions];
+export type AsyncZippableFile = Uint8Array | AsyncZippable | [Uint8Array | AsyncZippable, AsyncZipOptions]
 
 /**
  * The complete directory structure of a ZIPpable archive
  */
 export interface Zippable {
-  [path: string]: Zippable | ZippableFile;
+  [path: string]: ZippableFile;
 }
 
 /**
  * The complete directory structure of an asynchronously ZIPpable archive
  */
 export interface AsyncZippable {
-  [path: string]: AsyncZippable | AsyncZippableFile;
+  [path: string]: AsyncZippableFile;
 }
 
 /**
@@ -2096,12 +2100,15 @@ export type UnzipFileHandler = (file: UnzipFile) => void;
 type FlatZippable<A extends boolean> = Record<string, [Uint8Array, (A extends true ? AsyncZipOptions : ZipOptions)]>;
 
 // flatten a directory structure
-const fltn = <A extends boolean>(d: A extends true ? AsyncZippable : Zippable, p: string, t: FlatZippable<A>, o: ZipOptions) => {
+const fltn = <A extends boolean, D = A extends true ? AsyncZippable : Zippable>(d: D, p: string, t: FlatZippable<A>, o: ZipOptions) => {
   for (const k in d) {
-    const val = d[k], n = p + k;
-    if (val instanceof u8) t[n] = [val, o] as unknown as FlatZippable<A>[string];
-    else if (Array.isArray(val)) t[n] = [val[0], mrg(o, val[1])] as FlatZippable<A>[string];
-    else fltn(val as unknown as (A extends true ? AsyncZippable : Zippable), n + '/', t, o);
+    let val = d[k], n = p + k, op = o;
+    if (Array.isArray(val)) op = mrg(o, val[1]), val = val[0] as unknown as D[Extract<keyof D, string>];
+    if (val instanceof u8) t[n] = [val, op] as unknown as FlatZippable<A>[string];
+    else {
+      t[n += '/'] = [new u8(0), op] as unknown as FlatZippable<A>[string];
+      fltn(val as unknown as (A extends true ? AsyncZippable : Zippable), n, t, o);
+    }
   }
 }
 

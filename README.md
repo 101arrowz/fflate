@@ -243,26 +243,38 @@ const zipped = fflate.zipSync({
   'dir1': {
     'nested': {
       // You can use Unicode in filenames
-      '你好.txt': strToU8('Hey there!')
+      '你好.txt': fflate.strToU8('Hey there!')
     },
     // You can also manually write out a directory path
     'other/tmp.txt': new Uint8Array([97, 98, 99, 100])
   },
+
   // You can also provide compression options
   'massiveImage.bmp': [aMassiveFile, {
     level: 9,
-    mem: 12,
-    // ZIP-specific: mtime works here too, defaults to current time
-    mtime: new Date('10/20/2020')
+    mem: 12
   }],
   // PNG is pre-compressed; no need to waste time
-  'superTinyFile.png': [aPNGFile, { level: 0 }]
+  'superTinyFile.png': [aPNGFile, { level: 0 }],
+
+  // Directories take options too
+  'exec': [{
+    'hello.sh': [fflate.strToU8('echo hello world'), {
+      // ZIP only: Set the operating system to Unix
+      os: 3,
+      // ZIP only: Make this file executable on Unix
+      attrs: 0o755 << 16
+    }]
+  }, {
+    // ZIP and GZIP support mtime (defaults to current time)
+    mtime: new Date('10/20/2020')
+  }]
 }, {
   // These options are the defaults for all files, but file-specific
   // options take precedence.
   level: 1,
-  // Obfuscate mtime by default
-  mtime: 0
+  // Obfuscate last modified time by default 
+  mtime: new Date('1/1/1980')
 });
 
 // If you write the zipped data to myzip.zip and unzip, the folder
@@ -442,8 +454,7 @@ gzs.terminate();
 zip({ f1: aMassiveFile, 'f2.txt': anotherMassiveFile }, {
   // The options object is still optional, you can still do just
   // zip(archive, callback)
-  level: 6,
-  mtime: 0
+  level: 6
 }, (err, data) => {
   // Save the ZIP file
 });

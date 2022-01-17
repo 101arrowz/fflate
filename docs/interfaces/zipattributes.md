@@ -44,7 +44,9 @@ rwx = user permissions, rwx = group permissions, rwx = other permissions
 
 A = archive, D = directory, V = volume label, S = system file, H = hidden, R = read-only
 
-If you want to set the Unix permissions, for instance, just bit shift by 16, e.g. 0644 << 16
+If you want to set the Unix permissions, for instance, just bit shift by 16, e.g. 0o644 << 16.
+Note that attributes usually only work in conjunction with the `os` setting: you must use
+`os` = 3 (Unix) if you want to set Unix permissions
 
 ___
 
@@ -85,4 +87,4 @@ ___
 
 The operating system of origin for this file. The value is defined
 by PKZIP's APPNOTE.txt, section 4.4.2.2. For example, 0 (the default)
-is MS/DOS, 3 is UNIX, 19 is macOS.
+is MS/DOS, 3 is Unix, 19 is macOS.
