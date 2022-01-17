@@ -8,6 +8,6 @@ The complete directory structure of an asynchronously ZIPpable archive
 
 ## Indexable
 
-▪ [path: string]: [AsyncZippable](asynczippable.md) \| [AsyncZippableFile](../README.md#asynczippablefile)
+▪ [path: string]: [AsyncZippableFile](../README.md#asynczippablefile)
 
 The complete directory structure of an asynchronously ZIPpable archive

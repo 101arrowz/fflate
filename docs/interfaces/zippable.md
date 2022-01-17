@@ -8,6 +8,6 @@ The complete directory structure of a ZIPpable archive
 
 ## Indexable
 
-▪ [path: string]: [Zippable](zippable.md) \| [ZippableFile](../README.md#zippablefile)
+▪ [path: string]: [ZippableFile](../README.md#zippablefile)
 
 The complete directory structure of a ZIPpable archive

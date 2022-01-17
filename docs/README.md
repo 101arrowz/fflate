@@ -113,7 +113,7 @@ ___
 
 ### AsyncZippableFile
 
-Ƭ  **AsyncZippableFile**: Uint8Array \| []
+Ƭ  **AsyncZippableFile**: Uint8Array \| [AsyncZippable](interfaces/asynczippable.md) \| []
 
 A file that can be used to asynchronously create a ZIP archive
 
@@ -191,7 +191,7 @@ ___
 
 ### ZippableFile
 
-Ƭ  **ZippableFile**: Uint8Array \| []
+Ƭ  **ZippableFile**: Uint8Array \| [Zippable](interfaces/zippable.md) \| []
 
 A file that can be used to create a ZIP archive
 

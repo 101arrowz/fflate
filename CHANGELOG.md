@@ -1,3 +1,10 @@
+## 0.7.3
+- Fix folder creation for certain operating system
+  - Create 0-length "files" for each directory specified with "object" syntax"
+  - Support empty folders
+  - Add options for folders
+- Fix minification in SWC
+  - Remove instanceof, no-whitespace assumptions in async functions
 ## 0.7.2
 - Fixed TypeScript typing for errors when using `strictNullChecks`
 - Fixed failure to compress files above 64kB with `{ level: 0 }`
