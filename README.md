@@ -474,13 +474,15 @@ const zip = new Zip();
 zip.ondata = (err, chunk, final) => { ... };
 // The JSON and BMP are compressed in parallel
 const exampleFile = new AsyncZipDeflate('example.json');
+zip.add(exampleFile);
 exampleFile.push(JSON.stringify({ large: 'object' }), true);
 const exampleFile2 = new AsyncZipDeflate('example2.bmp', { level: 9 });
-exampleFile.push(ec2a);
-exampleFile.push(ec2b);
-exampleFile.push(ec2c);
+zip.add(exampleFile2);
+exampleFile2.push(ec2a);
+exampleFile2.push(ec2b);
+exampleFile2.push(ec2c);
 ...
-exampleFile.push(ec2Final, true);
+exampleFile2.push(ec2Final, true);
 zip.end();
 
 // Streaming Unzip should register the asynchronous inflation algorithm
