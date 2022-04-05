@@ -63,11 +63,11 @@
   ],
   "scripts": {
     "build": "yarn build:lib && yarn build:docs && yarn build:demo",
-    "script": "node -r ts-node/register scripts/$SC_DIR.ts",
+    "script": "cross-env-shell node -r ts-node/register scripts/$SC_DIR.ts",
     "build:lib": "tsc && tsc --project tsconfig.esm.json && yarn build:rewrite && yarn build:umd",
-    "build:umd": "SC_DIR=buildUMD yarn script",
-    "build:rewrite": "SC_DIR=rewriteBuilds yarn script",
-    "build:demo": "tsc --project tsconfig.demo.json && parcel build demo/index.html --public-url \"./\" && SC_DIR=cpGHPages yarn script",
+    "build:umd": "cross-env SC_DIR=buildUMD yarn script",
+    "build:rewrite": "cross-env SC_DIR=rewriteBuilds yarn script",
+    "build:demo": "tsc --project tsconfig.demo.json && parcel build demo/index.html --public-url \"./\" && cross-env SC_DIR=cpGHPages yarn script",
     "build:docs": "typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none --disableSources --excludePrivate --excludeProtected --out docs/ src/index.ts",
     "test": "TS_NODE_PROJECT=test/tsconfig.json uvu -b -r ts-node/register test",
     "prepack": "yarn build && yarn test"
@@ -77,6 +77,7 @@
     "@types/pako": "*",
     "@types/react": "^16.9.55",
     "@types/react-dom": "^16.9.9",
+    "cross-env": "^7.0.3",
     "jszip": "^3.5.0",
     "pako": "*",
     "parcel": "^2.0.0-nightly.440",
