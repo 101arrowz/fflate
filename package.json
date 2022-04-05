@@ -63,11 +63,11 @@
   ],
   "scripts": {
     "build": "yarn build:lib && yarn build:docs && yarn build:demo",
-    "script": "node -r ts-node/register scripts/$SC.ts",
+    "script": "node -r ts-node/register scripts/$SC_DIR.ts",
     "build:lib": "tsc && tsc --project tsconfig.esm.json && yarn build:rewrite && yarn build:umd",
-    "build:umd": "SC=buildUMD yarn script",
-    "build:rewrite": "SC=rewriteBuilds yarn script",
-    "build:demo": "tsc --project tsconfig.demo.json && parcel build demo/index.html --public-url \"./\" && SC=cpGHPages yarn script",
+    "build:umd": "SC_DIR=buildUMD yarn script",
+    "build:rewrite": "SC_DIR=rewriteBuilds yarn script",
+    "build:demo": "tsc --project tsconfig.demo.json && parcel build demo/index.html --public-url \"./\" && SC_DIR=cpGHPages yarn script",
     "build:docs": "typedoc --mode library --plugin typedoc-plugin-markdown --hideProjectName --hideBreadcrumbs --readme none --disableSources --excludePrivate --excludeProtected --out docs/ src/index.ts",
     "test": "TS_NODE_PROJECT=test/tsconfig.json uvu -b -r ts-node/register test",
     "prepack": "yarn build && yarn test"
