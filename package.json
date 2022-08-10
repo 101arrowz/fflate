@@ -12,6 +12,7 @@
   },
   "exports": {
     ".": {
+      "types": "./lib/index.d.ts",
       "node": {
         "import": "./esm/index.mjs",
         "require": "./lib/node.cjs"
@@ -20,10 +21,12 @@
       "require": "./lib/index.cjs"
     },
     "./node": {
+      "types": "./lib/index.d.ts",
       "import": "./esm/index.mjs",
       "require": "./lib/node.cjs"
     },
     "./browser": {
+      "types": "./lib/index.d.ts",
       "import": "./esm/browser.js",
       "require": "./lib/browser.cjs"
     }
