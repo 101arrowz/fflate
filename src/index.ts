@@ -2310,20 +2310,20 @@ const exfl = (ex?: ZHF['extra']) => {
 }
 
 // write zip header
-const wzh = (d: Uint8Array, b: number, f: ZHF, fn: Uint8Array, u: boolean, c?: number, ce?: number, co?: Uint8Array) => {
+const wzh = (d: Uint8Array, b: number, f: ZHF, fn: Uint8Array, u: boolean, c: number, ce?: number, co?: Uint8Array) => {
   const fl = fn.length, ex = f.extra, col = co && co.length;
   let exl = exfl(ex);
   wbytes(d, b, ce != null ? 0x2014B50 : 0x4034B50), b += 4;
   if (ce != null) d[b++] = 20, d[b++] = f.os;
   d[b] = 20, b += 2; // spec compliance? what's that?
-  d[b++] = (f.flag << 1) | (c == null && 8), d[b++] = u && 8;
+  d[b++] = (f.flag << 1) | (c < 0 && 8), d[b++] = u && 8;
   d[b++] = f.compression & 255, d[b++] = f.compression >> 8;
   const dt = new Date(f.mtime == null ? Date.now() : f.mtime), y = dt.getFullYear() - 1980;
   if (y < 0 || y > 119) err(10);
   wbytes(d, b, (y << 25) | ((dt.getMonth() + 1) << 21) | (dt.getDate() << 16) | (dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >>> 1)), b += 4;
-  if (c != null) {
+  if (c != -1) {
     wbytes(d, b, f.crc);
-    wbytes(d, b + 4, c);
+    wbytes(d, b + 4, c < 0 ? -c - 2 : c);
     wbytes(d, b + 8, f.size);
   }
   wbytes(d, b + 12, fl);
@@ -2654,7 +2654,7 @@ export class Zip {
       const hl = fl + exfl(file.extra) + 30;
       if (fl > 65535) this.ondata(err(11, 0, 1), null, false);
       const header = new u8(hl);
-      wzh(header, 0, file, f, u);
+      wzh(header, 0, file, f, u, -1);
       let chks: Uint8Array[] = [header];
       const pAll = () => {
         for (const chk of chks) this.ondata(null, chk, false);
@@ -2732,7 +2732,7 @@ export class Zip {
     for (const f of this.u) tl += 46 + f.f.length + exfl(f.extra) + (f.o ? f.o.length : 0);
     const out = new u8(tl + 22);
     for (const f of this.u) {
-      wzh(out, bt, f, f.f, f.u, f.c, l, f.o);
+      wzh(out, bt, f, f.f, f.u, -f.c - 2, l, f.o);
       bt += 46 + f.f.length + exfl(f.extra) + (f.o ? f.o.length : 0), l += f.b;
     }
     wzf(out, bt, this.u.length, tl, l)
@@ -3264,15 +3264,14 @@ export function unzip(data: Uint8Array, opts: AsyncUnzipOptions | UnzipCallback,
   if (lft) {
     let c = lft;
     let o = b4(data, e + 16);
-    const z = o == 4294967295;
+    let z = o == 4294967295 || c == 65535;
     if (z) {
-      e = b4(data, e - 12);
-      if (b4(data, e) != 0x6064B50) {
-        cbd(err(13, 0, 1), null);
-        return tAll;
+      let ze = b4(data, e - 12);
+      z = b4(data, ze) == 0x6064B50;
+      if (z) {
+        c = lft = b4(data, ze + 32);
+        o = b4(data, ze + 48);
       }
-      c = lft = b4(data, e + 32);
-      o = b4(data, e + 48);
     }
     const fltr = opts && (opts as AsyncUnzipOptions).filter;
     for (let i = 0; i < c; ++i) {
@@ -3327,12 +3326,14 @@ export function unzipSync(data: Uint8Array, opts?: UnzipOptions) {
   let c = b2(data, e + 8);
   if (!c) return {};
   let o = b4(data, e + 16);
-  const z = o == 4294967295;
+  let z = o == 4294967295 || c == 65535;
   if (z) {
-    e = b4(data, e - 12);
-    if (b4(data, e) != 0x6064B50) err(13);
-    c = b4(data, e + 32);
-    o = b4(data, e + 48);
+    let ze = b4(data, e - 12);
+    z = b4(data, ze) == 0x6064B50;
+    if (z) {
+      c = b4(data, ze + 32);
+      o = b4(data, ze + 48);
+    }
   }
   const fltr = opts && opts.filter;
   for (let i = 0; i < c; ++i) {
