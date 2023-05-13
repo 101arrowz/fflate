@@ -13,7 +13,7 @@
 import wk from './node-worker';
 
 // aliases for shorter compressed code (most minifers don't do this)
-const u8 = Uint8Array, u16 = Uint16Array, u32 = Uint32Array;
+const u8 = Uint8Array, u16 = Uint16Array, i32 = Int32Array;
 
 // fixed length extra bits
 const fleb = new u8([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, /* unused */ 0, 0, /* impossible */ 0]);
@@ -32,28 +32,28 @@ const freb = (eb: Uint8Array, start: number) => {
     b[i] = start += 1 << eb[i - 1];
   }
   // numbers here are at max 18 bits
-  const r = new u32(b[30]);
+  const r = new i32(b[30]);
   for (let i = 1; i < 30; ++i) {
     for (let j = b[i]; j < b[i + 1]; ++j) {
       r[j] = ((j - b[i]) << 5) | i;
     }
   }
-  return [b, r] as const;
+  return { b, r };
 }
 
-const [fl, revfl] = freb(fleb, 2);
+const { b: fl, r: revfl } = freb(fleb, 2);
 // we can ignore the fact that the other numbers are wrong; they never happen anyway
 fl[28] = 258, revfl[258] = 28;
-const [fd, revfd] = freb(fdeb, 0);
+const { b: fd, r: revfd } = freb(fdeb, 0);
 
 // map of value to reverse (assuming 16 bits)
 const rev = new u16(32768);
 for (let i = 0; i < 32768; ++i) {
   // reverse table algorithm from SO
-  let x = ((i & 0xAAAA) >>> 1) | ((i & 0x5555) << 1);
-  x = ((x & 0xCCCC) >>> 2) | ((x & 0x3333) << 2);
-  x = ((x & 0xF0F0) >>> 4) | ((x & 0x0F0F) << 4);
-  rev[i] = (((x & 0xFF00) >>> 8) | ((x & 0x00FF) << 8)) >>> 1;
+  let x = ((i & 0xAAAA) >> 1) | ((i & 0x5555) << 1);
+  x = ((x & 0xCCCC) >> 2) | ((x & 0x3333) << 2);
+  x = ((x & 0xF0F0) >> 4) | ((x & 0x0F0F) << 4);
+  rev[i] = (((x & 0xFF00) >> 8) | ((x & 0x00FF) << 8)) >> 1;
 }
 
 // create huffman tree from u8 "map": index -> code length for code index
@@ -71,7 +71,7 @@ const hMap = ((cd: Uint8Array, mb: number, r: 0 | 1) => {
   }
   // u16 "map": index -> minimum code for bit length = index
   const le = new u16(mb);
-  for (i = 0; i < mb; ++i) {
+  for (i = 1; i < mb; ++i) {
     le[i] = (le[i - 1] + l[i - 1]) << 1;
   }
   let co: Uint16Array;
@@ -92,7 +92,7 @@ const hMap = ((cd: Uint8Array, mb: number, r: 0 | 1) => {
         // m is end value
         for (const m = v | ((1 << r) - 1); v <= m; ++v) {
           // every 16 bit value starting with the code yields the same result
-          co[rev[v] >>> rvb] = sv;
+          co[rev[v] >> rvb] = sv;
         }
       }
     }
@@ -100,7 +100,7 @@ const hMap = ((cd: Uint8Array, mb: number, r: 0 | 1) => {
     co = new u16(s);
     for (i = 0; i < s; ++i) {
       if (cd[i]) {
-        co[i] = rev[le[cd[i] - 1]++] >>> (15 - cd[i]);
+        co[i] = rev[le[cd[i] - 1]++] >> (15 - cd[i]);
       }
     }
   }
@@ -147,11 +147,11 @@ const shft = (p: number) => ((p + 7) / 8) | 0;
 
 // typed array slice - allows garbage collector to free original reference,
 // while being more compatible than .slice
-const slc = <T extends Uint8Array | Uint16Array | Uint32Array>(v: T, s: number, e?: number): T => {
+const slc = (v: Uint8Array, s: number, e?: number) => {
   if (s == null || s < 0) s = 0;
   if (e == null || e > v.length) e = v.length;
   // can't use .constructor in case user-supplied
-  const n = new (v.BYTES_PER_ELEMENT == 2 ? u16 : v.BYTES_PER_ELEMENT == 4 ? u32 : u8)(e - s) as T;
+  const n = new u8(e - s);
   n.set(v.subarray(s, e));
   return n;
 }
@@ -238,7 +238,7 @@ const err = (ind: number, msg?: string | 0, nt?: 1) => {
 const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
   // source length
   const sl = dat.length;
-  if (!sl || (st && st.f && !st.l)) return buf || new u8(0);
+  if (!sl || st && st.f && !st.l) return buf || new u8(0);
   // have to estimate size
   const noBuf = !buf || (st as unknown as boolean);
   // no state
@@ -307,7 +307,7 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
           // bits read
           pos += r & 15;
           // symbol
-          const s = r >>> 4;
+          const s = r >> 4;
           // code length to copy
           if (s < 16) {
             ldt[i++] = s;
@@ -335,13 +335,13 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
       }
     }
     // Make sure the buffer can hold this + the largest possible addition
-    // Maximum chunk size (practically, theoretically infinite) is 2^17;
+    // Maximum chunk size (practically, theoretically infinite) is 2^17
     if (noBuf) cbuf(bt + 131072);
     const lms = (1 << lbt) - 1, dms = (1 << dbt) - 1;
     let lpos = pos;
     for (;; lpos = pos) {
       // bits read, code
-      const c = lm[bits16(dat, pos) & lms], sym = c >>> 4;
+      const c = lm[bits16(dat, pos) & lms], sym = c >> 4;
       pos += c & 15;
       if (pos > tbts) {
         if (noSt) err(0);
@@ -362,13 +362,13 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
           pos += b;
         }
         // dist
-        const d = dm[bits16(dat, pos) & dms], dsym = d >>> 4;
+        const d = dm[bits16(dat, pos) & dms], dsym = d >> 4;
         if (!d) err(3);
         pos += d & 15;
         let dt = fd[dsym];
         if (dsym > 3) {
           const b = fdeb[dsym];
-          dt += bits16(dat, pos) & ((1 << b) - 1), pos += b;
+          dt += bits16(dat, pos) & (1 << b) - 1, pos += b;
         }
         if (pos > tbts) {
           if (noSt) err(0);
@@ -396,7 +396,7 @@ const wbits = (d: Uint8Array, p: number, v: number) => {
   v <<= p & 7;
   const o = (p / 8) | 0;
   d[o] |= v;
-  d[o + 1] |= v >>> 8;
+  d[o + 1] |= v >> 8;
 }
 
 // starting at p, write the minimum number of bits (>8) that can hold v to d
@@ -404,8 +404,8 @@ const wbits16 = (d: Uint8Array, p: number, v: number) => {
   v <<= p & 7;
   const o = (p / 8) | 0;
   d[o] |= v;
-  d[o + 1] |= v >>> 8;
-  d[o + 2] |= v >>> 16;
+  d[o + 1] |= v >> 8;
+  d[o + 2] |= v >> 16;
 }
 
 type HuffNode = {
@@ -428,11 +428,11 @@ const hTree = (d: Uint16Array, mb: number) => {
   }
   const s = t.length;
   const t2 = t.slice();
-  if (!s) return [et, 0] as const;
+  if (!s) return { t: et, l: 0 };
   if (s == 1) {
     const v = new u8(t[0].s + 1);
     v[t[0].s] = 1;
-    return [v, 1] as const;
+    return { t: v, l: 1 };
   }
   t.sort((a, b) => a.f - b.f);
   // after i2 reaches last ind, will be stopped
@@ -473,7 +473,7 @@ const hTree = (d: Uint16Array, mb: number) => {
         tr[i2] = mb;
       } else break;
     }
-    dt >>>= lft;
+    dt >>= lft;
     while (dt > 0) {
       const i2 = t2[i].s;
       if (tr[i2] < mb) dt -= 1 << (mb - tr[i2]++ - 1);
@@ -488,7 +488,7 @@ const hTree = (d: Uint16Array, mb: number) => {
     }
     mbt = mb;
   }
-  return [new u8(tr), mbt] as const;
+  return { t: new u8(tr), l: mbt };
 }
 // get the max length and assign length codes
 const ln = (n: HuffNode, l: Uint16Array, d: number): number => {
@@ -526,7 +526,7 @@ const lc = (c: Uint8Array) => {
       cln = c[i];
     }
   }
-  return [cl.subarray(0, cli), s] as const;
+  return { c: cl.subarray(0, cli), n: s };
 }
 
 // calculate the length of output from tree, code lengths
@@ -543,7 +543,7 @@ const wfblk = (out: Uint8Array, pos: number, dat: Uint8Array) => {
   const s = dat.length;
   const o = shft(pos + 2);
   out[o] = s & 255;
-  out[o + 1] = s >>> 8;
+  out[o + 1] = s >> 8;
   out[o + 2] = out[o] ^ 255;
   out[o + 3] = out[o + 1] ^ 255;
   for (let i = 0; i < s; ++i) out[o + i + 4] = dat[i];
@@ -551,17 +551,17 @@ const wfblk = (out: Uint8Array, pos: number, dat: Uint8Array) => {
 }
 
 // writes a block
-const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Uint32Array, lf: Uint16Array, df: Uint16Array, eb: number, li: number, bs: number, bl: number, p: number) => {
+const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Int32Array, lf: Uint16Array, df: Uint16Array, eb: number, li: number, bs: number, bl: number, p: number) => {
   wbits(out, p++, final);
   ++lf[256];
-  const [dlt, mlb] = hTree(lf, 15);
-  const [ddt, mdb] = hTree(df, 15);
-  const [lclt, nlc] = lc(dlt);
-  const [lcdt, ndc] = lc(ddt);
+  const { t: dlt, l: mlb } = hTree(lf, 15);
+  const { t: ddt, l: mdb } = hTree(df, 15);
+  const { c: lclt, n: nlc } = lc(dlt);
+  const { c: lcdt, n: ndc } = lc(ddt);
   const lcfreq = new u16(19);
   for (let i = 0; i < lclt.length; ++i) lcfreq[lclt[i] & 31]++;
   for (let i = 0; i < lcdt.length; ++i) lcfreq[lcdt[i] & 31]++;
-  const [lct, mlcb] = hTree(lcfreq, 7);
+  const { t: lct, l: mlcb } = hTree(lcfreq, 7);
   let nlcc = 19;
   for (; nlcc > 4 && !lct[clim[nlcc - 1]]; --nlcc);
   const flen = (bl + 5) << 3;
@@ -585,7 +585,7 @@ const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Uint32Array
       for (let i = 0; i < clct.length; ++i) {
         const len = clct[i] & 31;
         wbits(out, p, llm[len]), p += lct[len];
-        if (len > 15) wbits(out, p, (clct[i] >>> 5) & 127), p += clct[i] >>> 12;
+        if (len > 15) wbits(out, p, (clct[i] >> 5) & 127), p += clct[i] >> 12;
       }
     }
   } else {
@@ -593,12 +593,12 @@ const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Uint32Array
   }
   for (let i = 0; i < li; ++i) {
     if (syms[i] > 255) {
-      const len = (syms[i] >>> 18) & 31;
+      const len = (syms[i] >> 18) & 31;
       wbits16(out, p, lm[len + 257]), p += ll[len + 257];
-      if (len > 7) wbits(out, p, (syms[i] >>> 23) & 31), p += fleb[len];
+      if (len > 7) wbits(out, p, (syms[i] >> 23) & 31), p += fleb[len];
       const dst = syms[i] & 31;
       wbits16(out, p, dm[dst]), p += dl[dst];
-      if (dst > 3) wbits16(out, p, (syms[i] >>> 5) & 8191), p += fdeb[dst];
+      if (dst > 3) wbits16(out, p, (syms[i] >> 5) & 8191), p += fdeb[dst];
     } else {
       wbits16(out, p, lm[syms[i]]), p += ll[syms[i]];
     }
@@ -608,7 +608,7 @@ const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Uint32Array
 }
 
 // deflate options (nice << 13) | chain
-const deo = /*#__PURE__*/ new u32([65540, 131080, 131088, 131104, 262176, 1048704, 1048832, 2114560, 2117632]);
+const deo = /*#__PURE__*/ new i32([65540, 131080, 131088, 131104, 262176, 1048704, 1048832, 2114560, 2117632]);
 
 // empty
 const et = /*#__PURE__*/new u8(0);
@@ -626,13 +626,13 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
       const e = i + 65535;
       if (e >= s) {
         // write final block
-        w[pos >> 3] = lst;
+        w[(pos / 8) | 0] = lst;
       }
       pos = wfblk(w, pos + 1, dat.subarray(i, e));
     }
   } else {
     const opt = deo[lvl - 1];
-    const n = opt >>> 13, c = opt & 8191;
+    const n = opt >> 13, c = opt & 8191;
     const msk = (1 << plvl) - 1;
     //    prev 2-byte val map    curr 2-byte val map
     const prev = new u16(32768), head = new u16(msk + 1);
@@ -640,14 +640,14 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
     const hsh = (i: number) => (dat[i] ^ (dat[i + 1] << bs1) ^ (dat[i + 2] << bs2)) & msk;
     // 24576 is an arbitrary number of maximum symbols per block
     // 424 buffer for last block
-    const syms = new u32(25000);
+    const syms = new i32(25000);
     // length/literal freq   distance freq
     const lf = new u16(288), df = new u16(32);
-    //  l/lcnt  exbits  index  l/lind  waitdx  bitpos
+    //  l/lcnt  exbits  index  l/lind  waitdx  inpos
     let lc = 0, eb = 0, i = 0, li = 0, wi = 0, bs = 0;
     for (; i < s; ++i) {
       // hash value
-      // deopt when i > s - 3 - at end, deopt acceptable
+      // deopt when i > s - 3; at end, deopt acceptable
       const hv = hsh(i);
       // index mod 32768    previous index mod
       let imod = i & 32767, pimod = head[hv];
@@ -665,7 +665,7 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
           for (let j = 0; j < 30; ++j) df[j] = 0;
         }
         //  len    dist   chain
-        let l = 2, d = 0, ch = c, dif = (imod - pimod) & 32767;
+        let l = 2, d = 0, ch = c, dif = imod - pimod & 32767;
         if (rem > 2 && hv == hsh(i - dif)) {
           const maxn = Math.min(n, rem) - 1;
           const maxd = Math.min(32767, i);
@@ -686,16 +686,16 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
                 const mmd = Math.min(dif, nl - 2);
                 let md = 0;
                 for (let j = 0; j < mmd; ++j) {
-                  const ti = (i - dif + j + 32768) & 32767;
+                  const ti = i - dif + j & 32767;
                   const pti = prev[ti];
-                  const cd = (ti - pti + 32768) & 32767;
+                  const cd = ti - pti & 32767;
                   if (cd > md) md = cd, pimod = ti;
                 }
               }
             }
             // check the previous match
             imod = pimod, pimod = prev[imod];
-            dif += (imod - pimod + 32768) & 32767;
+            dif += imod - pimod & 32767;
           }
         }
         // d will be nonzero only when a match was found
@@ -753,7 +753,7 @@ const crc = (): CRCV => {
   }
 }
 
-// Alder32
+// Adler32
 const adler = (): CRCV => {
   let a = 1, b = 0;
   return {
@@ -770,7 +770,7 @@ const adler = (): CRCV => {
     },
     d() {
       a %= 65521, b %= 65521;
-      return (a & 255) << 24 | (a >>> 8) << 16 | (b & 255) << 8 | (b >>> 8);
+      return (a & 255) << 24 | (a & 0xFF00) << 8 | (b & 255) << 8 | (b >> 8);
     }
   }
 }
@@ -948,10 +948,15 @@ const wcln = (fn: () => unknown[], fnStr: string, td: Record<string, unknown>) =
       } else fnStr += st;
     } else td[k] = v;
   }
-  return [fnStr, td] as const;
+  return fnStr;
 }
 
-type CachedWorker = readonly [string, Record<string, unknown>];
+type CachedWorker = {
+  // code
+  c: string;
+  // extra
+  e: Record<string, unknown>
+};
 
 const ch: CachedWorker[] = [];
 // clone bufs
@@ -970,16 +975,16 @@ const wrkr = <T, R>(fns: (() => unknown[])[], init: (ev: MessageEvent<T>) => voi
   if (!ch[id]) {
     let fnStr = '', td: Record<string, unknown> = {}, m = fns.length - 1;
     for (let i = 0; i < m; ++i)
-      [fnStr, td] = wcln(fns[i], fnStr, td);
-    ch[id] = wcln(fns[m], fnStr, td);
+      fnStr = wcln(fns[i], fnStr, td);
+    ch[id] = { c: wcln(fns[m], fnStr, td), e: td };
   }
-  const td = mrg({}, ch[id][1]);
-  return wk(ch[id][0] + ';onmessage=function(e){for(var k in e.data)self[k]=e.data[k];onmessage=' + init.toString() + '}', id, td, cbfs(td), cb);
+  const td = mrg({}, ch[id].e);
+  return wk(ch[id].c + ';onmessage=function(e){for(var k in e.data)self[k]=e.data[k];onmessage=' + init.toString() + '}', id, td, cbfs(td), cb);
 }
 
 // base async inflate fn
-const bInflt = () => [u8, u16, u32, fleb, fdeb, clim, fl, fd, flrm, fdrm, rev, ec, hMap, max, bits, bits16, shft, slc, err, inflt, inflateSync, pbf, gu8];
-const bDflt = () => [u8, u16, u32, fleb, fdeb, clim, revfl, revfd, flm, flt, fdm, fdt, rev, deo, et, hMap, wbits, wbits16, hTree, ln, lc, clen, wfblk, wblk, shft, slc, dflt, dopt, deflateSync, pbf];
+const bInflt = () => [u8, u16, i32, fleb, fdeb, clim, fl, fd, flrm, fdrm, rev, ec, hMap, max, bits, bits16, shft, slc, err, inflt, inflateSync, pbf, gu8];
+const bDflt = () => [u8, u16, i32, fleb, fdeb, clim, revfl, revfd, flm, flt, fdm, fdt, rev, deo, et, hMap, wbits, wbits16, hTree, ln, lc, clen, wfblk, wblk, shft, slc, dflt, dopt, deflateSync, pbf];
 
 // gzip extra
 const gze = () => [gzh, gzhl, wbytes, crc, crct];
@@ -1076,19 +1081,20 @@ const gzs = (d: Uint8Array) => {
   if (d[0] != 31 || d[1] != 139 || d[2] != 8) err(6, 'invalid gzip data');
   const flg = d[3];
   let st = 10;
-  if (flg & 4) st += d[10] | (d[11] << 8) + 2;
+  if (flg & 4) st += d[10] + 2 | d[11] << 8;
   for (let zs = (flg >> 3 & 1) + (flg >> 4 & 1); zs > 0; zs -= !d[st++] as unknown as number);
+  if (st + 8 > d.length) err(0);
   return st + (flg & 2);
 }
 
 // gzip length
 const gzl = (d: Uint8Array) => {
   const l = d.length;
-  return ((d[l - 4] | d[l - 3] << 8 | d[l - 2] << 16) | (d[l - 1] << 24)) >>> 0;
+  return (d[l - 4] | d[l - 3] << 8 | d[l - 2] << 16 | d[l - 1] << 24) >>> 0;
 }
 
 // gzip header length
-const gzhl = (o: GzipOptions) => 10 + ((o.filename && (o.filename.length + 1)) || 0);
+const gzhl = (o: GzipOptions) => 10 + (o.filename ? o.filename.length + 1 : 0);
 
 // zlib header
 const zlh = (c: Uint8Array, o: ZlibOptions) => {
@@ -1098,7 +1104,7 @@ const zlh = (c: Uint8Array, o: ZlibOptions) => {
 
 // zlib valid
 const zlv = (d: Uint8Array) => {
-  if ((d[0] & 15) != 8 || (d[0] >>> 4) > 7 || ((d[0] << 8 | d[1]) % 31)) err(6, 'invalid zlib data');
+  if ((d[0] & 15) != 8 || (d[0] >> 4) > 7 || ((d[0] << 8 | d[1]) % 31)) err(6, 'invalid zlib data');
   if (d[1] & 32) err(6, 'invalid zlib data: preset dictionaries not supported');
 }
 
@@ -1569,7 +1575,7 @@ export class AsyncGunzip {
 }
 
 /**
- * Asynchronously expands GZIP data
+ * Asynchronously expands single-member GZIP data
  * @param data The data to decompress
  * @param opts The decompression options
  * @param cb The function to be called upon decompression completion
@@ -1577,7 +1583,7 @@ export class AsyncGunzip {
  */
 export function gunzip(data: Uint8Array, opts: AsyncGunzipOptions, cb: FlateCallback): AsyncTerminable;
 /**
- * Asynchronously expands GZIP data
+ * Asynchronously expands single-member GZIP data
  * @param data The data to decompress
  * @param cb The function to be called upon decompression completion
  * @returns A function that can be used to immediately terminate the decompression
@@ -1594,7 +1600,7 @@ export function gunzip(data: Uint8Array, opts: AsyncGunzipOptions | FlateCallbac
 }
 
 /**
- * Expands GZIP data
+ * Expands single-member GZIP data
  * @param data The data to decompress
  * @param out Where to write the data. GZIP already encodes the output size, so providing this doesn't save memory.
  * @returns The decompressed version of the data
@@ -2128,7 +2134,7 @@ const dutf8 = (d: Uint8Array) => {
   for (let r = '', i = 0;;) {
     let c = d[i++];
     const eb = ((c > 127) as unknown as number) + ((c > 223) as unknown as number) + ((c > 239) as unknown as number);
-    if (i + eb > d.length) return [r, slc(d, i - 1)] as const;
+    if (i + eb > d.length) return { s: r, r: slc(d, i - 1) };
     if (!eb) r += String.fromCharCode(c)
     else if (eb == 3) {
       c = ((c & 15) << 18 | (d[i++] & 63) << 12 | (d[i++] & 63) << 6 | (d[i++] & 63)) - 65536,
@@ -2174,12 +2180,12 @@ export class DecodeUTF8 {
     const dat = new u8(this.p.length + chunk.length);
     dat.set(this.p);
     dat.set(chunk, this.p.length);
-    const [ch, np] = dutf8(dat);
+    const { s, r } = dutf8(dat);
     if (final) {
-      if (np.length) err(8);
+      if (r.length) err(8);
       this.p = null;
-    } else this.p = np;
-    this.ondata(ch, final);
+    } else this.p = r;
+    this.ondata(s, final);
   }
 
   /**
@@ -2266,11 +2272,12 @@ export function strFromU8(dat: Uint8Array, latin1?: boolean) {
     for (let i = 0; i < dat.length; i += 16384)
       r += String.fromCharCode.apply(null, dat.subarray(i, i + 16384));
     return r;
-  } else if (td) return td.decode(dat)
-  else {
-    const [out, ext] = dutf8(dat);
-    if (ext.length) err(8);
-    return out;
+  } else if (td) {
+    return td.decode(dat)
+  } else {
+    const { s, r } = dutf8(dat);
+    if (r.length) err(8);
+    return s;
   } 
 };
 
@@ -2320,7 +2327,7 @@ const wzh = (d: Uint8Array, b: number, f: ZHF, fn: Uint8Array, u: boolean, c: nu
   d[b++] = f.compression & 255, d[b++] = f.compression >> 8;
   const dt = new Date(f.mtime == null ? Date.now() : f.mtime), y = dt.getFullYear() - 1980;
   if (y < 0 || y > 119) err(10);
-  wbytes(d, b, (y << 25) | ((dt.getMonth() + 1) << 21) | (dt.getDate() << 16) | (dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >>> 1)), b += 4;
+  wbytes(d, b, (y << 25) | ((dt.getMonth() + 1) << 21) | (dt.getDate() << 16) | (dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >> 1)), b += 4;
   if (c != -1) {
     wbytes(d, b, f.crc);
     wbytes(d, b + 4, c < 0 ? -c - 2 : c);

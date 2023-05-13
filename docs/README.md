@@ -325,7 +325,7 @@ ___
 
 ▸ **gunzip**(`data`: Uint8Array, `opts`: [AsyncGunzipOptions](interfaces/asyncgunzipoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
-Asynchronously expands GZIP data
+Asynchronously expands single-member GZIP data
 
 #### Parameters:
 
@@ -339,7 +339,7 @@ Name | Type | Description |
 
 ▸ **gunzip**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
-Asynchronously expands GZIP data
+Asynchronously expands single-member GZIP data
 
 #### Parameters:
 
@@ -356,7 +356,7 @@ ___
 
 ▸ **gunzipSync**(`data`: Uint8Array, `out?`: Uint8Array): Uint8Array
 
-Expands GZIP data
+Expands single-member GZIP data
 
 #### Parameters:
 
