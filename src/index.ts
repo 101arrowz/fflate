@@ -19,7 +19,6 @@ const u8 = Uint8Array, u16 = Uint16Array, i32 = Int32Array;
 const fleb = new u8([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, /* unused */ 0, 0, /* impossible */ 0]);
 
 // fixed distance extra bits
-// see fleb note
 const fdeb = new u8([0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, /* unused */ 0, 0]);
 
 // code length index map
@@ -154,6 +153,16 @@ const slc = (v: Uint8Array, s: number, e?: number) => {
   const n = new u8(e - s);
   n.set(v.subarray(s, e));
   return n;
+}
+
+const cpw = (v: Uint8Array, t: number, s?: number, e?: number) => {
+  if (u8.prototype.copyWithin) {
+    u8.prototype.copyWithin.call(v, t, s, e);
+  } else {
+    for (s = Math.max(s, 0), e = Math.min(e, v.length); s < e;) {
+      v[t++] = v[s++];
+    }
+  }
 }
 
 // inflate state
@@ -559,15 +568,15 @@ const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Int32Array,
   const { c: lclt, n: nlc } = lc(dlt);
   const { c: lcdt, n: ndc } = lc(ddt);
   const lcfreq = new u16(19);
-  for (let i = 0; i < lclt.length; ++i) lcfreq[lclt[i] & 31]++;
-  for (let i = 0; i < lcdt.length; ++i) lcfreq[lcdt[i] & 31]++;
+  for (let i = 0; i < lclt.length; ++i) ++lcfreq[lclt[i] & 31];
+  for (let i = 0; i < lcdt.length; ++i) ++lcfreq[lcdt[i] & 31];
   const { t: lct, l: mlcb } = hTree(lcfreq, 7);
   let nlcc = 19;
   for (; nlcc > 4 && !lct[clim[nlcc - 1]]; --nlcc);
   const flen = (bl + 5) << 3;
   const ftlen = clen(lf, flt) + clen(df, fdt) + eb;
-  const dtlen = clen(lf, dlt) + clen(df, ddt) + eb + 14 + 3 * nlcc + clen(lcfreq, lct) + (2 * lcfreq[16] + 3 * lcfreq[17] + 7 * lcfreq[18]);
-  if (flen <= ftlen && flen <= dtlen) return wfblk(out, p, dat.subarray(bs, bs + bl));
+  const dtlen = clen(lf, dlt) + clen(df, ddt) + eb + 14 + 3 * nlcc + clen(lcfreq, lct) + 2 * lcfreq[16] + 3 * lcfreq[17] + 7 * lcfreq[18];
+  if (bs >= 0 && flen <= ftlen && flen <= dtlen) return wfblk(out, p, dat.subarray(bs, bs + bl));
   let lm: Uint16Array, ll: Uint8Array, dm: Uint16Array, dl: Uint8Array;
   wbits(out, p, 1 + (dtlen < ftlen as unknown as number)), p += 2;
   if (dtlen < ftlen) {
@@ -592,15 +601,16 @@ const wblk = (dat: Uint8Array, out: Uint8Array, final: number, syms: Int32Array,
     lm = flm, ll = flt, dm = fdm, dl = fdt;
   }
   for (let i = 0; i < li; ++i) {
-    if (syms[i] > 255) {
-      const len = (syms[i] >> 18) & 31;
+    const sym = syms[i];
+    if (sym > 255) {
+      const len = (sym >> 18) & 31;
       wbits16(out, p, lm[len + 257]), p += ll[len + 257];
-      if (len > 7) wbits(out, p, (syms[i] >> 23) & 31), p += fleb[len];
-      const dst = syms[i] & 31;
+      if (len > 7) wbits(out, p, (sym >> 23) & 31), p += fleb[len];
+      const dst = sym & 31;
       wbits16(out, p, dm[dst]), p += dl[dst];
-      if (dst > 3) wbits16(out, p, (syms[i] >> 5) & 8191), p += fdeb[dst];
+      if (dst > 3) wbits16(out, p, (sym >> 5) & 8191), p += fdeb[dst];
     } else {
-      wbits16(out, p, lm[syms[i]]), p += ll[syms[i]];
+      wbits16(out, p, lm[sym]), p += ll[sym];
     }
   }
   wbits16(out, p, lm[256]);
@@ -613,29 +623,52 @@ const deo = /*#__PURE__*/ new i32([65540, 131080, 131088, 131104, 262176, 104870
 // empty
 const et = /*#__PURE__*/new u8(0);
 
+type DeflateState = {
+  // head
+  h?: Uint16Array;
+  // prev
+  p?: Uint16Array;
+  // // symbols
+  // s?: Int32Array;
+  // // length/literal freq
+  // f?: Uint16Array;
+  // // distance freq
+  // d?: Uint16Array;
+  // // length/literal count
+  // c?: number;
+  // // extra bits
+  // e?: number;
+  // index
+  i?: number;
+  // end index
+  z?: number;
+  // // length/literal index
+  // a?: number;
+  // wait index
+  w?: number;
+  // // input block start
+  // b?: number;
+  // remainder byte info
+  r?: number;
+  // last chunk
+  l: number;
+};
+
 // compresses data into a raw DEFLATE buffer
-const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: number, lst: 0 | 1) => {
-  const s = dat.length;
+const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: number, st: DeflateState) => {
+  const s = st.z || dat.length;
   const o = new u8(pre + s + 5 * (1 + Math.ceil(s / 7000)) + post);
   // writing to this writes to the output buffer
   const w = o.subarray(pre, o.length - post);
-  let pos = 0;
-  if (!lvl || s < 8) {
-    for (let i = 0; i <= s; i += 65535) {
-      // end
-      const e = i + 65535;
-      if (e >= s) {
-        // write final block
-        w[(pos / 8) | 0] = lst;
-      }
-      pos = wfblk(w, pos + 1, dat.subarray(i, e));
-    }
-  } else {
+  const lst = st.l;
+  let pos = (st.r || 0) & 7;
+  if (lvl) {
+    if (pos) w[0] = st.r >> 3;
     const opt = deo[lvl - 1];
     const n = opt >> 13, c = opt & 8191;
     const msk = (1 << plvl) - 1;
     //    prev 2-byte val map    curr 2-byte val map
-    const prev = new u16(32768), head = new u16(msk + 1);
+    const prev = st.p || new u16(32768), head = st.h || new u16(msk + 1);
     const bs1 = Math.ceil(plvl / 3), bs2 = 2 * bs1;
     const hsh = (i: number) => (dat[i] ^ (dat[i + 1] << bs1) ^ (dat[i + 2] << bs2)) & msk;
     // 24576 is an arbitrary number of maximum symbols per block
@@ -643,11 +676,10 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
     const syms = new i32(25000);
     // length/literal freq   distance freq
     const lf = new u16(288), df = new u16(32);
-    //  l/lcnt  exbits  index  l/lind  waitdx  inpos
-    let lc = 0, eb = 0, i = 0, li = 0, wi = 0, bs = 0;
-    for (; i < s; ++i) {
+    //  l/lcnt  exbits  index          l/lind  waitdx          blkpos
+    let lc = 0, eb = 0, i = st.i || 0, li = 0, wi = st.w || 0, bs = 0;
+    for (; i + 2 < s; ++i) {
       // hash value
-      // deopt when i > s - 3; at end, deopt acceptable
       const hv = hsh(i);
       // index mod 32768    previous index mod
       let imod = i & 32767, pimod = head[hv];
@@ -658,7 +690,7 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
       if (wi <= i) {
         // bytes remaining
         const rem = s - i;
-        if ((lc > 7000 || li > 24576) && rem > 423) {
+        if ((lc > 7000 || li > 24576) && (rem > 423 || !lst)) {
           pos = wblk(dat, w, 0, syms, lf, df, eb, li, bs, i - bs, pos);
           li = lc = eb = 0, bs = i;
           for (let j = 0; j < 286; ++j) lf[j] = 0;
@@ -700,7 +732,7 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
         }
         // d will be nonzero only when a match was found
         if (d) {
-          // store both dist and len data in one Uint32
+          // store both dist and len data in one int32
           // Make sure this is recognized as a len/dist with 28th bit (2^28)
           syms[li++] = 268435456 | (revfl[l] << 18) | revfd[d];
           const lin = revfl[l] & 31, din = revfd[d] & 31;
@@ -715,9 +747,28 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
         }
       }
     }
+    for (i = Math.max(i, wi); i < s; ++i) {
+      syms[li++] = dat[i];
+      ++lf[dat[i]];
+    }
     pos = wblk(dat, w, lst, syms, lf, df, eb, li, bs, i - bs, pos);
-    // this is the easiest way to avoid needing to maintain state
-    if (!lst && pos & 7) pos = wfblk(w, pos + 1, et);
+    if (!lst) {
+      st.r = (pos & 7) | w[(pos / 8) | 0] << 3;
+      // shft(pos) now 1 less if pos & 7 != 0
+      pos -= 7;
+      st.h = head, st.p = prev, st.i = i, st.w = wi;
+      // st.h = head, st.p = prev, st.s = syms, st.f = lf, st.d = df, st.c = lc, st.e = eb, st.i = i, st.a = li, st.w = wi, st.b = bs;
+    }
+  } else {
+    for (let i = 0; i <= s; i += 65535) {
+      // end
+      const e = i + 65535;
+      if (e >= s) {
+        // write final block
+        w[(pos / 8) | 0] = lst;
+      }
+      pos = wfblk(w, pos + 1, dat.subarray(i, e));
+    }
   }
   return slc(o, 0, pre + shft(pos) + post);
 }
@@ -805,6 +856,17 @@ export interface DeflateOptions {
    * The default value is automatically determined based on the size of the input data.
    */
   mem?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+  /**
+   * A buffer containing common byte sequences in the input data that can be used to dramatically improve compression ratios.
+   * 
+   * Dictionaries should be 32kB or smaller and include strings or byte sequences likely to appear in the input.
+   * The decompressor must supply the same dictionary as the compressor to extract the original data.
+   * 
+   * Dictionaries only improve aggregate compression ratio when reused across multiple small inputs. They should typically not be used otherwise.
+   * 
+   * Avoid using dictionaries with GZIP and ZIP to maximize software compatibility.
+   */
+  dictionary?: Uint8Array;
 };
 
 /**
@@ -907,8 +969,21 @@ export interface AsyncTerminable {
 }
 
 // deflate with opts
-const dopt = (dat: Uint8Array, opt: DeflateOptions, pre: number, post: number, st?: boolean) =>
-  dflt(dat, opt.level == null ? 6 : opt.level, opt.mem == null ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : (12 + opt.mem), pre, post, !st as unknown as 0 | 1);
+const dopt = (dat: Uint8Array, opt: DeflateOptions, pre: number, post: number, st?: DeflateState) => {
+  if (!st) {
+    st = { l: 1 };
+    if (opt.dictionary) {
+      const dict = opt.dictionary.subarray(-32768);
+      const newDat = new Uint8Array(dict.length + dat.length);
+      newDat.set(dict);
+      newDat.set(dat, dict.length);
+      dat = newDat;
+      st.w = dict.length;
+    }
+  }
+  return dflt(dat, opt.level == null ? 6 : opt.level, opt.mem == null ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : (12 + opt.mem), pre, post, st);
+}
+  
 
 // Walmart object spread
 const mrg = <A, B>(a: A, b: B) => {
@@ -1099,7 +1174,13 @@ const gzhl = (o: GzipOptions) => 10 + (o.filename ? o.filename.length + 1 : 0);
 // zlib header
 const zlh = (c: Uint8Array, o: ZlibOptions) => {
   const lv = o.level, fl = lv == 0 ? 0 : lv < 6 ? 1 : lv == 9 ? 3 : 2;
-  c[0] = 120, c[1] = (fl << 6) | (fl ? (32 - 2 * fl) : 1);
+  c[0] = 120, c[1] = (fl << 6) | (o.dictionary && 32);
+  c[1] |= 31 - ((c[0] << 8) | c[1]) % 31;
+  if (o.dictionary) {
+    const h = adler();
+    h.p(o.dictionary);
+    wbytes(c, 2, h.d());
+  }
 }
 
 // zlib valid
@@ -1125,8 +1206,6 @@ function AsyncCmpStrm<T>(opts?: T | AsyncFlateStreamHandler, cb?: AsyncFlateStre
   return opts as T;
 }
 
-// zlib footer: -4 to -0 is Adler32
-
 /**
  * Streaming DEFLATE compression
  */
@@ -1142,16 +1221,24 @@ export class Deflate {
     if (!cb && typeof opts == 'function') cb = opts as FlateStreamHandler, opts = {};
     this.ondata = cb;
     this.o = (opts as DeflateOptions) || {};
+    this.s = { l: 0, i: 32768, w: 32768, z: 32768 };
+    this.b = new Uint8Array(98304);
+    if (this.o.dictionary) {
+      const dict = this.o.dictionary.subarray(-32768);
+      this.b.set(dict, 32768 - dict.length);
+      this.s.i = 0;
+    }
   }
+  private b: Uint8Array;
+  private s: DeflateState;
   private o: DeflateOptions;
-  private d: boolean;
   /**
    * The handler to call whenever data is available
    */
   ondata: FlateStreamHandler;
 
   private p(c: Uint8Array, f: boolean) {
-    this.ondata(dopt(c, this.o, 0, 0, !f), f);
+    this.ondata(dopt(c, this.o, 0, 0, this.s), f);
   }
 
   /**
@@ -1161,9 +1248,35 @@ export class Deflate {
    */
   push(chunk: Uint8Array, final?: boolean) {
     if (!this.ondata) err(5);
-    if (this.d) err(4);
-    this.d = final;
-    this.p(chunk, final || false);
+    if (this.s.l) err(4);
+    const endLen = chunk.length + this.s.z;
+    if (endLen > this.b.length) {
+      if (endLen > 2 * this.b.length - 32768) {
+        const newBuf = new Uint8Array(endLen & -32768);
+        newBuf.set(this.b.subarray(0, this.s.z));
+        this.b = newBuf;
+      }
+      const split = this.b.length - this.s.z;
+      this.b.set(chunk.subarray(0, split), this.s.z);
+      this.s.z = this.b.length;
+      this.p(this.b, false);
+      const backshift = this.s.z - 32768;
+      cpw(chunk, 0, backshift);
+      this.b.set(chunk.subarray(split));
+      this.s.z = endLen - backshift;
+      this.s.l = (final as unknown as number) & 1;
+      this.s.i = 32766, this.s.w = 32768;
+      this.p(this.b, final || false);
+      this.s.w = this.s.i, this.s.i -= 2;
+    } else {
+      this.s.l = (final as unknown as number) & 1;
+      this.b.set(chunk, this.s.z);
+      this.s.z += chunk.length;
+      if (this.s.z > this.s.w + 8192 || final) {
+        this.p(this.b, final || false);
+        this.s.w = this.s.i, this.s.i -= 2;
+      }
+    }
   }
 }
 
@@ -1190,7 +1303,7 @@ export class AsyncDeflate {
   constructor(opts?: DeflateOptions | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler) {
     astrmify([
       bDflt,
-      () => [astrm, Deflate]
+      () => [astrm, cpw, Deflate]
     ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
       const strm = new Deflate(ev.data);
       onmessage = astrm(strm);
@@ -1371,6 +1484,7 @@ export class Gzip {
   private l = 0;
   private v = 1;
   private o: GzipOptions;
+  private s: DeflateState;
   /**
    * The handler to call whenever data is available
    */
@@ -1403,7 +1517,7 @@ export class Gzip {
   private p(c: Uint8Array, f: boolean) {
     this.c.p(c);
     this.l += c.length;
-    const raw = dopt(c, this.o, this.v && gzhl(this.o), f && 8, !f);
+    const raw = dopt(c, this.o, this.v && gzhl(this.o), f && 8, this.s);
     if (this.v) gzh(raw, this.o), this.v = 0;
     if (f) wbytes(raw, raw.length - 8, this.c.d()), wbytes(raw, raw.length - 4, this.l);
     this.ondata(raw, f);
@@ -1434,7 +1548,7 @@ export class AsyncGzip {
     astrmify([
       bDflt,
       gze,
-      () => [astrm, Deflate, Gzip]
+      () => [astrm, cpw, Deflate, Gzip]
     ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
       const strm = new Gzip(ev.data);
       onmessage = astrm(strm);
@@ -1615,7 +1729,8 @@ export function gunzipSync(data: Uint8Array, out?: Uint8Array) {
 export class Zlib {
   private c = adler();
   private v = 1;
-  private o: GzipOptions;
+  private o: ZlibOptions;
+  private s: DeflateState;
   /**
    * The handler to call whenever data is available
    */
@@ -1647,7 +1762,7 @@ export class Zlib {
   
   private p(c: Uint8Array, f: boolean) {
     this.c.p(c);
-    const raw = dopt(c, this.o, this.v && 2, f && 4, !f);
+    const raw = dopt(c, this.o, this.v && (this.o.dictionary ? 6 : 2), f && 4, this.s);
     if (this.v) zlh(raw, this.o), this.v = 0;
     if (f) wbytes(raw, raw.length - 4, this.c.d());
     this.ondata(raw, f);
@@ -1678,7 +1793,7 @@ export class AsyncZlib {
     astrmify([
       bDflt,
       zle,
-      () => [astrm, Deflate, Zlib]
+      () => [astrm, cpw, Deflate, Zlib]
     ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
       const strm = new Zlib(ev.data);
       onmessage = astrm(strm);
@@ -1734,7 +1849,7 @@ export function zlibSync(data: Uint8Array, opts?: ZlibOptions) {
   if (!opts) opts = {};
   const a = adler();
   a.p(data);
-  const d = dopt(data, opts, 2, 4);
+  const d = dopt(data, opts, opts.dictionary ? 6 : 2, 4);
   return zlh(d, opts), wbytes(d, d.length - 4, a.d()), d;
 }
 
@@ -1852,7 +1967,6 @@ export function unzlibSync(data: Uint8Array, out?: Uint8Array) {
 
 // Default algorithm for compression (used because having a known output size allows faster decompression)
 export { gzip as compress, AsyncGzip as AsyncCompress }
-// Default algorithm for compression (used because having a known output size allows faster decompression)
 export { gzipSync as compressSync, Gzip as Compress }
 
 /**
