@@ -155,16 +155,6 @@ const slc = (v: Uint8Array, s: number, e?: number) => {
   return n;
 }
 
-const cpw = (v: Uint8Array, t: number, s?: number, e?: number) => {
-  if (u8.prototype.copyWithin) {
-    u8.prototype.copyWithin.call(v, t, s, e);
-  } else {
-    for (s = Math.max(s, 0), e = Math.min(e, v.length); s < e;) {
-      v[t++] = v[s++];
-    }
-  }
-}
-
 // inflate state
 type InflateState = {
   // lmap
@@ -182,7 +172,7 @@ type InflateState = {
   // byte
   b?: number;
   // lstchk
-  i?: boolean;
+  i: number;
 };
 
 /**
@@ -244,15 +234,14 @@ const err = (ind: number, msg?: string | 0, nt?: 1) => {
 }
 
 // expands raw DEFLATE data
-const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
-  // source length
-  const sl = dat.length;
-  if (!sl || st && st.f && !st.l) return buf || new u8(0);
+const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8Array) => {
+  // source length       dict length
+  const sl = dat.length, dl = dict && dict.length;
+  if (!sl || st.f && !st.l) return buf || new u8(0);
   // have to estimate size
-  const noBuf = !buf || (st as unknown as boolean);
+  const noBuf = !buf || st.i != 2;
   // no state
-  const noSt = !st || st.i;
-  if (!st) st = {};
+  const noSt = st.i;
   // Assumes roughly 33% compression ratio average
   if (!buf) buf = new u8(sl * 3);
   // ensure buffer can fit at least l elements
@@ -385,6 +374,11 @@ const inflt = (dat: Uint8Array, buf?: Uint8Array, st?: InflateState) => {
         }
         if (noBuf) cbuf(bt + 131072);
         const end = bt + add;
+        if (bt < dt) {
+          if (!dict) err(3);
+          const shift = dl - dt, dend = Math.min(dt, end);
+          for (; bt < dend; ++bt) buf[bt] = dict[shift + bt];
+        }
         for (; bt < end; bt += 4) {
           buf[bt] = buf[bt - dt];
           buf[bt + 1] = buf[bt + 1 - dt];
@@ -628,26 +622,12 @@ type DeflateState = {
   h?: Uint16Array;
   // prev
   p?: Uint16Array;
-  // // symbols
-  // s?: Int32Array;
-  // // length/literal freq
-  // f?: Uint16Array;
-  // // distance freq
-  // d?: Uint16Array;
-  // // length/literal count
-  // c?: number;
-  // // extra bits
-  // e?: number;
   // index
   i?: number;
   // end index
   z?: number;
-  // // length/literal index
-  // a?: number;
   // wait index
   w?: number;
-  // // input block start
-  // b?: number;
   // remainder byte info
   r?: number;
   // last chunk
@@ -757,7 +737,6 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
       // shft(pos) now 1 less if pos & 7 != 0
       pos -= 7;
       st.h = head, st.p = prev, st.i = i, st.w = wi;
-      // st.h = head, st.p = prev, st.s = syms, st.f = lf, st.d = df, st.c = lc, st.e = eb, st.i = i, st.a = li, st.w = wi, st.b = bs;
     }
   } else {
     for (let i = 0; i <= s; i += 65535) {
@@ -827,6 +806,53 @@ const adler = (): CRCV => {
 }
 
 /**
+ * Options for decompressing a DEFLATE stream
+ */
+export interface InflateStreamOptions {
+  /**
+   * The dictionary used to compress the original data. If no dictionary was used during compression, this option has no effect.
+   * 
+   * Supplying the wrong dictionary during decompression usually yields corrupt output or causes an invalid distance error.
+   */
+  dictionary?: Uint8Array;
+}
+
+/**
+ * Options for decompressing DEFLATE data
+ */
+export interface InflateOptions extends InflateStreamOptions {
+  /**
+   * The buffer into which to write the decompressed data. Saves memory if you know the decompressed size in advance.
+   */
+  out?: Uint8Array;
+}
+
+/**
+ * Options for decompressing a GZIP stream
+ */
+export interface GunzipStreamOptions extends InflateStreamOptions {}
+
+/**
+ * Options for decompressing GZIP data
+ */
+export interface GunzipOptions extends InflateStreamOptions {
+  /**
+   * The buffer into which to write the decompressed data. GZIP already encodes the output size, so providing this doesn't save memory.
+   */
+  out?: Uint8Array;
+}
+
+/**
+ * Options for decompressing a Zlib stream
+ */
+export interface UnzlibStreamOptions extends InflateStreamOptions {}
+
+/**
+ * Options for decompressing Zlib data
+ */
+export interface UnzlibOptions extends InflateOptions {}
+
+/**
  * Options for compressing data into a DEFLATE format
  */
 export interface DeflateOptions {
@@ -857,7 +883,7 @@ export interface DeflateOptions {
    */
   mem?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
   /**
-   * A buffer containing common byte sequences in the input data that can be used to dramatically improve compression ratios.
+   * A buffer containing common byte sequences in the input data that can be used to significantly improve compression ratios.
    * 
    * Dictionaries should be 32kB or smaller and include strings or byte sequences likely to appear in the input.
    * The decompressor must supply the same dictionary as the compressor to extract the original data.
@@ -929,7 +955,7 @@ export interface AsyncDeflateOptions extends DeflateOptions, AsyncOptions {}
 /**
  * Options for decompressing DEFLATE data asynchronously
  */
-export interface AsyncInflateOptions extends AsyncOptions {
+export interface AsyncInflateOptions extends AsyncOptions, InflateStreamOptions {
   /**
    * The original size of the data. Currently, the asynchronous API disallows
    * writing into a buffer you provide; the best you can do is provide the
@@ -946,7 +972,7 @@ export interface AsyncGzipOptions extends GzipOptions, AsyncOptions {}
 /**
  * Options for decompressing GZIP data asynchronously
  */
-export interface AsyncGunzipOptions extends AsyncOptions {}
+export interface AsyncGunzipOptions extends AsyncOptions, InflateStreamOptions {}
 
 /**
  * Options for compressing data asynchronously into a Zlib format
@@ -974,7 +1000,7 @@ const dopt = (dat: Uint8Array, opt: DeflateOptions, pre: number, post: number, s
     st = { l: 1 };
     if (opt.dictionary) {
       const dict = opt.dictionary.subarray(-32768);
-      const newDat = new Uint8Array(dict.length + dat.length);
+      const newDat = new u8(dict.length + dat.length);
       newDat.set(dict);
       newDat.set(dat, dict.length);
       dat = newDat;
@@ -1058,7 +1084,7 @@ const wrkr = <T, R>(fns: (() => unknown[])[], init: (ev: MessageEvent<T>) => voi
 }
 
 // base async inflate fn
-const bInflt = () => [u8, u16, i32, fleb, fdeb, clim, fl, fd, flrm, fdrm, rev, ec, hMap, max, bits, bits16, shft, slc, err, inflt, inflateSync, pbf, gu8];
+const bInflt = () => [u8, u16, i32, fleb, fdeb, clim, fl, fd, flrm, fdrm, rev, ec, hMap, max, bits, bits16, shft, slc, err, inflt, inflateSync, pbf, gopt];
 const bDflt = () => [u8, u16, i32, fleb, fdeb, clim, revfl, revfd, flm, flt, fdm, fdt, rev, deo, et, hMap, wbits, wbits16, hTree, ln, lc, clen, wfblk, wblk, shft, slc, dflt, dopt, deflateSync, pbf];
 
 // gzip extra
@@ -1068,13 +1094,16 @@ const guze = () => [gzs, gzl];
 // zlib extra
 const zle = () => [zlh, wbytes, adler];
 // unzlib extra
-const zule = () => [zlv];
+const zule = () => [zls];
 
 // post buf
 const pbf = (msg: Uint8Array) => (postMessage as Worker['postMessage'])(msg, [msg.buffer]);
 
-// get u8
-const gu8 = (o?: AsyncInflateOptions) => o && o.size && new u8(o.size);
+// get opts
+const gopt = (o?: AsyncInflateOptions) => o && {
+  out: o.size && new u8(o.size),
+  dictionary: o.dictionary
+};
 
 // async helper
 const cbify = <T extends AsyncOptions>(dat: Uint8Array, opts: T, fns: (() => unknown[])[], init: (ev: MessageEvent<[Uint8Array, T]>) => void, id: number, cb: FlateCallback) => {
@@ -1156,9 +1185,8 @@ const gzs = (d: Uint8Array) => {
   if (d[0] != 31 || d[1] != 139 || d[2] != 8) err(6, 'invalid gzip data');
   const flg = d[3];
   let st = 10;
-  if (flg & 4) st += d[10] + 2 | d[11] << 8;
+  if (flg & 4) st += (d[10] | d[11] << 8) + 2;
   for (let zs = (flg >> 3 & 1) + (flg >> 4 & 1); zs > 0; zs -= !d[st++] as unknown as number);
-  if (st + 8 > d.length) err(0);
   return st + (flg & 2);
 }
 
@@ -1183,10 +1211,11 @@ const zlh = (c: Uint8Array, o: ZlibOptions) => {
   }
 }
 
-// zlib valid
-const zlv = (d: Uint8Array) => {
+// zlib start
+const zls = (d: Uint8Array, dict?: unknown) => {
   if ((d[0] & 15) != 8 || (d[0] >> 4) > 7 || ((d[0] << 8 | d[1]) % 31)) err(6, 'invalid zlib data');
-  if (d[1] & 32) err(6, 'invalid zlib data: preset dictionaries not supported');
+  if ((d[1] >> 5 & 1) == +!dict) err(6, 'invalid zlib data: ' + (d[1] & 32 ? 'need' : 'unexpected') + ' dictionary');
+  return (d[1] >> 3 & 4) + 2;
 }
 
 /**
@@ -1216,17 +1245,23 @@ export class Deflate {
    * @param cb The callback to call whenever data is deflated
    */
   constructor(opts: DeflateOptions, cb?: FlateStreamHandler);
+  /**
+   * Creates a DEFLATE stream
+   * @param cb The callback to call whenever data is deflated
+   */
   constructor(cb?: FlateStreamHandler);
   constructor(opts?: DeflateOptions | FlateStreamHandler, cb?: FlateStreamHandler) {
     if (!cb && typeof opts == 'function') cb = opts as FlateStreamHandler, opts = {};
     this.ondata = cb;
     this.o = (opts as DeflateOptions) || {};
     this.s = { l: 0, i: 32768, w: 32768, z: 32768 };
-    this.b = new Uint8Array(98304);
+    // Buffer length must always be 0 mod 32768 for index calculations to be correct when modifying head and prev
+    // 98304 = 32768 (lookback) + 65536 (common chunk size)
+    this.b = new u8(98304);
     if (this.o.dictionary) {
       const dict = this.o.dictionary.subarray(-32768);
       this.b.set(dict, 32768 - dict.length);
-      this.s.i = 0;
+      this.s.i = 32768 - dict.length;
     }
   }
   private b: Uint8Array;
@@ -1252,31 +1287,29 @@ export class Deflate {
     const endLen = chunk.length + this.s.z;
     if (endLen > this.b.length) {
       if (endLen > 2 * this.b.length - 32768) {
-        const newBuf = new Uint8Array(endLen & -32768);
+        const newBuf = new u8(endLen & -32768);
         newBuf.set(this.b.subarray(0, this.s.z));
         this.b = newBuf;
       }
       const split = this.b.length - this.s.z;
-      this.b.set(chunk.subarray(0, split), this.s.z);
-      this.s.z = this.b.length;
-      this.p(this.b, false);
-      const backshift = this.s.z - 32768;
-      cpw(chunk, 0, backshift);
-      this.b.set(chunk.subarray(split));
-      this.s.z = endLen - backshift;
-      this.s.l = (final as unknown as number) & 1;
+      if (split) {
+        this.b.set(chunk.subarray(0, split), this.s.z);
+        this.s.z = this.b.length;
+        this.p(this.b, false);
+      }
+      this.b.set(this.b.subarray(-32768));
+      this.b.set(chunk.subarray(split), 32768);
+      this.s.z = chunk.length - split + 32768;
       this.s.i = 32766, this.s.w = 32768;
-      this.p(this.b, final || false);
-      this.s.w = this.s.i, this.s.i -= 2;
     } else {
-      this.s.l = (final as unknown as number) & 1;
       this.b.set(chunk, this.s.z);
       this.s.z += chunk.length;
-      if (this.s.z > this.s.w + 8192 || final) {
+    }
+    this.s.l = (final as unknown as number) & 1;
+    if (this.s.z > this.s.w + 8191 || final) {
         this.p(this.b, final || false);
         this.s.w = this.s.i, this.s.i -= 2;
       }
-    }
   }
 }
 
@@ -1303,7 +1336,7 @@ export class AsyncDeflate {
   constructor(opts?: DeflateOptions | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler) {
     astrmify([
       bDflt,
-      () => [astrm, cpw, Deflate]
+      () => [astrm, Deflate]
     ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
       const strm = new Deflate(ev.data);
       onmessage = astrm(strm);
@@ -1361,19 +1394,35 @@ export function deflateSync(data: Uint8Array, opts?: DeflateOptions) {
  * Streaming DEFLATE decompression
  */
 export class Inflate {
-  /**
-   * Creates an inflation stream
-   * @param cb The callback to call whenever data is inflated
-   */
-  constructor(cb?: FlateStreamHandler) { this.ondata = cb; }
-  private s: InflateState = {};
+  private s: InflateState;
   private o: Uint8Array;
-  private p = new u8(0);
+  private p: Uint8Array;
   private d: boolean;
   /**
    * The handler to call whenever data is available
    */
   ondata: FlateStreamHandler;
+
+  /**
+   * Creates a DEFLATE decompression stream
+   * @param opts The decompression options
+   * @param cb The callback to call whenever data is inflated
+   */
+  constructor(opts: InflateStreamOptions, cb?: FlateStreamHandler);
+  /**
+   * Creates a DEFLATE decompression stream
+   * @param cb The callback to call whenever data is inflated
+   */
+  constructor(cb?: FlateStreamHandler);
+  constructor(opts?: InflateStreamOptions | FlateStreamHandler, cb?: FlateStreamHandler) {
+    if (!cb && typeof opts == 'function') cb = opts as FlateStreamHandler, opts = {};
+    this.ondata = cb;
+    const dict = opts && (opts as InflateStreamOptions).dictionary && (opts as InflateStreamOptions).dictionary.subarray(-32768);
+    this.s = { i: 0, b: dict ? dict.length : 0 };
+    this.o = new u8(32768);
+    this.p = new u8(0);
+    if (dict) this.o.set(dict);
+  }
 
   private e(c: Uint8Array) {
     if (!this.ondata) err(5);
@@ -1384,9 +1433,9 @@ export class Inflate {
   }
 
   private c(final: boolean) {
-    this.d = this.s.i = final || false;
+    this.s.i = +(this.d = final || false);
     const bts = this.s.b;
-    const dt = inflt(this.p, this.o, this.s);
+    const dt = inflt(this.p, this.s, this.o);
     this.ondata(slc(dt, bts, this.s.b), this.d);
     this.o = slc(dt, this.s.b - 32768), this.s.b = this.o.length;
     this.p = slc(this.p, (this.s.p / 8) | 0), this.s.p &= 7;
@@ -1461,17 +1510,17 @@ export function inflate(data: Uint8Array, opts: AsyncInflateOptions | FlateCallb
   if (typeof cb != 'function') err(7);
   return cbify(data, opts as AsyncInflateOptions, [
     bInflt
-  ], ev => pbf(inflateSync(ev.data[0], gu8(ev.data[1]))), 1, cb);
+  ], ev => pbf(inflateSync(ev.data[0], gopt(ev.data[1]))), 1, cb);
 }
 
 /**
  * Expands DEFLATE data with no wrapper
  * @param data The data to decompress
- * @param out Where to write the data. Saves memory if you know the decompressed size and provide an output buffer of that length.
+ * @param opts The decompression options
  * @returns The decompressed version of the data
  */
-export function inflateSync(data: Uint8Array, out?: Uint8Array) {
-  return inflt(data, out);
+export function inflateSync(data: Uint8Array, opts?: InflateOptions) {
+  return inflt(data, { i: 2 }, opts && opts.out, opts && opts.dictionary);
 }
 
 // before you yell at me for not just using extends, my reason is that TS inheritance is hard to workerize.
@@ -1511,12 +1560,12 @@ export class Gzip {
    * @param final Whether this is the last chunk
    */
   push(chunk: Uint8Array, final?: boolean) {
+    this.c.p(chunk);
+    this.l += chunk.length;
     Deflate.prototype.push.call(this, chunk, final);
   }
   
   private p(c: Uint8Array, f: boolean) {
-    this.c.p(c);
-    this.l += c.length;
     const raw = dopt(c, this.o, this.v && gzhl(this.o), f && 8, this.s);
     if (this.v) gzh(raw, this.o), this.v = 0;
     if (f) wbytes(raw, raw.length - 8, this.c.d()), wbytes(raw, raw.length - 4, this.l);
@@ -1548,7 +1597,7 @@ export class AsyncGzip {
     astrmify([
       bDflt,
       gze,
-      () => [astrm, cpw, Deflate, Gzip]
+      () => [astrm, Deflate, Gzip]
     ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
       const strm = new Gzip(ev.data);
       onmessage = astrm(strm);
@@ -1610,11 +1659,12 @@ export function gzipSync(data: Uint8Array, opts?: GzipOptions) {
 }
 
 /**
- * Streaming GZIP decompression
+ * Streaming single or multi-member GZIP decompression
  */
 export class Gunzip {
   private v = 1;
   private p: Uint8Array;
+  private s: InflateState;
   /**
    * The handler to call whenever data is available
    */
@@ -1622,9 +1672,18 @@ export class Gunzip {
 
   /**
    * Creates a GUNZIP stream
+   * @param opts The decompression options
    * @param cb The callback to call whenever data is inflated
    */
-  constructor(cb?: FlateStreamHandler) { Inflate.call(this, cb); }
+  constructor(opts: GunzipStreamOptions, cb?: FlateStreamHandler);
+  /**
+   * Creates a GUNZIP stream
+   * @param cb The callback to call whenever data is inflated
+   */
+  constructor(cb?: FlateStreamHandler);
+  constructor(opts?: GunzipStreamOptions | FlateStreamHandler, cb?: FlateStreamHandler) {
+    Inflate.call(this, opts, cb);
+  }
 
   /**
    * Pushes a chunk to be GUNZIPped
@@ -1634,9 +1693,10 @@ export class Gunzip {
   push(chunk: Uint8Array, final?: boolean) {
     (Inflate.prototype as unknown as { e: typeof Inflate.prototype['e'] }).e.call(this, chunk);
     if (this.v) {
-      const s = this.p.length > 3 ? gzs(this.p) : 4;
-      if (s >= this.p.length && !final) return;
-      this.p = this.p.subarray(s), this.v = 0;
+      const p = this.p.subarray(this.v - 1);
+      const s = p.length > 3 ? gzs(p) : 4;
+      if (s >= p.length && !final) return;
+      this.p = p.subarray(s), this.v = 0;
     }
     if (final) {
       if (this.p.length < 8) err(6, 'invalid gzip data');
@@ -1645,11 +1705,18 @@ export class Gunzip {
     // necessary to prevent TS from using the closure value
     // This allows for workerization to function correctly
     (Inflate.prototype as unknown as { c: typeof Inflate.prototype['c'] }).c.call(this, final);
+    // process concatenated GZIP
+    if (this.s.f && !this.s.l && !final) {
+      this.s = { i: 0 };
+      const need = shft(this.s.p) + 8;
+      this.v = Math.max(need - this.p.length, 0) + 1;
+      this.p = this.p.subarray(need);
+    }
   }
 }
 
 /**
- * Asynchronous streaming GZIP decompression
+ * Asynchronous streaming single or multi-member GZIP decompression
  */
 export class AsyncGunzip {
   /**
@@ -1716,11 +1783,13 @@ export function gunzip(data: Uint8Array, opts: AsyncGunzipOptions | FlateCallbac
 /**
  * Expands single-member GZIP data
  * @param data The data to decompress
- * @param out Where to write the data. GZIP already encodes the output size, so providing this doesn't save memory.
+ * @param opts The decompression options
  * @returns The decompressed version of the data
  */
-export function gunzipSync(data: Uint8Array, out?: Uint8Array) {
-  return inflt(data.subarray(gzs(data), -8), out || new u8(gzl(data)));
+export function gunzipSync(data: Uint8Array, opts?: GunzipOptions) {
+  const st = gzs(data);
+  if (st + 8 < data.length) err(6, 'invalid gzip data');
+  return inflt(data.subarray(st, -8), { i: 2 }, opts && opts.out || new u8(gzl(data)), opts && opts.dictionary);
 }
 
 /**
@@ -1757,11 +1826,11 @@ export class Zlib {
    * @param final Whether this is the last chunk
    */
   push(chunk: Uint8Array, final?: boolean) {
+    this.c.p(chunk);
     Deflate.prototype.push.call(this, chunk, final);
   }
   
   private p(c: Uint8Array, f: boolean) {
-    this.c.p(c);
     const raw = dopt(c, this.o, this.v && (this.o.dictionary ? 6 : 2), f && 4, this.s);
     if (this.v) zlh(raw, this.o), this.v = 0;
     if (f) wbytes(raw, raw.length - 4, this.c.d());
@@ -1793,7 +1862,7 @@ export class AsyncZlib {
     astrmify([
       bDflt,
       zle,
-      () => [astrm, cpw, Deflate, Zlib]
+      () => [astrm, Deflate, Zlib]
     ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
       const strm = new Zlib(ev.data);
       onmessage = astrm(strm);
@@ -1857,17 +1926,28 @@ export function zlibSync(data: Uint8Array, opts?: ZlibOptions) {
  * Streaming Zlib decompression
  */
 export class Unzlib {
-  private v = 1;
+  private v: number;
   private p: Uint8Array;
   /**
    * The handler to call whenever data is available
    */
   ondata: FlateStreamHandler;
+
+  /**
+   * Creates a Zlib decompression stream
+   * @param opts The decompression options
+   * @param cb The callback to call whenever data is inflated
+   */
+  constructor(opts: UnzlibStreamOptions, cb?: FlateStreamHandler);
   /**
    * Creates a Zlib decompression stream
    * @param cb The callback to call whenever data is inflated
    */
-  constructor(cb?: FlateStreamHandler) { Inflate.call(this, cb); }
+  constructor(cb?: FlateStreamHandler);
+  constructor(opts?: UnzlibStreamOptions | FlateStreamHandler, cb?: FlateStreamHandler) {
+    Inflate.call(this, opts, cb);
+    this.v = cb && opts && (opts as UnzlibStreamOptions).dictionary ? 2 : 1;
+  }
 
   /**
    * Pushes a chunk to be unzlibbed
@@ -1877,8 +1957,8 @@ export class Unzlib {
   push(chunk: Uint8Array, final?: boolean) {
     (Inflate.prototype as unknown as { e: typeof Inflate.prototype['e'] }).e.call(this, chunk);
     if (this.v) {
-      if (this.p.length < 2 && !final) return;
-      this.p = this.p.subarray(2), this.v = 0;
+      if (this.p.length < 6 && !final) return;
+      this.p = this.p.subarray(zls(this.p, this.v - 1)), this.v = 0;
     }
     if (final) {
       if (this.p.length < 4) err(6, 'invalid zlib data');
@@ -1937,7 +2017,7 @@ export class AsyncUnzlib {
  * @param cb The function to be called upon decompression completion
  * @returns A function that can be used to immediately terminate the decompression
  */
-export function unzlib(data: Uint8Array, opts: AsyncGunzipOptions, cb: FlateCallback): AsyncTerminable;
+export function unzlib(data: Uint8Array, opts: AsyncUnzlibOptions, cb: FlateCallback): AsyncTerminable;
 /**
  * Asynchronously expands Zlib data
  * @param data The data to decompress
@@ -1945,14 +2025,14 @@ export function unzlib(data: Uint8Array, opts: AsyncGunzipOptions, cb: FlateCall
  * @returns A function that can be used to immediately terminate the decompression
  */
 export function unzlib(data: Uint8Array, cb: FlateCallback): AsyncTerminable;
-export function unzlib(data: Uint8Array, opts: AsyncGunzipOptions | FlateCallback, cb?: FlateCallback) {
+export function unzlib(data: Uint8Array, opts: AsyncUnzlibOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
   if (typeof cb != 'function') err(7);
   return cbify(data, opts as AsyncUnzlibOptions, [
     bInflt,
     zule,
     () => [unzlibSync]
-  ], ev => pbf(unzlibSync(ev.data[0], gu8(ev.data[1]))), 5, cb);
+  ], ev => pbf(unzlibSync(ev.data[0], gopt(ev.data[1]))), 5, cb);
 }
 
 /**
@@ -1961,8 +2041,8 @@ export function unzlib(data: Uint8Array, opts: AsyncGunzipOptions | FlateCallbac
  * @param out Where to write the data. Saves memory if you know the decompressed size and provide an output buffer of that length.
  * @returns The decompressed version of the data
  */
-export function unzlibSync(data: Uint8Array, out?: Uint8Array) {
-  return inflt((zlv(data), data.subarray(2, -4)), out);
+export function unzlibSync(data: Uint8Array, opts?: UnzlibOptions) {
+  return inflt(data.subarray(zls(data, opts && opts.dictionary), -4), { i: 2 }, opts && opts.out, opts && opts.dictionary);
 }
 
 // Default algorithm for compression (used because having a known output size allows faster decompression)
@@ -2071,15 +2151,15 @@ export function decompress(data: Uint8Array, opts: AsyncInflateOptions | FlateCa
 /**
  * Expands compressed GZIP, Zlib, or raw DEFLATE data, automatically detecting the format
  * @param data The data to decompress
- * @param out Where to write the data. Saves memory if you know the decompressed size and provide an output buffer of that length.
+ * @param opts The decompression options
  * @returns The decompressed version of the data
  */
-export function decompressSync(data: Uint8Array, out?: Uint8Array) {
+export function decompressSync(data: Uint8Array, opts?: AsyncInflateOptions) {
   return (data[0] == 31 && data[1] == 139 && data[2] == 8)
-    ? gunzipSync(data, out)
+    ? gunzipSync(data, opts)
     : ((data[0] & 15) != 8 || (data[0] >> 4) > 7 || ((data[0] << 8 | data[1]) % 31))
-      ? inflateSync(data, out)
-      : unzlibSync(data, out);
+      ? inflateSync(data, opts)
+      : unzlibSync(data, opts);
 }
 
 /**
@@ -3418,7 +3498,7 @@ export function unzip(data: Uint8Array, opts: AsyncUnzipOptions | UnzipCallback,
           const infl = data.subarray(b, b + sc);
           if (sc < 320000) {
             try {
-              cbl(null, inflateSync(infl, new u8(su)));
+              cbl(null, inflateSync(infl, { out: new u8(su) }));
             } catch(e) {
               cbl(e, null);
             }
@@ -3467,7 +3547,7 @@ export function unzipSync(data: Uint8Array, opts?: UnzipOptions) {
       compression: c
     })) {
       if (!c) files[fn] = slc(data, b, b + sc);
-      else if (c == 8) files[fn] = inflateSync(data.subarray(b, b + sc), new u8(su));
+      else if (c == 8) files[fn] = inflateSync(data.subarray(b, b + sc), { out: new u8(su) });
       else err(14, 'unknown compression type ' + c);
     }
   }
