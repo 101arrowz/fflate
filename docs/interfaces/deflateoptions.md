@@ -18,10 +18,26 @@ Options for compressing data into a DEFLATE format
 
 ### Properties
 
+* [dictionary](deflateoptions.md#dictionary)
 * [level](deflateoptions.md#level)
 * [mem](deflateoptions.md#mem)
 
 ## Properties
+
+### dictionary
+
+• `Optional` **dictionary**: Uint8Array
+
+A buffer containing common byte sequences in the input data that can be used to significantly improve compression ratios.
+
+Dictionaries should be 32kB or smaller and include strings or byte sequences likely to appear in the input.
+The decompressor must supply the same dictionary as the compressor to extract the original data.
+
+Dictionaries only improve aggregate compression ratio when reused across multiple small inputs. They should typically not be used otherwise.
+
+Avoid using dictionaries with GZIP and ZIP to maximize software compatibility.
+
+___
 
 ### level
 

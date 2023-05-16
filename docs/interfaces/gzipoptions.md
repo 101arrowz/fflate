@@ -14,12 +14,30 @@ Options for compressing data into a GZIP format
 
 ### Properties
 
+* [dictionary](gzipoptions.md#dictionary)
 * [filename](gzipoptions.md#filename)
 * [level](gzipoptions.md#level)
 * [mem](gzipoptions.md#mem)
 * [mtime](gzipoptions.md#mtime)
 
 ## Properties
+
+### dictionary
+
+• `Optional` **dictionary**: Uint8Array
+
+*Inherited from [DeflateOptions](deflateoptions.md).[dictionary](deflateoptions.md#dictionary)*
+
+A buffer containing common byte sequences in the input data that can be used to significantly improve compression ratios.
+
+Dictionaries should be 32kB or smaller and include strings or byte sequences likely to appear in the input.
+The decompressor must supply the same dictionary as the compressor to extract the original data.
+
+Dictionaries only improve aggregate compression ratio when reused across multiple small inputs. They should typically not be used otherwise.
+
+Avoid using dictionaries with GZIP and ZIP to maximize software compatibility.
+
+___
 
 ### filename
 

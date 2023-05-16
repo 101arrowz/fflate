@@ -1,6 +1,6 @@
 # Class: AsyncGunzip
 
-Asynchronous streaming GZIP decompression
+Asynchronous streaming single or multi-member GZIP decompression
 
 ## Hierarchy
 

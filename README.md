@@ -4,20 +4,21 @@ High performance (de)compression in an 8kB package
 ## Why fflate?
 `fflate` (short for fast flate) is the **fastest, smallest, and most versatile** pure JavaScript compression and decompression library in existence, handily beating [`pako`](https://npmjs.com/package/pako), [`tiny-inflate`](https://npmjs.com/package/tiny-inflate), and [`UZIP.js`](https://github.com/photopea/UZIP.js) in performance benchmarks while being multiple times more lightweight. Its compression ratios are often better than even the original Zlib C library. It includes support for DEFLATE, GZIP, and Zlib data. Data compressed by `fflate` can be decompressed by other tools, and vice versa.
 
-In addition to the base decompression and compression APIs, `fflate` supports high-speed ZIP file archiving for an extra 3 kB. In fact, the compressor, in synchronous mode, compresses both more quickly and with a higher compression ratio than most compression software (even Info-ZIP, a C program), and in asynchronous mode it can utilize multiple threads to achieve over 3x the performance of any other utility.
+In addition to the base decompression and compression APIs, `fflate` supports high-speed ZIP file archiving for an extra 3 kB. In fact, the compressor, in synchronous mode, compresses both more quickly and with a higher compression ratio than most compression software (even Info-ZIP, a C program), and in asynchronous mode it can utilize multiple threads to achieve over 3x the performance of virtually any other utility.
 
 |                             | `pako` | `tiny-inflate`         | `UZIP.js`             | `fflate`                       |
 |-----------------------------|--------|------------------------|-----------------------|--------------------------------|
 | Decompression performance   | 1x     | Up to 40% slower       | **Up to 40% faster**  | **Up to 40% faster**           |
-| Compression performance     | 1x     | N/A                    | Up to 5% faster       | **Up to 50% faster**           |
+| Compression performance     | 1x     | N/A                    | Up to 25% faster      | **Up to 50% faster**           |
 | Base bundle size (minified) | 45.6kB | **3kB (inflate only)** | 14.2kB                | 8kB **(3kB for inflate only)** |
+| Decompression support       | ✅     | ✅                      | ✅                    | ✅                             |
 | Compression support         | ✅     | ❌                      | ✅                    | ✅                             |
-| Thread/Worker safe          | ✅     | ✅                      | ❌                    | ✅                             |
 | ZIP support                 | ❌     | ❌                      | ✅                    | ✅                             |
 | Streaming support           | ✅     | ❌                      | ❌                    | ✅                             |
-| GZIP/Zlib support           | ✅     | ❌                      | ❌                    | ✅                             |
+| GZIP support                | ✅     | ❌                      | ❌                    | ✅                             |
 | Supports files up to 4GB    | ✅     | ❌                      | ❌                    | ✅                             |
 | Doesn't hang on error       | ✅     | ❌                      | ❌                    | ✅                             |
+| Dictionary support          | ✅     | ❌                      | ❌                    | ✅                             |
 | Multi-thread/Asynchronous   | ❌     | ❌                      | ❌                    | ✅                             |
 | Streaming ZIP support       | ❌     | ❌                      | ❌                    | ✅                             |
 | Uses ES Modules             | ❌     | ❌                      | ❌                    | ✅                             |
@@ -506,20 +507,22 @@ See the [documentation](https://github.com/101arrowz/fflate/blob/master/docs/REA
 
 ## Bundle size estimates
 
-Since `fflate` uses ES Modules, this table should give you a general idea of `fflate`'s bundle size for the features you need. The maximum bundle size that is possible with `fflate` is about 30kB if you use every single feature, but feature parity with `pako` is only around 10kB (as opposed to 45kB from `pako`). If your bundle size increases dramatically after adding `fflate`, please [create an issue](https://github.com/101arrowz/fflate/issues/new).
+The bundle size measurements for `fflate` on sites like Bundlephobia include every feature of the library and should be seen as an upper bound. As long as you are using tree shaking or dead code elimination, this table should give you a general idea of `fflate`'s bundle size for the features you need.
 
-| Feature                 | Bundle size (minified)         | Nearest competitor     |
-|-------------------------|--------------------------------|------------------------|
-| Decompression           | 3kB                            | `tiny-inflate`         |
-| Compression             | 5kB                            | `UZIP.js`, 184% larger |
-| Async decompression     | 4kB (1kB + raw decompression)  | N/A                    |
-| Async compression       | 6kB (1kB + raw compression)    | N/A                    |
-| ZIP decompression       | 5kB (2kB + raw decompression)  | `UZIP.js`, 184% larger |
-| ZIP compression         | 7kB (2kB + raw compression)    | `UZIP.js`, 103% larger |
-| GZIP/Zlib decompression | 4kB (1kB + raw decompression)  | `pako`, 1040% larger   |
-| GZIP/Zlib compression   | 5kB (1kB + raw compression)    | `pako`, 812% larger    |
-| Streaming decompression | 4kB (1kB + raw decompression)  | `pako`, 1040% larger   |
-| Streaming compression   | 5kB (1kB + raw compression)    | `pako`, 812% larger    |
+The maximum bundle size that is possible with `fflate` is about 31kB if you use every single feature, but feature parity with `pako` is only around 10kB (as opposed to 45kB from `pako`). If your bundle size increases dramatically after adding `fflate`, please [create an issue](https://github.com/101arrowz/fflate/issues/new).
+
+| Feature                 | Bundle size (minified)         | Nearest competitor      |
+|-------------------------|--------------------------------|-------------------------|
+| Decompression           | 3kB                            | `tiny-inflate`          |
+| Compression             | 5kB                            | `UZIP.js`, 2.84x larger |
+| Async decompression     | 4kB (1kB + raw decompression)  | N/A                     |
+| Async compression       | 6kB (1kB + raw compression)    | N/A                     |
+| ZIP decompression       | 5kB (2kB + raw decompression)  | `UZIP.js`, 2.84x larger |
+| ZIP compression         | 7kB (2kB + raw compression)    | `UZIP.js`, 2.03x larger |
+| GZIP/Zlib decompression | 4kB (1kB + raw decompression)  | `pako`, 11.4x larger    |
+| GZIP/Zlib compression   | 5kB (1kB + raw compression)    | `pako`, 9.12x larger    |
+| Streaming decompression | 4kB (1kB + raw decompression)  | `pako`, 11.4x larger    |
+| Streaming compression   | 5kB (1kB + raw compression)    | `pako`, 9.12x larger    |
 
 ## What makes `fflate` so fast?
 Many JavaScript compression/decompression libraries exist. However, the most popular one, [`pako`](https://npmjs.com/package/pako), is merely a clone of Zlib rewritten nearly line-for-line in JavaScript. Although it is by no means poorly made, `pako` doesn't recognize the many differences between JavaScript and C, and therefore is suboptimal for performance. Moreover, even when minified, the library is 45 kB; it may not seem like much, but for anyone concerned with optimizing bundle size (especially library authors), it's more weight than necessary.

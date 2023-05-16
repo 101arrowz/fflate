@@ -43,13 +43,19 @@
 * [AsyncZlibOptions](interfaces/asynczliboptions.md)
 * [DeflateOptions](interfaces/deflateoptions.md)
 * [FlateError](interfaces/flateerror.md)
+* [GunzipOptions](interfaces/gunzipoptions.md)
+* [GunzipStreamOptions](interfaces/gunzipstreamoptions.md)
 * [GzipOptions](interfaces/gzipoptions.md)
+* [InflateOptions](interfaces/inflateoptions.md)
+* [InflateStreamOptions](interfaces/inflatestreamoptions.md)
 * [UnzipDecoder](interfaces/unzipdecoder.md)
 * [UnzipDecoderConstructor](interfaces/unzipdecoderconstructor.md)
 * [UnzipFile](interfaces/unzipfile.md)
 * [UnzipFileInfo](interfaces/unzipfileinfo.md)
 * [UnzipOptions](interfaces/unzipoptions.md)
 * [Unzipped](interfaces/unzipped.md)
+* [UnzlibOptions](interfaces/unzliboptions.md)
+* [UnzlibStreamOptions](interfaces/unzlibstreamoptions.md)
 * [ZipAttributes](interfaces/zipattributes.md)
 * [ZipInputFile](interfaces/zipinputfile.md)
 * [ZipOptions](interfaces/zipoptions.md)
@@ -258,7 +264,7 @@ ___
 
 ### decompressSync
 
-▸ **decompressSync**(`data`: Uint8Array, `out?`: Uint8Array): Uint8Array
+▸ **decompressSync**(`data`: Uint8Array, `opts?`: [AsyncInflateOptions](interfaces/asyncinflateoptions.md)): Uint8Array
 
 Expands compressed GZIP, Zlib, or raw DEFLATE data, automatically detecting the format
 
@@ -267,7 +273,7 @@ Expands compressed GZIP, Zlib, or raw DEFLATE data, automatically detecting the 
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
-`out?` | Uint8Array | Where to write the data. Saves memory if you know the decompressed size and provide an output buffer of that length. |
+`opts?` | [AsyncInflateOptions](interfaces/asyncinflateoptions.md) | The decompression options |
 
 **Returns:** Uint8Array
 
@@ -325,7 +331,7 @@ ___
 
 ▸ **gunzip**(`data`: Uint8Array, `opts`: [AsyncGunzipOptions](interfaces/asyncgunzipoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
-Asynchronously expands single-member GZIP data
+Asynchronously expands GZIP data
 
 #### Parameters:
 
@@ -339,7 +345,7 @@ Name | Type | Description |
 
 ▸ **gunzip**(`data`: Uint8Array, `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
-Asynchronously expands single-member GZIP data
+Asynchronously expands GZIP data
 
 #### Parameters:
 
@@ -354,16 +360,16 @@ ___
 
 ### gunzipSync
 
-▸ **gunzipSync**(`data`: Uint8Array, `out?`: Uint8Array): Uint8Array
+▸ **gunzipSync**(`data`: Uint8Array, `opts?`: [GunzipOptions](interfaces/gunzipoptions.md)): Uint8Array
 
-Expands single-member GZIP data
+Expands GZIP data
 
 #### Parameters:
 
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
-`out?` | Uint8Array | Where to write the data. GZIP already encodes the output size, so providing this doesn't save memory. |
+`opts?` | [GunzipOptions](interfaces/gunzipoptions.md) | The decompression options |
 
 **Returns:** Uint8Array
 
@@ -477,7 +483,7 @@ ___
 
 ### inflateSync
 
-▸ **inflateSync**(`data`: Uint8Array, `out?`: Uint8Array): Uint8Array
+▸ **inflateSync**(`data`: Uint8Array, `opts?`: [InflateOptions](interfaces/inflateoptions.md)): Uint8Array
 
 Expands DEFLATE data with no wrapper
 
@@ -486,7 +492,7 @@ Expands DEFLATE data with no wrapper
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
-`out?` | Uint8Array | Where to write the data. Saves memory if you know the decompressed size and provide an output buffer of that length. |
+`opts?` | [InflateOptions](interfaces/inflateoptions.md) | The decompression options |
 
 **Returns:** Uint8Array
 
@@ -577,7 +583,7 @@ ___
 
 ### unzlib
 
-▸ **unzlib**(`data`: Uint8Array, `opts`: [AsyncGunzipOptions](interfaces/asyncgunzipoptions.md), `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
+▸ **unzlib**(`data`: Uint8Array, `opts`: [AsyncUnzlibOptions](interfaces/asyncunzliboptions.md), `cb`: [FlateCallback](README.md#flatecallback)): [AsyncTerminable](interfaces/asyncterminable.md)
 
 Asynchronously expands Zlib data
 
@@ -586,7 +592,7 @@ Asynchronously expands Zlib data
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
-`opts` | [AsyncGunzipOptions](interfaces/asyncgunzipoptions.md) | The decompression options |
+`opts` | [AsyncUnzlibOptions](interfaces/asyncunzliboptions.md) | The decompression options |
 `cb` | [FlateCallback](README.md#flatecallback) | The function to be called upon decompression completion |
 
 **Returns:** [AsyncTerminable](interfaces/asyncterminable.md)
@@ -608,7 +614,7 @@ ___
 
 ### unzlibSync
 
-▸ **unzlibSync**(`data`: Uint8Array, `out?`: Uint8Array): Uint8Array
+▸ **unzlibSync**(`data`: Uint8Array, `opts?`: [UnzlibOptions](interfaces/unzliboptions.md)): Uint8Array
 
 Expands Zlib data
 
@@ -617,7 +623,7 @@ Expands Zlib data
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
-`out?` | Uint8Array | Where to write the data. Saves memory if you know the decompressed size and provide an output buffer of that length. |
+`opts?` | [UnzlibOptions](interfaces/unzliboptions.md) | The decompression options |
 
 **Returns:** Uint8Array
 

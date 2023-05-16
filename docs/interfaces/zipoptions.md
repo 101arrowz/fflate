@@ -16,6 +16,7 @@ Options for creating a ZIP archive
 
 * [attrs](zipoptions.md#attrs)
 * [comment](zipoptions.md#comment)
+* [dictionary](zipoptions.md#dictionary)
 * [extra](zipoptions.md#extra)
 * [level](zipoptions.md#level)
 * [mem](zipoptions.md#mem)
@@ -61,6 +62,23 @@ ___
 The comment to attach to the file. This field is defined by PKZIP's APPNOTE.txt,
 section 4.4.26. The comment must be at most 65,535 bytes long UTF-8 encoded. This
 field is not read by consumer software.
+
+___
+
+### dictionary
+
+• `Optional` **dictionary**: Uint8Array
+
+*Inherited from [DeflateOptions](deflateoptions.md).[dictionary](deflateoptions.md#dictionary)*
+
+A buffer containing common byte sequences in the input data that can be used to significantly improve compression ratios.
+
+Dictionaries should be 32kB or smaller and include strings or byte sequences likely to appear in the input.
+The decompressor must supply the same dictionary as the compressor to extract the original data.
+
+Dictionaries only improve aggregate compression ratio when reused across multiple small inputs. They should typically not be used otherwise.
+
+Avoid using dictionaries with GZIP and ZIP to maximize software compatibility.
 
 ___
 

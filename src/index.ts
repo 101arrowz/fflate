@@ -236,7 +236,7 @@ const err = (ind: number, msg?: string | 0, nt?: 1) => {
 // expands raw DEFLATE data
 const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8Array) => {
   // source length       dict length
-  const sl = dat.length, dl = dict && dict.length;
+  const sl = dat.length, dl = dict ? dict.length : 0;
   if (!sl || st.f && !st.l) return buf || new u8(0);
   // have to estimate size
   const noBuf = !buf || st.i != 2;
@@ -375,8 +375,8 @@ const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8
         if (noBuf) cbuf(bt + 131072);
         const end = bt + add;
         if (bt < dt) {
-          if (!dict) err(3);
           const shift = dl - dt, dend = Math.min(dt, end);
+          if (shift + bt < 0) err(3);
           for (; bt < dend; ++bt) buf[bt] = dict[shift + bt];
         }
         for (; bt < end; bt += 4) {
@@ -1427,9 +1427,11 @@ export class Inflate {
   private e(c: Uint8Array) {
     if (!this.ondata) err(5);
     if (this.d) err(4);
-    const l = this.p.length;
-    const n = new u8(l + c.length);
-    n.set(this.p), n.set(c, l), this.p = n;
+    if (!this.p.length) this.p = c;
+    else if (c.length) {
+      const n = new u8(this.p.length + c.length);
+      n.set(this.p), n.set(c, this.p.length), this.p = n;
+    } 
   }
 
   private c(final: boolean) {
@@ -1663,6 +1665,7 @@ export function gzipSync(data: Uint8Array, opts?: GzipOptions) {
  */
 export class Gunzip {
   private v = 1;
+  private o: Uint8Array;
   private p: Uint8Array;
   private s: InflateState;
   /**
@@ -1698,19 +1701,17 @@ export class Gunzip {
       if (s >= p.length && !final) return;
       this.p = p.subarray(s), this.v = 0;
     }
-    if (final) {
-      if (this.p.length < 8) err(6, 'invalid gzip data');
-      this.p = this.p.subarray(0, -8);
-    }
     // necessary to prevent TS from using the closure value
     // This allows for workerization to function correctly
     (Inflate.prototype as unknown as { c: typeof Inflate.prototype['c'] }).c.call(this, final);
     // process concatenated GZIP
-    if (this.s.f && !this.s.l && !final) {
-      this.s = { i: 0 };
+    if (this.s.f && !this.s.l) {
       const need = shft(this.s.p) + 8;
+      this.s = { i: 0 };
       this.v = Math.max(need - this.p.length, 0) + 1;
       this.p = this.p.subarray(need);
+      this.o = new u8(0);
+      if (this.p.length) this.push(new u8(0), final);
     }
   }
 }
@@ -1756,7 +1757,7 @@ export class AsyncGunzip {
 }
 
 /**
- * Asynchronously expands single-member GZIP data
+ * Asynchronously expands GZIP data
  * @param data The data to decompress
  * @param opts The decompression options
  * @param cb The function to be called upon decompression completion
@@ -1764,7 +1765,7 @@ export class AsyncGunzip {
  */
 export function gunzip(data: Uint8Array, opts: AsyncGunzipOptions, cb: FlateCallback): AsyncTerminable;
 /**
- * Asynchronously expands single-member GZIP data
+ * Asynchronously expands GZIP data
  * @param data The data to decompress
  * @param cb The function to be called upon decompression completion
  * @returns A function that can be used to immediately terminate the decompression
@@ -1781,14 +1782,14 @@ export function gunzip(data: Uint8Array, opts: AsyncGunzipOptions | FlateCallbac
 }
 
 /**
- * Expands single-member GZIP data
+ * Expands GZIP data
  * @param data The data to decompress
  * @param opts The decompression options
  * @returns The decompressed version of the data
  */
 export function gunzipSync(data: Uint8Array, opts?: GunzipOptions) {
   const st = gzs(data);
-  if (st + 8 < data.length) err(6, 'invalid gzip data');
+  if (st + 8 > data.length) err(6, 'invalid gzip data');
   return inflt(data.subarray(st, -8), { i: 2 }, opts && opts.out || new u8(gzl(data)), opts && opts.dictionary);
 }
 
@@ -2038,7 +2039,7 @@ export function unzlib(data: Uint8Array, opts: AsyncUnzlibOptions | FlateCallbac
 /**
  * Expands Zlib data
  * @param data The data to decompress
- * @param out Where to write the data. Saves memory if you know the decompressed size and provide an output buffer of that length.
+ * @param opts The decompression options
  * @returns The decompressed version of the data
  */
 export function unzlibSync(data: Uint8Array, opts?: UnzlibOptions) {

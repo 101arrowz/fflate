@@ -24,6 +24,19 @@ Streaming Zlib decompression
 
 ### constructor
 
+\+ **new Unzlib**(`opts`: [UnzlibStreamOptions](../interfaces/unzlibstreamoptions.md), `cb?`: [FlateStreamHandler](../README.md#flatestreamhandler)): [Unzlib](unzlib.md)
+
+Creates a Zlib decompression stream
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`opts` | [UnzlibStreamOptions](../interfaces/unzlibstreamoptions.md) | The decompression options |
+`cb?` | [FlateStreamHandler](../README.md#flatestreamhandler) | The callback to call whenever data is inflated  |
+
+**Returns:** [Unzlib](unzlib.md)
+
 \+ **new Unzlib**(`cb?`: [FlateStreamHandler](../README.md#flatestreamhandler)): [Unzlib](unzlib.md)
 
 Creates a Zlib decompression stream

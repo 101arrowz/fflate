@@ -17,6 +17,7 @@ Options for compressing data asynchronously into a DEFLATE format
 ### Properties
 
 * [consume](asyncdeflateoptions.md#consume)
+* [dictionary](asyncdeflateoptions.md#dictionary)
 * [level](asyncdeflateoptions.md#level)
 * [mem](asyncdeflateoptions.md#mem)
 
@@ -30,6 +31,23 @@ Options for compressing data asynchronously into a DEFLATE format
 
 Whether or not to "consume" the source data. This will make the typed array/buffer you pass in
 unusable but will increase performance and reduce memory usage.
+
+___
+
+### dictionary
+
+• `Optional` **dictionary**: Uint8Array
+
+*Inherited from [DeflateOptions](deflateoptions.md).[dictionary](deflateoptions.md#dictionary)*
+
+A buffer containing common byte sequences in the input data that can be used to significantly improve compression ratios.
+
+Dictionaries should be 32kB or smaller and include strings or byte sequences likely to appear in the input.
+The decompressor must supply the same dictionary as the compressor to extract the original data.
+
+Dictionaries only improve aggregate compression ratio when reused across multiple small inputs. They should typically not be used otherwise.
+
+Avoid using dictionaries with GZIP and ZIP to maximize software compatibility.
 
 ___
 

@@ -1,3 +1,10 @@
+## 0.8.0
+- BREAKING: synchronous decompression functions now take an options object rather than an output buffer as a second parameter
+  - `inflateSync(compressed, outBuf)` is now `inflateSync(compressed, { out: outBuf })`
+- Support dictionaries in compression and decompression
+- Support multi-member files in GZIP streaming decompression
+- Dramatically improved streaming performance
+- Fixed missing error on certain malformed GZIP files
 ## 0.7.3
 - Fix folder creation for certain operating system
   - Create 0-length "files" for each directory specified with "object" syntax"

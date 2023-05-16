@@ -1,6 +1,6 @@
 # Class: Gunzip
 
-Streaming GZIP decompression
+Streaming single or multi-member GZIP decompression
 
 ## Hierarchy
 
@@ -23,6 +23,19 @@ Streaming GZIP decompression
 ## Constructors
 
 ### constructor
+
+\+ **new Gunzip**(`opts`: [GunzipStreamOptions](../interfaces/gunzipstreamoptions.md), `cb?`: [FlateStreamHandler](../README.md#flatestreamhandler)): [Gunzip](gunzip.md)
+
+Creates a GUNZIP stream
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`opts` | [GunzipStreamOptions](../interfaces/gunzipstreamoptions.md) | The decompression options |
+`cb?` | [FlateStreamHandler](../README.md#flatestreamhandler) | The callback to call whenever data is inflated  |
+
+**Returns:** [Gunzip](gunzip.md)
 
 \+ **new Gunzip**(`cb?`: [FlateStreamHandler](../README.md#flatestreamhandler)): [Gunzip](gunzip.md)
 

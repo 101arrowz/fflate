@@ -24,9 +24,22 @@ Streaming DEFLATE decompression
 
 ### constructor
 
+\+ **new Inflate**(`opts`: [InflateStreamOptions](../interfaces/inflatestreamoptions.md), `cb?`: [FlateStreamHandler](../README.md#flatestreamhandler)): [Inflate](inflate.md)
+
+Creates a DEFLATE decompression stream
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`opts` | [InflateStreamOptions](../interfaces/inflatestreamoptions.md) | The decompression options |
+`cb?` | [FlateStreamHandler](../README.md#flatestreamhandler) | The callback to call whenever data is inflated  |
+
+**Returns:** [Inflate](inflate.md)
+
 \+ **new Inflate**(`cb?`: [FlateStreamHandler](../README.md#flatestreamhandler)): [Inflate](inflate.md)
 
-Creates an inflation stream
+Creates a DEFLATE decompression stream
 
 #### Parameters:
 
