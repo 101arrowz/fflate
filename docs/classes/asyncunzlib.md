@@ -25,6 +25,19 @@ Asynchronous streaming Zlib decompression
 
 ### constructor
 
+\+ **new AsyncUnzlib**(`opts`: [UnzlibStreamOptions](../interfaces/unzlibstreamoptions.md), `cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncUnzlib](asyncunzlib.md)
+
+Creates an asynchronous Zlib decompression stream
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`opts` | [UnzlibStreamOptions](../interfaces/unzlibstreamoptions.md) | The decompression options |
+`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is inflated  |
+
+**Returns:** [AsyncUnzlib](asyncunzlib.md)
+
 \+ **new AsyncUnzlib**(`cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncUnzlib](asyncunzlib.md)
 
 Creates an asynchronous Zlib decompression stream
@@ -33,7 +46,7 @@ Creates an asynchronous Zlib decompression stream
 
 Name | Type | Description |
 ------ | ------ | ------ |
-`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated  |
+`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is inflated  |
 
 **Returns:** [AsyncUnzlib](asyncunzlib.md)
 

@@ -42,7 +42,7 @@ Asynchronous streaming DEFLATE compression for ZIP archives
 
 \+ **new AsyncZipDeflate**(`filename`: string, `opts?`: [DeflateOptions](../interfaces/deflateoptions.md)): [AsyncZipDeflate](asynczipdeflate.md)
 
-Creates a DEFLATE stream that can be added to ZIP archives
+Creates an asynchronous DEFLATE stream that can be added to ZIP archives
 
 #### Parameters:
 

@@ -15,6 +15,7 @@ Asynchronous streaming single or multi-member GZIP decompression
 ### Properties
 
 * [ondata](asyncgunzip.md#ondata)
+* [onmember](asyncgunzip.md#onmember)
 * [terminate](asyncgunzip.md#terminate)
 
 ### Methods
@@ -25,6 +26,19 @@ Asynchronous streaming single or multi-member GZIP decompression
 
 ### constructor
 
+\+ **new AsyncGunzip**(`opts`: [GunzipStreamOptions](../interfaces/gunzipstreamoptions.md), `cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncGunzip](asyncgunzip.md)
+
+Creates an asynchronous GUNZIP stream
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`opts` | [GunzipStreamOptions](../interfaces/gunzipstreamoptions.md) | The decompression options |
+`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is inflated  |
+
+**Returns:** [AsyncGunzip](asyncgunzip.md)
+
 \+ **new AsyncGunzip**(`cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncGunzip](asyncgunzip.md)
 
 Creates an asynchronous GUNZIP stream
@@ -33,7 +47,7 @@ Creates an asynchronous GUNZIP stream
 
 Name | Type | Description |
 ------ | ------ | ------ |
-`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated  |
+`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is inflated  |
 
 **Returns:** [AsyncGunzip](asyncgunzip.md)
 
@@ -44,6 +58,14 @@ Name | Type | Description |
 •  **ondata**: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)
 
 The handler to call whenever data is available
+
+___
+
+### onmember
+
+• `Optional` **onmember**: [GunzipMemberHandler](../README.md#gunzipmemberhandler)
+
+The handler to call whenever a new GZIP member is found
 
 ___
 

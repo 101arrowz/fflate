@@ -68,6 +68,7 @@
 * [AsyncZippableFile](README.md#asynczippablefile)
 * [FlateCallback](README.md#flatecallback)
 * [FlateStreamHandler](README.md#flatestreamhandler)
+* [GunzipMemberHandler](README.md#gunzipmemberhandler)
 * [StringStreamHandler](README.md#stringstreamhandler)
 * [UnzipCallback](README.md#unzipcallback)
 * [UnzipFileFilter](README.md#unzipfilefilter)
@@ -146,6 +147,16 @@ Handler for data (de)compression streams
 **`param`** The data output from the stream processor
 
 **`param`** Whether this is the final block
+
+___
+
+### GunzipMemberHandler
+
+Ƭ  **GunzipMemberHandler**: (offset: number) => void
+
+Handler for new GZIP members in concatenated GZIP streams. Useful for building indices used to perform random-access reads on compressed files.
+
+**`param`** The offset of the new member relative to the start of the stream
 
 ___
 
@@ -264,7 +275,7 @@ ___
 
 ### decompressSync
 
-▸ **decompressSync**(`data`: Uint8Array, `opts?`: [AsyncInflateOptions](interfaces/asyncinflateoptions.md)): Uint8Array
+▸ **decompressSync**(`data`: Uint8Array, `opts?`: [InflateOptions](interfaces/inflateoptions.md)): Uint8Array
 
 Expands compressed GZIP, Zlib, or raw DEFLATE data, automatically detecting the format
 
@@ -273,7 +284,7 @@ Expands compressed GZIP, Zlib, or raw DEFLATE data, automatically detecting the 
 Name | Type | Description |
 ------ | ------ | ------ |
 `data` | Uint8Array | The data to decompress |
-`opts?` | [AsyncInflateOptions](interfaces/asyncinflateoptions.md) | The decompression options |
+`opts?` | [InflateOptions](interfaces/inflateoptions.md) | The decompression options |
 
 **Returns:** Uint8Array
 

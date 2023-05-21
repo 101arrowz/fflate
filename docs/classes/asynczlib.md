@@ -27,7 +27,7 @@ Asynchronous streaming Zlib compression
 
 \+ **new AsyncZlib**(`opts`: [ZlibOptions](../interfaces/zliboptions.md), `cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncZlib](asynczlib.md)
 
-Creates an asynchronous DEFLATE stream
+Creates an asynchronous Zlib stream
 
 #### Parameters:
 
@@ -40,7 +40,7 @@ Name | Type | Description |
 
 \+ **new AsyncZlib**(`cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncZlib](asynczlib.md)
 
-Creates an asynchronous DEFLATE stream
+Creates an asynchronous Zlib stream
 
 #### Parameters:
 

@@ -58,17 +58,15 @@ You should use either UNPKG or jsDelivr (i.e. only one of the following)
 
 Note that tree shaking is completely unsupported from the CDN. If you want
 a small build without build tools, please ask me and I will make one manually
-with only the features you need. This build is about 27kB, or 9kB gzipped.
-
-You may also want to specify the version, e.g. with fflate@0.4.8
+with only the features you need. This build is about 31kB, or 11.5kB gzipped.
 -->
-<script src="https://unpkg.com/fflate"></script>
-<script src="https://cdn.jsdelivr.net/npm/fflate/umd/index.js"></script>
+<script src="https://unpkg.com/fflate@0.8.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.0/umd/index.js"></script>
 <!-- Now, the global variable fflate contains the library -->
 
 <!-- If you're going buildless but want ESM, import from Skypack -->
 <script type="module">
-  import * as fflate from 'https://cdn.skypack.dev/fflate?min';
+  import * as fflate from 'https://cdn.skypack.dev/fflate@0.8.0?min';
 </script>
 ```
 
@@ -77,8 +75,8 @@ If you are using Deno:
 // Don't use the ?dts Skypack flag; it isn't necessary for Deno support
 // The @deno-types comment adds TypeScript typings
 
-// @deno-types="https://cdn.skypack.dev/fflate/lib/index.d.ts"
-import * as fflate from 'https://cdn.skypack.dev/fflate?min';
+// @deno-types="https://cdn.skypack.dev/fflate@0.8.0/lib/index.d.ts"
+import * as fflate from 'https://cdn.skypack.dev/fflate@0.8.0?min';
 ```
 
 
@@ -509,7 +507,7 @@ See the [documentation](https://github.com/101arrowz/fflate/blob/master/docs/REA
 
 The bundle size measurements for `fflate` on sites like Bundlephobia include every feature of the library and should be seen as an upper bound. As long as you are using tree shaking or dead code elimination, this table should give you a general idea of `fflate`'s bundle size for the features you need.
 
-The maximum bundle size that is possible with `fflate` is about 31kB if you use every single feature, but feature parity with `pako` is only around 10kB (as opposed to 45kB from `pako`). If your bundle size increases dramatically after adding `fflate`, please [create an issue](https://github.com/101arrowz/fflate/issues/new).
+The maximum bundle size that is possible with `fflate` is about 31kB (11.5kB gzipped) if you use every single feature, but feature parity with `pako` is only around 10kB (as opposed to 45kB from `pako`). If your bundle size increases dramatically after adding `fflate`, please [create an issue](https://github.com/101arrowz/fflate/issues/new).
 
 | Feature                 | Bundle size (minified)         | Nearest competitor      |
 |-------------------------|--------------------------------|-------------------------|

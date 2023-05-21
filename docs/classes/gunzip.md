@@ -15,6 +15,7 @@ Streaming single or multi-member GZIP decompression
 ### Properties
 
 * [ondata](gunzip.md#ondata)
+* [onmember](gunzip.md#onmember)
 
 ### Methods
 
@@ -56,6 +57,14 @@ Name | Type | Description |
 •  **ondata**: [FlateStreamHandler](../README.md#flatestreamhandler)
 
 The handler to call whenever data is available
+
+___
+
+### onmember
+
+• `Optional` **onmember**: [GunzipMemberHandler](../README.md#gunzipmemberhandler)
+
+The handler to call whenever a new GZIP member is found
 
 ## Methods
 

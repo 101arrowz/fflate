@@ -739,15 +739,17 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
       st.h = head, st.p = prev, st.i = i, st.w = wi;
     }
   } else {
-    for (let i = 0; i <= s; i += 65535) {
+    for (let i = st.w || 0; i < s + lst; i += 65535) {
       // end
-      const e = i + 65535;
+      let e = i + 65535;
       if (e >= s) {
         // write final block
         w[(pos / 8) | 0] = lst;
+        e = s;
       }
       pos = wfblk(w, pos + 1, dat.subarray(i, e));
     }
+    st.i = s;
   }
   return slc(o, 0, pre + shft(pos) + post);
 }
@@ -1131,7 +1133,7 @@ const astrm = (strm: CmpDecmpStrm) => {
 type Astrm = { ondata: AsyncFlateStreamHandler; push: (d: Uint8Array, f?: boolean) => void; terminate: AsyncTerminable; };
 
 // async stream attach
-const astrmify = <T>(fns: (() => unknown[])[], strm: Astrm, opts: T | 0, init: (ev: MessageEvent<T>) => void, id: number) => {
+const astrmify = <T>(fns: (() => unknown[])[], strm: Astrm, opts: T | 0, init: (ev: MessageEvent<T>) => void, id: number, ext?: (msg: unknown) => unknown) => {
   let t: boolean;
   const w = wrkr<T, [Uint8Array, boolean]>(
     fns,
@@ -1139,6 +1141,7 @@ const astrmify = <T>(fns: (() => unknown[])[], strm: Astrm, opts: T | 0, init: (
     id,
     (err, dat) => {
       if (err) w.terminate(), strm.ondata.call(strm, err);
+      else if (!Array.isArray(dat)) ext(dat);
       else {
         if (dat[1]) w.terminate();
         strm.ondata.call(strm, err, dat[0], dat[1]);
@@ -1218,20 +1221,12 @@ const zls = (d: Uint8Array, dict?: unknown) => {
   return (d[1] >> 3 & 4) + 2;
 }
 
-/**
- * Creates an asynchronous compression stream
- * @param opts The compression options
- * @param cb The callback to call whenever data is deflated
- */
-function AsyncCmpStrm<T>(opts: T, cb?: AsyncFlateStreamHandler): T;
-/**
- * Creates an asynchronous compression stream
- * @param cb The callback to call whenever data is deflated
- */
-function AsyncCmpStrm<T>(cb?: AsyncFlateStreamHandler): T;
-function AsyncCmpStrm<T>(opts?: T | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler): T {
-  if (!cb && typeof opts == 'function') cb = opts as AsyncFlateStreamHandler, opts = {} as T;
-  this.ondata = cb as AsyncFlateStreamHandler;
+// stream options and callback
+function StrmOpt<T, H>(opts: T, cb?: H): T;
+function StrmOpt<T, H>(cb?: H): T;
+function StrmOpt<T, H>(opts?: T | H, cb?: H): T {
+  if (typeof opts == 'function') cb = opts as H, opts = {} as T;
+  this.ondata = cb as H;
   return opts as T;
 }
 
@@ -1251,7 +1246,7 @@ export class Deflate {
    */
   constructor(cb?: FlateStreamHandler);
   constructor(opts?: DeflateOptions | FlateStreamHandler, cb?: FlateStreamHandler) {
-    if (!cb && typeof opts == 'function') cb = opts as FlateStreamHandler, opts = {};
+    if (typeof opts == 'function') cb = opts as FlateStreamHandler, opts = {};
     this.ondata = cb;
     this.o = (opts as DeflateOptions) || {};
     this.s = { l: 0, i: 32768, w: 32768, z: 32768 };
@@ -1307,9 +1302,9 @@ export class Deflate {
     }
     this.s.l = (final as unknown as number) & 1;
     if (this.s.z > this.s.w + 8191 || final) {
-        this.p(this.b, final || false);
-        this.s.w = this.s.i, this.s.i -= 2;
-      }
+      this.p(this.b, final || false);
+      this.s.w = this.s.i, this.s.i -= 2;
+    }
   }
 }
 
@@ -1337,7 +1332,7 @@ export class AsyncDeflate {
     astrmify([
       bDflt,
       () => [astrm, Deflate]
-    ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
+    ], this as unknown as Astrm, StrmOpt.call(this, opts, cb), ev => {
       const strm = new Deflate(ev.data);
       onmessage = astrm(strm);
     }, 6);
@@ -1415,7 +1410,8 @@ export class Inflate {
    */
   constructor(cb?: FlateStreamHandler);
   constructor(opts?: InflateStreamOptions | FlateStreamHandler, cb?: FlateStreamHandler) {
-    if (!cb && typeof opts == 'function') cb = opts as FlateStreamHandler, opts = {};
+    // no StrmOpt here to avoid adding to workerizer
+    if (typeof opts == 'function') cb = opts as FlateStreamHandler, opts = {};
     this.ondata = cb;
     const dict = opts && (opts as InflateStreamOptions).dictionary && (opts as InflateStreamOptions).dictionary.subarray(-32768);
     this.s = { i: 0, b: dict ? dict.length : 0 };
@@ -1463,16 +1459,22 @@ export class AsyncInflate {
   ondata: AsyncFlateStreamHandler;
 
   /**
-   * Creates an asynchronous inflation stream
-   * @param cb The callback to call whenever data is deflated
+   * Creates an asynchronous DEFLATE decompression stream
+   * @param opts The decompression options
+   * @param cb The callback to call whenever data is inflated
    */
-  constructor(cb?: AsyncFlateStreamHandler) {
-    this.ondata = cb;
+  constructor(opts: InflateStreamOptions, cb?: AsyncFlateStreamHandler);
+  /**
+   * Creates an asynchronous DEFLATE decompression stream
+   * @param cb The callback to call whenever data is inflated
+   */
+  constructor(cb?: AsyncFlateStreamHandler);
+  constructor(opts?: InflateStreamOptions | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler) {
     astrmify([
       bInflt,
       () => [astrm, Inflate]
-    ], this as unknown as Astrm, 0, () => {
-      const strm = new Inflate();
+    ], this as unknown as Astrm, StrmOpt.call(this, opts, cb), ev => {
+      const strm = new Inflate(ev.data);
       onmessage = astrm(strm);
     }, 7);
   }
@@ -1600,7 +1602,7 @@ export class AsyncGzip {
       bDflt,
       gze,
       () => [astrm, Deflate, Gzip]
-    ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
+    ], this as unknown as Astrm, StrmOpt.call(this, opts, cb), ev => {
       const strm = new Gzip(ev.data);
       onmessage = astrm(strm);
     }, 8);
@@ -1661,10 +1663,17 @@ export function gzipSync(data: Uint8Array, opts?: GzipOptions) {
 }
 
 /**
+ * Handler for new GZIP members in concatenated GZIP streams. Useful for building indices used to perform random-access reads on compressed files.
+ * @param offset The offset of the new member relative to the start of the stream
+ */
+export type GunzipMemberHandler = (offset: number) => void;
+
+/**
  * Streaming single or multi-member GZIP decompression
  */
 export class Gunzip {
   private v = 1;
+  private r = 0;
   private o: Uint8Array;
   private p: Uint8Array;
   private s: InflateState;
@@ -1672,6 +1681,10 @@ export class Gunzip {
    * The handler to call whenever data is available
    */
   ondata: FlateStreamHandler;
+  /**
+   * The handler to call whenever a new GZIP member is found
+   */
+  onmember?: GunzipMemberHandler;
 
   /**
    * Creates a GUNZIP stream
@@ -1695,10 +1708,15 @@ export class Gunzip {
    */
   push(chunk: Uint8Array, final?: boolean) {
     (Inflate.prototype as unknown as { e: typeof Inflate.prototype['e'] }).e.call(this, chunk);
+    this.r += chunk.length;
     if (this.v) {
       const p = this.p.subarray(this.v - 1);
       const s = p.length > 3 ? gzs(p) : 4;
-      if (s >= p.length && !final) return;
+      if (s > p.length) {
+        if (!final) return;
+      } else if (this.v > 1 && this.onmember) {
+        this.onmember(this.r - p.length);
+      }
       this.p = p.subarray(s), this.v = 0;
     }
     // necessary to prevent TS from using the closure value
@@ -1706,10 +1724,8 @@ export class Gunzip {
     (Inflate.prototype as unknown as { c: typeof Inflate.prototype['c'] }).c.call(this, final);
     // process concatenated GZIP
     if (this.s.f && !this.s.l) {
-      const need = shft(this.s.p) + 8;
+      this.v = shft(this.s.p) + 9;
       this.s = { i: 0 };
-      this.v = Math.max(need - this.p.length, 0) + 1;
-      this.p = this.p.subarray(need);
       this.o = new u8(0);
       if (this.p.length) this.push(new u8(0), final);
     }
@@ -1724,21 +1740,32 @@ export class AsyncGunzip {
    * The handler to call whenever data is available
    */
   ondata: AsyncFlateStreamHandler;
+  /**
+   * The handler to call whenever a new GZIP member is found
+   */
+  onmember?: GunzipMemberHandler;
 
   /**
    * Creates an asynchronous GUNZIP stream
-   * @param cb The callback to call whenever data is deflated
+   * @param opts The decompression options
+   * @param cb The callback to call whenever data is inflated
    */
-  constructor(cb?: AsyncFlateStreamHandler) {
-    this.ondata = cb;
+  constructor(opts: GunzipStreamOptions, cb?: AsyncFlateStreamHandler);
+  /**
+   * Creates an asynchronous GUNZIP stream
+   * @param cb The callback to call whenever data is inflated
+   */
+  constructor(cb?: AsyncFlateStreamHandler);
+  constructor(opts?: GunzipStreamOptions | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler) {
     astrmify([
       bInflt,
       guze,
       () => [astrm, Inflate, Gunzip]
-    ], this as unknown as Astrm, 0, () => {
-      const strm = new Gunzip();
+    ], this as unknown as Astrm, StrmOpt.call(this, opts, cb), ev => {
+      const strm = new Gunzip(ev.data);
+      strm.onmember = (offset) => (postMessage as Worker['postMessage'])(offset);
       onmessage = astrm(strm);
-    }, 9);
+    }, 9, offset => this.onmember && this.onmember(offset as number));
   }
 
   /**
@@ -1778,7 +1805,7 @@ export function gunzip(data: Uint8Array, opts: AsyncGunzipOptions | FlateCallbac
     bInflt,
     guze,
     () => [gunzipSync]
-  ], ev => pbf(gunzipSync(ev.data[0])), 3, cb);
+  ], ev => pbf(gunzipSync(ev.data[0], ev.data[1])), 3, cb);
 }
 
 /**
@@ -1849,13 +1876,13 @@ export class AsyncZlib {
   ondata: AsyncFlateStreamHandler;
 
   /**
-   * Creates an asynchronous DEFLATE stream
+   * Creates an asynchronous Zlib stream
    * @param opts The compression options
    * @param cb The callback to call whenever data is deflated
    */
   constructor(opts: ZlibOptions, cb?: AsyncFlateStreamHandler);
   /**
-   * Creates an asynchronous DEFLATE stream
+   * Creates an asynchronous Zlib stream
    * @param cb The callback to call whenever data is deflated
    */
   constructor(cb?: AsyncFlateStreamHandler);
@@ -1864,7 +1891,7 @@ export class AsyncZlib {
       bDflt,
       zle,
       () => [astrm, Deflate, Zlib]
-    ], this as unknown as Astrm, AsyncCmpStrm.call(this, opts, cb), ev => {
+    ], this as unknown as Astrm, StrmOpt.call(this, opts, cb), ev => {
       const strm = new Zlib(ev.data);
       onmessage = astrm(strm);
     }, 10);
@@ -1947,7 +1974,7 @@ export class Unzlib {
   constructor(cb?: FlateStreamHandler);
   constructor(opts?: UnzlibStreamOptions | FlateStreamHandler, cb?: FlateStreamHandler) {
     Inflate.call(this, opts, cb);
-    this.v = cb && opts && (opts as UnzlibStreamOptions).dictionary ? 2 : 1;
+    this.v = opts && (opts as UnzlibStreamOptions).dictionary ? 2 : 1;
   }
 
   /**
@@ -1982,16 +2009,22 @@ export class AsyncUnzlib {
 
   /**
    * Creates an asynchronous Zlib decompression stream
-   * @param cb The callback to call whenever data is deflated
+   * @param opts The decompression options
+   * @param cb The callback to call whenever data is inflated
    */
-  constructor(cb?: AsyncFlateStreamHandler) {
-    this.ondata = cb;
+  constructor(opts: UnzlibStreamOptions, cb?: AsyncFlateStreamHandler);
+  /**
+   * Creates an asynchronous Zlib decompression stream
+   * @param cb The callback to call whenever data is inflated
+   */
+  constructor(cb?: AsyncFlateStreamHandler);
+  constructor(opts?: UnzlibStreamOptions | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler) {
     astrmify([
       bInflt,
       zule,
       () => [astrm, Inflate, Unzlib]
-    ], this as unknown as Astrm, 0, () => {
-      const strm = new Unzlib();
+    ], this as unknown as Astrm, StrmOpt.call(this, opts, cb), ev => {
+      const strm = new Unzlib(ev.data);
       onmessage = astrm(strm);
     }, 11);
   }
@@ -2057,17 +2090,28 @@ export class Decompress {
   private G = Gunzip;
   private I = Inflate;
   private Z = Unzlib;
-  /**
-   * Creates a decompression stream
-   * @param cb The callback to call whenever data is decompressed
-   */
-  constructor(cb?: FlateStreamHandler) { this.ondata = cb; }
+  private o: InflateOptions;
   private s: Inflate | Gunzip | Unzlib;
+  private p: Uint8Array;
   /**
    * The handler to call whenever data is available
    */
   ondata: FlateStreamHandler;
-  private p: Uint8Array;
+
+  /**
+   * Creates a decompression stream
+   * @param opts The decompression options
+   * @param cb The callback to call whenever data is decompressed
+   */
+  constructor(opts: InflateStreamOptions, cb?: AsyncFlateStreamHandler);
+  /**
+   * Creates a decompression stream
+   * @param cb The callback to call whenever data is decompressed
+   */
+  constructor(cb?: AsyncFlateStreamHandler);
+  constructor(opts?: InflateStreamOptions | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler) {
+    this.o = StrmOpt.call(this, opts, cb) || {};
+  }
 
   /**
    * Pushes a chunk to be decompressed
@@ -2083,12 +2127,13 @@ export class Decompress {
       } else this.p = chunk;
       if (this.p.length > 2) {
         const _this = this;
+        // enables reuse of this method by AsyncDecompress
         const cb: FlateStreamHandler = function() { _this.ondata.apply(_this, arguments); }
         this.s = (this.p[0] == 31 && this.p[1] == 139 && this.p[2] == 8)
-          ? new this.G(cb)
+          ? new this.G(this.o, cb)
           : ((this.p[0] & 15) != 8 || (this.p[0] >> 4) > 7 || ((this.p[0] << 8 | this.p[1]) % 31))
-            ? new this.I(cb)
-            : new this.Z(cb);
+            ? new this.I(this.o, cb)
+            : new this.Z(this.o, cb);
         this.s.push(this.p, final);
         this.p = null;
       }
@@ -2103,16 +2148,25 @@ export class AsyncDecompress {
   private G = AsyncGunzip;
   private I = AsyncInflate;
   private Z = AsyncUnzlib;
-    /**
-   * Creates an asynchronous decompression stream
-   * @param cb The callback to call whenever data is decompressed
-   */
-  constructor(cb?: AsyncFlateStreamHandler) { this.ondata = cb; }
-  
   /**
    * The handler to call whenever data is available
    */
   ondata: AsyncFlateStreamHandler;
+
+  /**
+   * Creates an asynchronous decompression stream
+   * @param opts The decompression options
+   * @param cb The callback to call whenever data is decompressed
+   */
+  constructor(opts: InflateStreamOptions, cb?: AsyncFlateStreamHandler);
+  /**
+   * Creates an asynchronous decompression stream
+   * @param cb The callback to call whenever data is decompressed
+   */
+  constructor(cb?: AsyncFlateStreamHandler);
+  constructor(opts?: InflateStreamOptions | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler) {
+    Decompress.call(this, opts, cb);
+  }
 
   /**
    * Pushes a chunk to be decompressed
@@ -2155,7 +2209,7 @@ export function decompress(data: Uint8Array, opts: AsyncInflateOptions | FlateCa
  * @param opts The decompression options
  * @returns The decompressed version of the data
  */
-export function decompressSync(data: Uint8Array, opts?: AsyncInflateOptions) {
+export function decompressSync(data: Uint8Array, opts?: InflateOptions) {
   return (data[0] == 31 && data[1] == 139 && data[2] == 8)
     ? gunzipSync(data, opts)
     : ((data[0] & 15) != 8 || (data[0] >> 4) > 7 || ((data[0] << 8 | data[1]) % 31))
@@ -2772,7 +2826,7 @@ export class AsyncZipDeflate implements ZipInputFile {
   terminate: AsyncTerminable;
 
   /**
-   * Creates a DEFLATE stream that can be added to ZIP archives
+   * Creates an asynchronous DEFLATE stream that can be added to ZIP archives
    * @param filename The filename to associate with this data stream
    * @param opts The compression options
    */

@@ -24,6 +24,19 @@ Asynchronous streaming GZIP, Zlib, or raw DEFLATE decompression
 
 ### constructor
 
+\+ **new AsyncDecompress**(`opts`: [InflateStreamOptions](../interfaces/inflatestreamoptions.md), `cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncDecompress](asyncdecompress.md)
+
+Creates an asynchronous decompression stream
+
+#### Parameters:
+
+Name | Type | Description |
+------ | ------ | ------ |
+`opts` | [InflateStreamOptions](../interfaces/inflatestreamoptions.md) | The decompression options |
+`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is decompressed  |
+
+**Returns:** [AsyncDecompress](asyncdecompress.md)
+
 \+ **new AsyncDecompress**(`cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncDecompress](asyncdecompress.md)
 
 Creates an asynchronous decompression stream
