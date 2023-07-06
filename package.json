@@ -3,8 +3,8 @@
   "version": "0.8.0",
   "description": "High performance (de)compression in an 8kB package",
   "main": "./lib/index.cjs",
-  "module": "./esm/browser.js",
-  "types": "./lib/index.d.ts",
+  "module": "./esm/browser.mjs",
+  "types": "./lib/index.d.cts",
   "unpkg": "./umd/index.js",
   "jsdelivr": "./umd/index.js",
   "browser": {
@@ -12,22 +12,19 @@
   },
   "exports": {
     ".": {
-      "types": "./lib/index.d.ts",
       "node": {
         "import": "./esm/index.mjs",
         "require": "./lib/node.cjs"
       },
-      "import": "./esm/browser.js",
+      "import": "./esm/browser.mjs",
       "require": "./lib/index.cjs"
     },
     "./node": {
-      "types": "./lib/index.d.ts",
       "import": "./esm/index.mjs",
       "require": "./lib/node.cjs"
     },
     "./browser": {
-      "types": "./lib/index.d.ts",
-      "import": "./esm/browser.js",
+      "import": "./esm/browser.mjs",
       "require": "./lib/browser.cjs"
     }
   },
