@@ -379,13 +379,9 @@ const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8
           if (shift + bt < 0) err(3);
           for (; bt < dend; ++bt) buf[bt] = dict[shift + bt];
         }
-        for (; bt < end; bt += 4) {
+        for (; bt < end; bt++) {
           buf[bt] = buf[bt - dt];
-          buf[bt + 1] = buf[bt + 1 - dt];
-          buf[bt + 2] = buf[bt + 2 - dt];
-          buf[bt + 3] = buf[bt + 3 - dt];
         }
-        bt = end;
       }
     }
     st.l = lm, st.p = lpos, st.b = bt, st.f = final;
