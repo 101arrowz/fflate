@@ -4,31 +4,24 @@ An error generated within this library
 
 ## Hierarchy
 
-* [Error](flateerror.md#error)
+- `Error`
 
-  ↳ **FlateError**
+  ↳ **`FlateError`**
 
-## Index
+## Table of contents
 
 ### Properties
 
-* [Error](flateerror.md#error)
-* [code](flateerror.md#code)
-* [message](flateerror.md#message)
-* [name](flateerror.md#name)
-* [stack](flateerror.md#stack)
+- [code](FlateError.md#code)
+- [message](FlateError.md#message)
+- [name](FlateError.md#name)
+- [stack](FlateError.md#stack)
 
 ## Properties
 
-### Error
-
-•  **Error**: ErrorConstructor
-
-___
-
 ### code
 
-•  **code**: number
+• **code**: `number`
 
 The code associated with this error
 
@@ -36,22 +29,28 @@ ___
 
 ### message
 
-•  **message**: string
+• **message**: `string`
 
-*Inherited from [FlateError](flateerror.md).[message](flateerror.md#message)*
+#### Inherited from
+
+Error.message
 
 ___
 
 ### name
 
-•  **name**: string
+• **name**: `string`
 
-*Inherited from [FlateError](flateerror.md).[name](flateerror.md#name)*
+#### Inherited from
+
+Error.name
 
 ___
 
 ### stack
 
-• `Optional` **stack**: string
+• `Optional` **stack**: `string`
 
-*Inherited from [FlateError](flateerror.md).[stack](flateerror.md#stack)*
+#### Inherited from
+
+Error.stack

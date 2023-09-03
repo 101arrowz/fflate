@@ -1,11 +1,11 @@
 import React from 'react';
 import App from './App';
-import { render } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 
 if (process.env.NODE_ENV == 'production') {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.ts');
+    navigator.serviceWorker.register(new URL('sw.ts', import.meta.url), { type: 'module' });
   }
 }
 
-render(<App />, document.getElementById('app'));
+createRoot(document.getElementById('app')!).render(<App />);

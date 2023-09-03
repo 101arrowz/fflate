@@ -2,24 +2,20 @@
 
 Information about a file to be extracted from a ZIP archive
 
-## Hierarchy
-
-* **UnzipFileInfo**
-
-## Index
+## Table of contents
 
 ### Properties
 
-* [compression](unzipfileinfo.md#compression)
-* [name](unzipfileinfo.md#name)
-* [originalSize](unzipfileinfo.md#originalsize)
-* [size](unzipfileinfo.md#size)
+- [compression](UnzipFileInfo.md#compression)
+- [name](UnzipFileInfo.md#name)
+- [originalSize](UnzipFileInfo.md#originalsize)
+- [size](UnzipFileInfo.md#size)
 
 ## Properties
 
 ### compression
 
-•  **compression**: number
+• **compression**: `number`
 
 The compression format for the data stream. This number is determined by
 the spec in PKZIP's APPNOTE.txt, section 4.4.5. For example, 0 = no
@@ -30,7 +26,7 @@ ___
 
 ### name
 
-•  **name**: string
+• **name**: `string`
 
 The name of the file
 
@@ -38,7 +34,7 @@ ___
 
 ### originalSize
 
-•  **originalSize**: number
+• **originalSize**: `number`
 
 The original size of the file
 
@@ -46,6 +42,6 @@ ___
 
 ### size
 
-•  **size**: number
+• **size**: `number`
 
 The compressed size of the file

@@ -3,66 +3,70 @@
 Streaming DEFLATE decompression for ZIP archives. Prefer AsyncZipInflate for
 better performance.
 
-## Hierarchy
-
-* **UnzipInflate**
-
 ## Implements
 
-* [UnzipDecoder](../interfaces/unzipdecoder.md)
+- [`UnzipDecoder`](../interfaces/UnzipDecoder.md)
 
-## Index
+## Table of contents
 
 ### Constructors
 
-* [constructor](unzipinflate.md#constructor)
+- [constructor](UnzipInflate.md#constructor)
 
 ### Properties
 
-* [ondata](unzipinflate.md#ondata)
-* [compression](unzipinflate.md#compression)
+- [ondata](UnzipInflate.md#ondata)
+- [compression](UnzipInflate.md#compression)
 
 ### Methods
 
-* [push](unzipinflate.md#push)
+- [push](UnzipInflate.md#push)
 
 ## Constructors
 
 ### constructor
 
-\+ **new UnzipInflate**(): [UnzipInflate](unzipinflate.md)
+• **new UnzipInflate**()
 
 Creates a DEFLATE decompression that can be used in ZIP archives
-
-**Returns:** [UnzipInflate](unzipinflate.md)
 
 ## Properties
 
 ### ondata
 
-•  **ondata**: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)
+• **ondata**: [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler)
 
-*Implementation of [UnzipDecoder](../interfaces/unzipdecoder.md).[ondata](../interfaces/unzipdecoder.md#ondata)*
+The handler to call whenever data is available
+
+#### Implementation of
+
+[UnzipDecoder](../interfaces/UnzipDecoder.md).[ondata](../interfaces/UnzipDecoder.md#ondata)
 
 ___
 
 ### compression
 
-▪ `Static` **compression**: number = 8
+▪ `Static` **compression**: `number` = `8`
 
 ## Methods
 
 ### push
 
-▸ **push**(`data`: Uint8Array, `final`: boolean): void
+▸ **push**(`data`, `final`): `void`
 
-*Implementation of [UnzipDecoder](../interfaces/unzipdecoder.md)*
+Pushes a chunk to be decompressed
 
-#### Parameters:
+#### Parameters
 
-Name | Type |
------- | ------ |
-`data` | Uint8Array |
-`final` | boolean |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `data` | `Uint8Array` | The data in this chunk. Do not consume (detach) this data. |
+| `final` | `boolean` | Whether this is the last chunk in the data stream |
 
-**Returns:** void
+#### Returns
+
+`void`
+
+#### Implementation of
+
+[UnzipDecoder](../interfaces/UnzipDecoder.md).[push](../interfaces/UnzipDecoder.md#push)

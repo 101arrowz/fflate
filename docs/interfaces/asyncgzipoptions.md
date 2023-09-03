@@ -4,41 +4,41 @@ Options for compressing data asynchronously into a GZIP format
 
 ## Hierarchy
 
-* [GzipOptions](gzipoptions.md)
+- [`GzipOptions`](GzipOptions.md)
 
-* AsyncOptions
+- `AsyncOptions`
 
-  ↳ **AsyncGzipOptions**
+  ↳ **`AsyncGzipOptions`**
 
-## Index
+## Table of contents
 
 ### Properties
 
-* [consume](asyncgzipoptions.md#consume)
-* [dictionary](asyncgzipoptions.md#dictionary)
-* [filename](asyncgzipoptions.md#filename)
-* [level](asyncgzipoptions.md#level)
-* [mem](asyncgzipoptions.md#mem)
-* [mtime](asyncgzipoptions.md#mtime)
+- [consume](AsyncGzipOptions.md#consume)
+- [dictionary](AsyncGzipOptions.md#dictionary)
+- [filename](AsyncGzipOptions.md#filename)
+- [level](AsyncGzipOptions.md#level)
+- [mem](AsyncGzipOptions.md#mem)
+- [mtime](AsyncGzipOptions.md#mtime)
 
 ## Properties
 
 ### consume
 
-• `Optional` **consume**: boolean
-
-*Inherited from [AsyncDeflateOptions](asyncdeflateoptions.md).[consume](asyncdeflateoptions.md#consume)*
+• `Optional` **consume**: `boolean`
 
 Whether or not to "consume" the source data. This will make the typed array/buffer you pass in
 unusable but will increase performance and reduce memory usage.
+
+#### Inherited from
+
+AsyncOptions.consume
 
 ___
 
 ### dictionary
 
-• `Optional` **dictionary**: Uint8Array
-
-*Inherited from [DeflateOptions](deflateoptions.md).[dictionary](deflateoptions.md#dictionary)*
+• `Optional` **dictionary**: `Uint8Array`
 
 A buffer containing common byte sequences in the input data that can be used to significantly improve compression ratios.
 
@@ -49,24 +49,28 @@ Dictionaries only improve aggregate compression ratio when reused across multipl
 
 Avoid using dictionaries with GZIP and ZIP to maximize software compatibility.
 
+#### Inherited from
+
+[GzipOptions](GzipOptions.md).[dictionary](GzipOptions.md#dictionary)
+
 ___
 
 ### filename
 
-• `Optional` **filename**: string
-
-*Inherited from [GzipOptions](gzipoptions.md).[filename](gzipoptions.md#filename)*
+• `Optional` **filename**: `string`
 
 The filename of the data. If the `gunzip` command is used to decompress the data, it will output a file
 with this name instead of the name of the compressed file.
+
+#### Inherited from
+
+[GzipOptions](GzipOptions.md).[filename](GzipOptions.md#filename)
 
 ___
 
 ### level
 
-• `Optional` **level**: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9
-
-*Inherited from [DeflateOptions](deflateoptions.md).[level](deflateoptions.md#level)*
+• `Optional` **level**: ``0`` \| ``2`` \| ``1`` \| ``3`` \| ``4`` \| ``8`` \| ``5`` \| ``6`` \| ``7`` \| ``9``
 
 The level of compression to use, ranging from 0-9.
 
@@ -82,13 +86,15 @@ For example, a 1 MB text file could:
 - become 400 kB with level 1 in 10ms
 - become 320 kB with level 9 in 100ms
 
+#### Inherited from
+
+[GzipOptions](GzipOptions.md).[level](GzipOptions.md#level)
+
 ___
 
 ### mem
 
-• `Optional` **mem**: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9 \| 10 \| 11 \| 12
-
-*Inherited from [DeflateOptions](deflateoptions.md).[mem](deflateoptions.md#mem)*
+• `Optional` **mem**: ``0`` \| ``2`` \| ``1`` \| ``3`` \| ``4`` \| ``8`` \| ``5`` \| ``6`` \| ``10`` \| ``7`` \| ``12`` \| ``9`` \| ``11``
 
 The memory level to use, ranging from 0-12. Increasing this increases speed and compression ratio at the cost of memory.
 
@@ -98,13 +104,19 @@ In addition, values above 8 tend to help very little on most data and can even h
 
 The default value is automatically determined based on the size of the input data.
 
+#### Inherited from
+
+[GzipOptions](GzipOptions.md).[mem](GzipOptions.md#mem)
+
 ___
 
 ### mtime
 
-• `Optional` **mtime**: Date \| string \| number
-
-*Inherited from [GzipOptions](gzipoptions.md).[mtime](gzipoptions.md#mtime)*
+• `Optional` **mtime**: `string` \| `number` \| `Date`
 
 When the file was last modified. Defaults to the current time.
 Set this to 0 to avoid revealing a modification date entirely.
+
+#### Inherited from
+
+[GzipOptions](GzipOptions.md).[mtime](GzipOptions.md#mtime)

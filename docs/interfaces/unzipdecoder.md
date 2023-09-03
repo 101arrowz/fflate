@@ -2,32 +2,28 @@
 
 A decoder for files in ZIP streams
 
-## Hierarchy
-
-* **UnzipDecoder**
-
 ## Implemented by
 
-* [AsyncUnzipInflate](../classes/asyncunzipinflate.md)
-* [UnzipInflate](../classes/unzipinflate.md)
-* [UnzipPassThrough](../classes/unzippassthrough.md)
+- [`AsyncUnzipInflate`](../classes/AsyncUnzipInflate.md)
+- [`UnzipInflate`](../classes/UnzipInflate.md)
+- [`UnzipPassThrough`](../classes/UnzipPassThrough.md)
 
-## Index
+## Table of contents
 
 ### Properties
 
-* [ondata](unzipdecoder.md#ondata)
-* [terminate](unzipdecoder.md#terminate)
+- [ondata](UnzipDecoder.md#ondata)
+- [terminate](UnzipDecoder.md#terminate)
 
 ### Methods
 
-* [push](unzipdecoder.md#push)
+- [push](UnzipDecoder.md#push)
 
 ## Properties
 
 ### ondata
 
-•  **ondata**: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)
+• **ondata**: [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler)
 
 The handler to call whenever data is available
 
@@ -35,7 +31,7 @@ ___
 
 ### terminate
 
-• `Optional` **terminate**: [AsyncTerminable](asyncterminable.md)
+• `Optional` **terminate**: [`AsyncTerminable`](AsyncTerminable.md)
 
 A method to terminate any internal workers used by the stream. Subsequent
 calls to push() should silently fail.
@@ -44,15 +40,17 @@ calls to push() should silently fail.
 
 ### push
 
-▸ **push**(`data`: Uint8Array, `final`: boolean): void
+▸ **push**(`data`, `final`): `void`
 
 Pushes a chunk to be decompressed
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`data` | Uint8Array | The data in this chunk. Do not consume (detach) this data. |
-`final` | boolean | Whether this is the last chunk in the data stream  |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `data` | `Uint8Array` | The data in this chunk. Do not consume (detach) this data. |
+| `final` | `boolean` | Whether this is the last chunk in the data stream |
 
-**Returns:** void
+#### Returns
+
+`void`

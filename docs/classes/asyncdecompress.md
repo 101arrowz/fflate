@@ -2,58 +2,50 @@
 
 Asynchronous streaming GZIP, Zlib, or raw DEFLATE decompression
 
-## Hierarchy
-
-* **AsyncDecompress**
-
-## Index
+## Table of contents
 
 ### Constructors
 
-* [constructor](asyncdecompress.md#constructor)
+- [constructor](AsyncDecompress.md#constructor)
 
 ### Properties
 
-* [ondata](asyncdecompress.md#ondata)
+- [ondata](AsyncDecompress.md#ondata)
 
 ### Methods
 
-* [push](asyncdecompress.md#push)
+- [push](AsyncDecompress.md#push)
 
 ## Constructors
 
 ### constructor
 
-\+ **new AsyncDecompress**(`opts`: [InflateStreamOptions](../interfaces/inflatestreamoptions.md), `cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncDecompress](asyncdecompress.md)
+• **new AsyncDecompress**(`opts`, `cb?`)
 
 Creates an asynchronous decompression stream
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`opts` | [InflateStreamOptions](../interfaces/inflatestreamoptions.md) | The decompression options |
-`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is decompressed  |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `opts` | [`InflateStreamOptions`](../interfaces/InflateStreamOptions.md) | The decompression options |
+| `cb?` | [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler) | The callback to call whenever data is decompressed |
 
-**Returns:** [AsyncDecompress](asyncdecompress.md)
-
-\+ **new AsyncDecompress**(`cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncDecompress](asyncdecompress.md)
+• **new AsyncDecompress**(`cb?`)
 
 Creates an asynchronous decompression stream
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is decompressed  |
-
-**Returns:** [AsyncDecompress](asyncdecompress.md)
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `cb?` | [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler) | The callback to call whenever data is decompressed |
 
 ## Properties
 
 ### ondata
 
-•  **ondata**: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)
+• **ondata**: [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler)
 
 The handler to call whenever data is available
 
@@ -61,15 +53,17 @@ The handler to call whenever data is available
 
 ### push
 
-▸ **push**(`chunk`: Uint8Array, `final?`: boolean): void
+▸ **push**(`chunk`, `final?`): `void`
 
 Pushes a chunk to be decompressed
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`chunk` | Uint8Array | The chunk to push |
-`final?` | boolean | Whether this is the last chunk  |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `chunk` | `Uint8Array` | The chunk to push |
+| `final?` | `boolean` | Whether this is the last chunk |
 
-**Returns:** void
+#### Returns
+
+`void`

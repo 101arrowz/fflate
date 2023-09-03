@@ -1,15 +1,8 @@
 /// <reference lib="webworker" />
+import { manifest, version } from '@parcel/service-worker'
 
-const sw = self as unknown as ServiceWorkerGlobalScope & {
-  __precacheManifest: ({ url: string, revision: string })[];
-};
-
-const precacheVersion = sw.__precacheManifest
-  .map(p => p.revision)
-  .join('');
-const precacheFiles = sw.__precacheManifest.map(p => p.url).filter(
-  u => /\.(ico)$/.test(u)
-);
+const precacheVersion = version
+const precacheFiles = manifest.filter(u => /\.(ico)$/.test(u));
 
 const ch = () => caches.open(precacheVersion);
  

@@ -18,7 +18,7 @@ const createWorkerProxy = (lib: string, keys: string[]): WorkerProxy => {
   const p: WorkerProxy = {};
   for (const k of keys) {
     const base = function(cb: (...args: unknown[]) => void) {
-      const w = new Worker('../../util/workers.ts');
+      const w = new Worker(new URL('../../util/workers.ts', import.meta.url), { type: 'module' });
       w.postMessage([lib, k]);
       w.onmessage = function(msg) {
         const args = msg.data;

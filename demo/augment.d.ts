@@ -9,37 +9,3 @@ declare module 'uzip' {
   }
   export = UZIP;
 }
-
-interface DataTransferItem {
-  webkitGetAsEntry(): FileSystemEntry;
-}
-
-interface BaseFileSystemEntry {
-  fullPath: string;
-  name: string;
-  isFile: boolean;
-  isDirectory: boolean;
-}
-
-interface FileSystemFileEntry extends BaseFileSystemEntry {
-  isFile: true;
-  isDirectory: false
-  file(onSuccess: (file: File) => void, onError: (err: Error) => void): void;
-}
-
-type FileSystemEntry = FileSystemFileEntry | FileSystemDirectoryEntry;
-
-
-interface FileSystemDirectoryReader {
-  readEntries(onSuccess: (entries: FileSystemEntry[]) => void, onError: (err: Error) => void): void;
-}
-
-interface FileSystemDirectoryEntry extends BaseFileSystemEntry {
-  isFile: false;
-  isDirectory: true;
-  createReader(): FileSystemDirectoryReader;
-}
-
-interface File {
-  webkitRelativePath: string;
-}

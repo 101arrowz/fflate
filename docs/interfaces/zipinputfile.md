@@ -4,40 +4,38 @@ A stream that can be used to create a file in a ZIP archive
 
 ## Hierarchy
 
-* [ZipAttributes](zipattributes.md)
+- [`ZipAttributes`](ZipAttributes.md)
 
-  ↳ **ZipInputFile**
+  ↳ **`ZipInputFile`**
 
 ## Implemented by
 
-* [AsyncZipDeflate](../classes/asynczipdeflate.md)
-* [ZipDeflate](../classes/zipdeflate.md)
-* [ZipPassThrough](../classes/zippassthrough.md)
+- [`AsyncZipDeflate`](../classes/AsyncZipDeflate.md)
+- [`ZipDeflate`](../classes/ZipDeflate.md)
+- [`ZipPassThrough`](../classes/ZipPassThrough.md)
 
-## Index
+## Table of contents
 
 ### Properties
 
-* [attrs](zipinputfile.md#attrs)
-* [comment](zipinputfile.md#comment)
-* [compression](zipinputfile.md#compression)
-* [crc](zipinputfile.md#crc)
-* [extra](zipinputfile.md#extra)
-* [filename](zipinputfile.md#filename)
-* [flag](zipinputfile.md#flag)
-* [mtime](zipinputfile.md#mtime)
-* [ondata](zipinputfile.md#ondata)
-* [os](zipinputfile.md#os)
-* [size](zipinputfile.md#size)
-* [terminate](zipinputfile.md#terminate)
+- [attrs](ZipInputFile.md#attrs)
+- [comment](ZipInputFile.md#comment)
+- [compression](ZipInputFile.md#compression)
+- [crc](ZipInputFile.md#crc)
+- [extra](ZipInputFile.md#extra)
+- [filename](ZipInputFile.md#filename)
+- [flag](ZipInputFile.md#flag)
+- [mtime](ZipInputFile.md#mtime)
+- [ondata](ZipInputFile.md#ondata)
+- [os](ZipInputFile.md#os)
+- [size](ZipInputFile.md#size)
+- [terminate](ZipInputFile.md#terminate)
 
 ## Properties
 
 ### attrs
 
-• `Optional` **attrs**: number
-
-*Inherited from [ZipAttributes](zipattributes.md).[attrs](zipattributes.md#attrs)*
+• `Optional` **attrs**: `number`
 
 The file's attributes. These are traditionally somewhat complicated
 and platform-dependent, so using them is scarcely necessary. However,
@@ -59,23 +57,29 @@ If you want to set the Unix permissions, for instance, just bit shift by 16, e.g
 Note that attributes usually only work in conjunction with the `os` setting: you must use
 `os` = 3 (Unix) if you want to set Unix permissions
 
+#### Inherited from
+
+[ZipAttributes](ZipAttributes.md).[attrs](ZipAttributes.md#attrs)
+
 ___
 
 ### comment
 
-• `Optional` **comment**: string
-
-*Inherited from [ZipAttributes](zipattributes.md).[comment](zipattributes.md#comment)*
+• `Optional` **comment**: `string`
 
 The comment to attach to the file. This field is defined by PKZIP's APPNOTE.txt,
 section 4.4.26. The comment must be at most 65,535 bytes long UTF-8 encoded. This
 field is not read by consumer software.
 
+#### Inherited from
+
+[ZipAttributes](ZipAttributes.md).[comment](ZipAttributes.md#comment)
+
 ___
 
 ### compression
 
-•  **compression**: number
+• **compression**: `number`
 
 The compression format for the data stream. This number is determined by
 the spec in PKZIP's APPNOTE.txt, section 4.4.5. For example, 0 = no
@@ -85,7 +89,7 @@ ___
 
 ### crc
 
-•  **crc**: number
+• **crc**: `number`
 
 A CRC of the original file contents. This attribute may be invalid after
 the file is added to the ZIP archive; it must be correct only before the
@@ -99,9 +103,7 @@ ___
 
 ### extra
 
-• `Optional` **extra**: Record\<number, Uint8Array>
-
-*Inherited from [ZipAttributes](zipattributes.md).[extra](zipattributes.md#extra)*
+• `Optional` **extra**: `Record`<`number`, `Uint8Array`\>
 
 Extra metadata to add to the file. This field is defined by PKZIP's APPNOTE.txt,
 section 4.4.28. At most 65,535 bytes may be used in each ID. The ID must be an
@@ -110,11 +112,15 @@ integer between 0 and 65,535, inclusive.
 This field is incredibly rare and almost never needed except for compliance with
 proprietary standards and software.
 
+#### Inherited from
+
+[ZipAttributes](ZipAttributes.md).[extra](ZipAttributes.md#extra)
+
 ___
 
 ### filename
 
-•  **filename**: string
+• **filename**: `string`
 
 The filename to associate with the data provided to this stream. If you
 want a file in a subdirectory, use forward slashes as a separator (e.g.
@@ -124,7 +130,7 @@ ___
 
 ### flag
 
-• `Optional` **flag**: number
+• `Optional` **flag**: `number`
 
 Bits 1 and 2 of the general purpose bit flag, specified in PKZIP's
 APPNOTE.txt, section 4.4.4. Should be between 0 and 3. This is unlikely
@@ -134,17 +140,19 @@ ___
 
 ### mtime
 
-• `Optional` **mtime**: GzipOptions[\"mtime\"]
-
-*Inherited from [ZipAttributes](zipattributes.md).[mtime](zipattributes.md#mtime)*
+• `Optional` **mtime**: `string` \| `number` \| `Date`
 
 When the file was last modified. Defaults to the current time.
+
+#### Inherited from
+
+[ZipAttributes](ZipAttributes.md).[mtime](ZipAttributes.md#mtime)
 
 ___
 
 ### ondata
 
-• `Optional` **ondata**: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)
+• `Optional` **ondata**: [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler)
 
 The handler to be called when data is added. After passing this stream to
 the ZIP file object, this handler will always be defined. To call it:
@@ -162,19 +170,21 @@ ___
 
 ### os
 
-• `Optional` **os**: number
-
-*Inherited from [ZipAttributes](zipattributes.md).[os](zipattributes.md#os)*
+• `Optional` **os**: `number`
 
 The operating system of origin for this file. The value is defined
 by PKZIP's APPNOTE.txt, section 4.4.2.2. For example, 0 (the default)
 is MS/DOS, 3 is Unix, 19 is macOS.
 
+#### Inherited from
+
+[ZipAttributes](ZipAttributes.md).[os](ZipAttributes.md#os)
+
 ___
 
 ### size
 
-•  **size**: number
+• **size**: `number`
 
 The size of the file in bytes. This attribute may be invalid after
 the file is added to the ZIP archive; it must be correct only before the
@@ -188,7 +198,7 @@ ___
 
 ### terminate
 
-• `Optional` **terminate**: [AsyncTerminable](asyncterminable.md)
+• `Optional` **terminate**: [`AsyncTerminable`](AsyncTerminable.md)
 
 A method called when the stream is no longer needed, for clean-up
 purposes. This will not always be called after the stream completes,

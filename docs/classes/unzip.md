@@ -2,46 +2,40 @@
 
 A ZIP archive decompression stream that emits files as they are discovered
 
-## Hierarchy
-
-* **Unzip**
-
-## Index
+## Table of contents
 
 ### Constructors
 
-* [constructor](unzip.md#constructor)
+- [constructor](Unzip.md#constructor)
 
 ### Properties
 
-* [onfile](unzip.md#onfile)
+- [onfile](Unzip.md#onfile)
 
 ### Methods
 
-* [push](unzip.md#push)
-* [register](unzip.md#register)
+- [push](Unzip.md#push)
+- [register](Unzip.md#register)
 
 ## Constructors
 
 ### constructor
 
-\+ **new Unzip**(`cb?`: [UnzipFileHandler](../README.md#unzipfilehandler)): [Unzip](unzip.md)
+• **new Unzip**(`cb?`)
 
 Creates a ZIP decompression stream
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`cb?` | [UnzipFileHandler](../README.md#unzipfilehandler) | The callback to call whenever a file in the ZIP archive is found  |
-
-**Returns:** [Unzip](unzip.md)
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `cb?` | [`UnzipFileHandler`](../README.md#unzipfilehandler) | The callback to call whenever a file in the ZIP archive is found |
 
 ## Properties
 
 ### onfile
 
-•  **onfile**: [UnzipFileHandler](../README.md#unzipfilehandler)
+• **onfile**: [`UnzipFileHandler`](../README.md#unzipfilehandler)
 
 The handler to call whenever a file is discovered
 
@@ -49,32 +43,36 @@ The handler to call whenever a file is discovered
 
 ### push
 
-▸ **push**(`chunk`: Uint8Array, `final?`: boolean): any
+▸ **push**(`chunk`, `final?`): `any`
 
 Pushes a chunk to be unzipped
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`chunk` | Uint8Array | The chunk to push |
-`final?` | boolean | Whether this is the last chunk  |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `chunk` | `Uint8Array` | The chunk to push |
+| `final?` | `boolean` | Whether this is the last chunk |
 
-**Returns:** any
+#### Returns
+
+`any`
 
 ___
 
 ### register
 
-▸ **register**(`decoder`: [UnzipDecoderConstructor](../interfaces/unzipdecoderconstructor.md)): void
+▸ **register**(`decoder`): `void`
 
 Registers a decoder with the stream, allowing for files compressed with
 the compression type provided to be expanded correctly
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`decoder` | [UnzipDecoderConstructor](../interfaces/unzipdecoderconstructor.md) | The decoder constructor  |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `decoder` | [`UnzipDecoderConstructor`](../interfaces/UnzipDecoderConstructor.md) | The decoder constructor |
 
-**Returns:** void
+#### Returns
+
+`void`

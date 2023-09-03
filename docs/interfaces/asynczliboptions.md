@@ -4,39 +4,39 @@ Options for compressing data asynchronously into a Zlib format
 
 ## Hierarchy
 
-* [ZlibOptions](zliboptions.md)
+- [`ZlibOptions`](ZlibOptions.md)
 
-* AsyncOptions
+- `AsyncOptions`
 
-  ↳ **AsyncZlibOptions**
+  ↳ **`AsyncZlibOptions`**
 
-## Index
+## Table of contents
 
 ### Properties
 
-* [consume](asynczliboptions.md#consume)
-* [dictionary](asynczliboptions.md#dictionary)
-* [level](asynczliboptions.md#level)
-* [mem](asynczliboptions.md#mem)
+- [consume](AsyncZlibOptions.md#consume)
+- [dictionary](AsyncZlibOptions.md#dictionary)
+- [level](AsyncZlibOptions.md#level)
+- [mem](AsyncZlibOptions.md#mem)
 
 ## Properties
 
 ### consume
 
-• `Optional` **consume**: boolean
-
-*Inherited from [AsyncDeflateOptions](asyncdeflateoptions.md).[consume](asyncdeflateoptions.md#consume)*
+• `Optional` **consume**: `boolean`
 
 Whether or not to "consume" the source data. This will make the typed array/buffer you pass in
 unusable but will increase performance and reduce memory usage.
+
+#### Inherited from
+
+AsyncOptions.consume
 
 ___
 
 ### dictionary
 
-• `Optional` **dictionary**: Uint8Array
-
-*Inherited from [DeflateOptions](deflateoptions.md).[dictionary](deflateoptions.md#dictionary)*
+• `Optional` **dictionary**: `Uint8Array`
 
 A buffer containing common byte sequences in the input data that can be used to significantly improve compression ratios.
 
@@ -47,13 +47,15 @@ Dictionaries only improve aggregate compression ratio when reused across multipl
 
 Avoid using dictionaries with GZIP and ZIP to maximize software compatibility.
 
+#### Inherited from
+
+[ZlibOptions](ZlibOptions.md).[dictionary](ZlibOptions.md#dictionary)
+
 ___
 
 ### level
 
-• `Optional` **level**: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9
-
-*Inherited from [DeflateOptions](deflateoptions.md).[level](deflateoptions.md#level)*
+• `Optional` **level**: ``0`` \| ``2`` \| ``1`` \| ``3`` \| ``4`` \| ``8`` \| ``5`` \| ``6`` \| ``7`` \| ``9``
 
 The level of compression to use, ranging from 0-9.
 
@@ -69,13 +71,15 @@ For example, a 1 MB text file could:
 - become 400 kB with level 1 in 10ms
 - become 320 kB with level 9 in 100ms
 
+#### Inherited from
+
+[ZlibOptions](ZlibOptions.md).[level](ZlibOptions.md#level)
+
 ___
 
 ### mem
 
-• `Optional` **mem**: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9 \| 10 \| 11 \| 12
-
-*Inherited from [DeflateOptions](deflateoptions.md).[mem](deflateoptions.md#mem)*
+• `Optional` **mem**: ``0`` \| ``2`` \| ``1`` \| ``3`` \| ``4`` \| ``8`` \| ``5`` \| ``6`` \| ``10`` \| ``7`` \| ``12`` \| ``9`` \| ``11``
 
 The memory level to use, ranging from 0-12. Increasing this increases speed and compression ratio at the cost of memory.
 
@@ -84,3 +88,7 @@ It is recommended not to lower the value below 4, since that tends to hurt perfo
 In addition, values above 8 tend to help very little on most data and can even hurt performance.
 
 The default value is automatically determined based on the size of the input data.
+
+#### Inherited from
+
+[ZlibOptions](ZlibOptions.md).[mem](ZlibOptions.md#mem)

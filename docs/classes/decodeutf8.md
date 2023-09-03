@@ -2,45 +2,39 @@
 
 Streaming UTF-8 decoding
 
-## Hierarchy
-
-* **DecodeUTF8**
-
-## Index
+## Table of contents
 
 ### Constructors
 
-* [constructor](decodeutf8.md#constructor)
+- [constructor](DecodeUTF8.md#constructor)
 
 ### Properties
 
-* [ondata](decodeutf8.md#ondata)
+- [ondata](DecodeUTF8.md#ondata)
 
 ### Methods
 
-* [push](decodeutf8.md#push)
+- [push](DecodeUTF8.md#push)
 
 ## Constructors
 
 ### constructor
 
-\+ **new DecodeUTF8**(`cb?`: [StringStreamHandler](../README.md#stringstreamhandler)): [DecodeUTF8](decodeutf8.md)
+• **new DecodeUTF8**(`cb?`)
 
 Creates a UTF-8 decoding stream
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`cb?` | [StringStreamHandler](../README.md#stringstreamhandler) | The callback to call whenever data is decoded  |
-
-**Returns:** [DecodeUTF8](decodeutf8.md)
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `cb?` | [`StringStreamHandler`](../README.md#stringstreamhandler) | The callback to call whenever data is decoded |
 
 ## Properties
 
 ### ondata
 
-•  **ondata**: [StringStreamHandler](../README.md#stringstreamhandler)
+• **ondata**: [`StringStreamHandler`](../README.md#stringstreamhandler)
 
 The handler to call whenever data is available
 
@@ -48,15 +42,17 @@ The handler to call whenever data is available
 
 ### push
 
-▸ **push**(`chunk`: Uint8Array, `final?`: boolean): void
+▸ **push**(`chunk`, `final?`): `void`
 
 Pushes a chunk to be decoded from UTF-8 binary
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`chunk` | Uint8Array | The chunk to push |
-`final?` | boolean | Whether this is the last chunk  |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `chunk` | `Uint8Array` | The chunk to push |
+| `final?` | `boolean` | Whether this is the last chunk |
 
-**Returns:** void
+#### Returns
+
+`void`

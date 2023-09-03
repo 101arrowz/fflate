@@ -27,7 +27,7 @@ const readRecurse = (dir: FileSystemDirectoryEntry, onComplete: (files: File[]) 
     } else reader.readEntries(onRead, onError);
     for (const entry of entries) {
       ++total;
-      if (entry.isFile) entry.file(f => onDone([
+      if (entry.isFile) (entry as FileSystemFileEntry).file(f => onDone([
         new File([f], entry.fullPath.slice(1), f)
       ]), onErr);
       else readRecurse(entry as FileSystemDirectoryEntry, onDone, onErr);
@@ -77,8 +77,8 @@ const FilePicker: FC<{
             if (!--lft && !errored) onFiles(outFiles);
           };
           for (let i = 0; i < tf.items.length; ++i) {
-            const entry = tf.items[i].webkitGetAsEntry();
-            if (entry.isFile) entry.file(f => onDone([f]), onErr);
+            const entry = tf.items[i].webkitGetAsEntry()!;
+            if (entry.isFile) (entry as FileSystemFileEntry).file(f => onDone([f]), onErr);
             else readRecurse(entry as FileSystemDirectoryEntry, onDone, onErr);
           }
         } else onFiles(Array.prototype.slice.call(tf.files));

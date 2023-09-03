@@ -4,29 +4,29 @@ Options for compressing data into a DEFLATE format
 
 ## Hierarchy
 
-* **DeflateOptions**
+- **`DeflateOptions`**
 
-  ↳ [GzipOptions](gzipoptions.md)
+  ↳ [`GzipOptions`](GzipOptions.md)
 
-  ↳ [ZlibOptions](zliboptions.md)
+  ↳ [`ZlibOptions`](ZlibOptions.md)
 
-  ↳ [AsyncDeflateOptions](asyncdeflateoptions.md)
+  ↳ [`AsyncDeflateOptions`](AsyncDeflateOptions.md)
 
-  ↳ [ZipOptions](zipoptions.md)
+  ↳ [`ZipOptions`](ZipOptions.md)
 
-## Index
+## Table of contents
 
 ### Properties
 
-* [dictionary](deflateoptions.md#dictionary)
-* [level](deflateoptions.md#level)
-* [mem](deflateoptions.md#mem)
+- [dictionary](DeflateOptions.md#dictionary)
+- [level](DeflateOptions.md#level)
+- [mem](DeflateOptions.md#mem)
 
 ## Properties
 
 ### dictionary
 
-• `Optional` **dictionary**: Uint8Array
+• `Optional` **dictionary**: `Uint8Array`
 
 A buffer containing common byte sequences in the input data that can be used to significantly improve compression ratios.
 
@@ -41,7 +41,7 @@ ___
 
 ### level
 
-• `Optional` **level**: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9
+• `Optional` **level**: ``0`` \| ``2`` \| ``1`` \| ``3`` \| ``4`` \| ``8`` \| ``5`` \| ``6`` \| ``7`` \| ``9``
 
 The level of compression to use, ranging from 0-9.
 
@@ -61,7 +61,7 @@ ___
 
 ### mem
 
-• `Optional` **mem**: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9 \| 10 \| 11 \| 12
+• `Optional` **mem**: ``0`` \| ``2`` \| ``1`` \| ``3`` \| ``4`` \| ``8`` \| ``5`` \| ``6`` \| ``10`` \| ``7`` \| ``12`` \| ``9`` \| ``11``
 
 The memory level to use, ranging from 0-12. Increasing this increases speed and compression ratio at the cost of memory.
 

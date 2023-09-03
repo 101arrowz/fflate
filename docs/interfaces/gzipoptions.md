@@ -4,29 +4,27 @@ Options for compressing data into a GZIP format
 
 ## Hierarchy
 
-* [DeflateOptions](deflateoptions.md)
+- [`DeflateOptions`](DeflateOptions.md)
 
-  ↳ **GzipOptions**
+  ↳ **`GzipOptions`**
 
-  ↳↳ [AsyncGzipOptions](asyncgzipoptions.md)
+  ↳↳ [`AsyncGzipOptions`](AsyncGzipOptions.md)
 
-## Index
+## Table of contents
 
 ### Properties
 
-* [dictionary](gzipoptions.md#dictionary)
-* [filename](gzipoptions.md#filename)
-* [level](gzipoptions.md#level)
-* [mem](gzipoptions.md#mem)
-* [mtime](gzipoptions.md#mtime)
+- [dictionary](GzipOptions.md#dictionary)
+- [filename](GzipOptions.md#filename)
+- [level](GzipOptions.md#level)
+- [mem](GzipOptions.md#mem)
+- [mtime](GzipOptions.md#mtime)
 
 ## Properties
 
 ### dictionary
 
-• `Optional` **dictionary**: Uint8Array
-
-*Inherited from [DeflateOptions](deflateoptions.md).[dictionary](deflateoptions.md#dictionary)*
+• `Optional` **dictionary**: `Uint8Array`
 
 A buffer containing common byte sequences in the input data that can be used to significantly improve compression ratios.
 
@@ -37,11 +35,15 @@ Dictionaries only improve aggregate compression ratio when reused across multipl
 
 Avoid using dictionaries with GZIP and ZIP to maximize software compatibility.
 
+#### Inherited from
+
+[DeflateOptions](DeflateOptions.md).[dictionary](DeflateOptions.md#dictionary)
+
 ___
 
 ### filename
 
-• `Optional` **filename**: string
+• `Optional` **filename**: `string`
 
 The filename of the data. If the `gunzip` command is used to decompress the data, it will output a file
 with this name instead of the name of the compressed file.
@@ -50,9 +52,7 @@ ___
 
 ### level
 
-• `Optional` **level**: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9
-
-*Inherited from [DeflateOptions](deflateoptions.md).[level](deflateoptions.md#level)*
+• `Optional` **level**: ``0`` \| ``2`` \| ``1`` \| ``3`` \| ``4`` \| ``8`` \| ``5`` \| ``6`` \| ``7`` \| ``9``
 
 The level of compression to use, ranging from 0-9.
 
@@ -68,13 +68,15 @@ For example, a 1 MB text file could:
 - become 400 kB with level 1 in 10ms
 - become 320 kB with level 9 in 100ms
 
+#### Inherited from
+
+[DeflateOptions](DeflateOptions.md).[level](DeflateOptions.md#level)
+
 ___
 
 ### mem
 
-• `Optional` **mem**: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9 \| 10 \| 11 \| 12
-
-*Inherited from [DeflateOptions](deflateoptions.md).[mem](deflateoptions.md#mem)*
+• `Optional` **mem**: ``0`` \| ``2`` \| ``1`` \| ``3`` \| ``4`` \| ``8`` \| ``5`` \| ``6`` \| ``10`` \| ``7`` \| ``12`` \| ``9`` \| ``11``
 
 The memory level to use, ranging from 0-12. Increasing this increases speed and compression ratio at the cost of memory.
 
@@ -84,11 +86,15 @@ In addition, values above 8 tend to help very little on most data and can even h
 
 The default value is automatically determined based on the size of the input data.
 
+#### Inherited from
+
+[DeflateOptions](DeflateOptions.md).[mem](DeflateOptions.md#mem)
+
 ___
 
 ### mtime
 
-• `Optional` **mtime**: Date \| string \| number
+• `Optional` **mtime**: `string` \| `number` \| `Date`
 
 When the file was last modified. Defaults to the current time.
 Set this to 0 to avoid revealing a modification date entirely.

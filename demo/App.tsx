@@ -71,7 +71,7 @@ const App: FC = () => {
           marginBottom: '2vh'
         }}>
           <FilePicker allowDirs onFiles={setFiles} onError={setErr} onDrag={() => {}}>
-            {err && <div style={{ color: 'red' }}>Error: {err}</div>}
+            {err && <div style={{ color: 'red' }}>Error: {err.toString()}</div>}
             <div>{files ? ((files.length || 'No') + ' file' + (files.length == 1 ? '' : 's') + ' selected') : 'Loading...'}</div>
             <br />
           </FilePicker>

@@ -2,59 +2,51 @@
 
 Asynchronous streaming DEFLATE compression
 
-## Hierarchy
-
-* **AsyncDeflate**
-
-## Index
+## Table of contents
 
 ### Constructors
 
-* [constructor](asyncdeflate.md#constructor)
+- [constructor](AsyncDeflate.md#constructor)
 
 ### Properties
 
-* [ondata](asyncdeflate.md#ondata)
-* [terminate](asyncdeflate.md#terminate)
+- [ondata](AsyncDeflate.md#ondata)
+- [terminate](AsyncDeflate.md#terminate)
 
 ### Methods
 
-* [push](asyncdeflate.md#push)
+- [push](AsyncDeflate.md#push)
 
 ## Constructors
 
 ### constructor
 
-\+ **new AsyncDeflate**(`opts`: [DeflateOptions](../interfaces/deflateoptions.md), `cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncDeflate](asyncdeflate.md)
+• **new AsyncDeflate**(`opts`, `cb?`)
 
 Creates an asynchronous DEFLATE stream
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`opts` | [DeflateOptions](../interfaces/deflateoptions.md) | The compression options |
-`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated  |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `opts` | [`DeflateOptions`](../interfaces/DeflateOptions.md) | The compression options |
+| `cb?` | [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated |
 
-**Returns:** [AsyncDeflate](asyncdeflate.md)
-
-\+ **new AsyncDeflate**(`cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncDeflate](asyncdeflate.md)
+• **new AsyncDeflate**(`cb?`)
 
 Creates an asynchronous DEFLATE stream
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated  |
-
-**Returns:** [AsyncDeflate](asyncdeflate.md)
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `cb?` | [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated |
 
 ## Properties
 
 ### ondata
 
-•  **ondata**: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)
+• **ondata**: [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler)
 
 The handler to call whenever data is available
 
@@ -62,7 +54,7 @@ ___
 
 ### terminate
 
-•  **terminate**: [AsyncTerminable](../interfaces/asyncterminable.md)
+• **terminate**: [`AsyncTerminable`](../interfaces/AsyncTerminable.md)
 
 A method to terminate the stream's internal worker. Subsequent calls to
 push() will silently fail.
@@ -71,15 +63,17 @@ push() will silently fail.
 
 ### push
 
-▸ **push**(`chunk`: Uint8Array, `final?`: boolean): void
+▸ **push**(`chunk`, `final?`): `void`
 
 Pushes a chunk to be deflated
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`chunk` | Uint8Array | The chunk to push |
-`final?` | boolean | Whether this is the last chunk  |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `chunk` | `Uint8Array` | The chunk to push |
+| `final?` | `boolean` | Whether this is the last chunk |
 
-**Returns:** void
+#### Returns
+
+`void`

@@ -1,15 +1,15 @@
-import * as createGit from 'simple-git/promise';
+import { simpleGit } from 'simple-git';
 import { resolve, join } from 'path';
 import { copyFileSync, readdirSync, statSync, unlinkSync } from 'fs';
 
 const baseDir = resolve(__dirname, '..');
 const to = (...paths: string[]) => join(baseDir, ...paths);
-const git = createGit();
+const git = simpleGit();
 git.log({
   from: 'HEAD~1',
   to: 'HEAD'
 }).then(async log => {
-  const hash = log.latest.hash.slice(0, 7);
+  const hash = log.latest!.hash.slice(0, 7);
   await git.checkout('gh-pages');
   for (const f of readdirSync(to('.'))) {
     if (statSync(f).isFile())

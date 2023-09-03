@@ -1,98 +1,61 @@
 # Class: AsyncGzip
 
 Asynchronous streaming GZIP compression
-Asynchronous streaming GZIP compression
 
-## Hierarchy
-
-* **AsyncGzip**
-
-## Index
+## Table of contents
 
 ### Constructors
 
-* [constructor](asyncgzip.md#constructor)
+- [constructor](AsyncGzip.md#constructor)
 
 ### Properties
 
-* [ondata](asyncgzip.md#ondata)
-* [terminate](asyncgzip.md#terminate)
+- [ondata](AsyncGzip.md#ondata)
+- [terminate](AsyncGzip.md#terminate)
 
 ### Methods
 
-* [push](asyncgzip.md#push)
+- [push](AsyncGzip.md#push)
 
 ## Constructors
 
 ### constructor
 
-\+ **new AsyncGzip**(`opts`: [GzipOptions](../interfaces/gzipoptions.md), `cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncGzip](asyncgzip.md)
+• **new AsyncGzip**(`opts`, `cb?`)
 
 Creates an asynchronous GZIP stream
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`opts` | [GzipOptions](../interfaces/gzipoptions.md) | The compression options |
-`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated  |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `opts` | [`GzipOptions`](../interfaces/GzipOptions.md) | The compression options |
+| `cb?` | [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated |
 
-**Returns:** [AsyncGzip](asyncgzip.md)
-
-\+ **new AsyncGzip**(`cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncGzip](asyncgzip.md)
+• **new AsyncGzip**(`cb?`)
 
 Creates an asynchronous GZIP stream
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated  |
-
-**Returns:** [AsyncGzip](asyncgzip.md)
-
-\+ **new AsyncGzip**(`opts`: [GzipOptions](../interfaces/gzipoptions.md), `cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncGzip](asyncgzip.md)
-
-Creates an asynchronous GZIP stream
-
-#### Parameters:
-
-Name | Type | Description |
------- | ------ | ------ |
-`opts` | [GzipOptions](../interfaces/gzipoptions.md) | The compression options |
-`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated  |
-
-**Returns:** [AsyncGzip](asyncgzip.md)
-
-\+ **new AsyncGzip**(`cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [AsyncGzip](asyncgzip.md)
-
-Creates an asynchronous GZIP stream
-
-#### Parameters:
-
-Name | Type | Description |
------- | ------ | ------ |
-`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated  |
-
-**Returns:** [AsyncGzip](asyncgzip.md)
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `cb?` | [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler) | The callback to call whenever data is deflated |
 
 ## Properties
 
 ### ondata
 
-•  **ondata**: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)
+• **ondata**: [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler)
 
-The handler to call whenever data is available
 The handler to call whenever data is available
 
 ___
 
 ### terminate
 
-•  **terminate**: [AsyncTerminable](../interfaces/asyncterminable.md)
+• **terminate**: [`AsyncTerminable`](../interfaces/AsyncTerminable.md)
 
-A method to terminate the stream's internal worker. Subsequent calls to
-push() will silently fail.
 A method to terminate the stream's internal worker. Subsequent calls to
 push() will silently fail.
 
@@ -100,28 +63,17 @@ push() will silently fail.
 
 ### push
 
-▸ **push**(`chunk`: Uint8Array, `final?`: boolean): void
+▸ **push**(`chunk`, `final?`): `void`
 
 Pushes a chunk to be GZIPped
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`chunk` | Uint8Array | The chunk to push |
-`final?` | boolean | Whether this is the last chunk  |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `chunk` | `Uint8Array` | The chunk to push |
+| `final?` | `boolean` | Whether this is the last chunk |
 
-**Returns:** void
+#### Returns
 
-▸ **push**(`chunk`: Uint8Array, `final?`: boolean): void
-
-Pushes a chunk to be GZIPped
-
-#### Parameters:
-
-Name | Type | Description |
------- | ------ | ------ |
-`chunk` | Uint8Array | The chunk to push |
-`final?` | boolean | Whether this is the last chunk  |
-
-**Returns:** void
+`void`

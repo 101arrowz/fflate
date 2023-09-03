@@ -543,7 +543,7 @@ The asynchronous APIs also use `Worker`, which is not supported in a few browser
 Other than that, `fflate` is completely ES3, meaning you probably won't even need a bundler to use it.
 
 ## Testing
-You can validate the performance of `fflate` with `npm`/`yarn`/`pnpm` `test`. It validates that the module is working as expected, ensures the outputs are no more than 5% larger than competitors at max compression, and outputs performance metrics to `test/results`.
+You can validate the performance of `fflate` with `npm test`. It validates that the module is working as expected, ensures the outputs are no more than 5% larger than competitors at max compression, and outputs performance metrics to `test/results`.
 
 Note that the time it takes for the CLI to show the completion of each test is not representative of the time each package took, so please check the JSON output if you want accurate measurements.
 

@@ -2,58 +2,50 @@
 
 Streaming GZIP, Zlib, or raw DEFLATE decompression
 
-## Hierarchy
-
-* **Decompress**
-
-## Index
+## Table of contents
 
 ### Constructors
 
-* [constructor](decompress.md#constructor)
+- [constructor](Decompress.md#constructor)
 
 ### Properties
 
-* [ondata](decompress.md#ondata)
+- [ondata](Decompress.md#ondata)
 
 ### Methods
 
-* [push](decompress.md#push)
+- [push](Decompress.md#push)
 
 ## Constructors
 
 ### constructor
 
-\+ **new Decompress**(`opts`: [InflateStreamOptions](../interfaces/inflatestreamoptions.md), `cb?`: [FlateStreamHandler](../README.md#flatestreamhandler)): [Decompress](decompress.md)
+• **new Decompress**(`opts`, `cb?`)
 
 Creates a decompression stream
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`opts` | [InflateStreamOptions](../interfaces/inflatestreamoptions.md) | The decompression options |
-`cb?` | [FlateStreamHandler](../README.md#flatestreamhandler) | The callback to call whenever data is decompressed  |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `opts` | [`InflateStreamOptions`](../interfaces/InflateStreamOptions.md) | The decompression options |
+| `cb?` | [`FlateStreamHandler`](../README.md#flatestreamhandler) | The callback to call whenever data is decompressed |
 
-**Returns:** [Decompress](decompress.md)
-
-\+ **new Decompress**(`cb?`: [FlateStreamHandler](../README.md#flatestreamhandler)): [Decompress](decompress.md)
+• **new Decompress**(`cb?`)
 
 Creates a decompression stream
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`cb?` | [FlateStreamHandler](../README.md#flatestreamhandler) | The callback to call whenever data is decompressed  |
-
-**Returns:** [Decompress](decompress.md)
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `cb?` | [`FlateStreamHandler`](../README.md#flatestreamhandler) | The callback to call whenever data is decompressed |
 
 ## Properties
 
 ### ondata
 
-•  **ondata**: [FlateStreamHandler](../README.md#flatestreamhandler)
+• **ondata**: [`FlateStreamHandler`](../README.md#flatestreamhandler)
 
 The handler to call whenever data is available
 
@@ -61,15 +53,17 @@ The handler to call whenever data is available
 
 ### push
 
-▸ **push**(`chunk`: Uint8Array, `final?`: boolean): void
+▸ **push**(`chunk`, `final?`): `void`
 
 Pushes a chunk to be decompressed
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`chunk` | Uint8Array | The chunk to push |
-`final?` | boolean | Whether this is the last chunk  |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `chunk` | `Uint8Array` | The chunk to push |
+| `final?` | `boolean` | Whether this is the last chunk |
 
-**Returns:** void
+#### Returns
+
+`void`

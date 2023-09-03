@@ -2,43 +2,37 @@
 
 A constructor for a decoder for unzip streams
 
-## Hierarchy
-
-* **UnzipDecoderConstructor**
-
-## Index
+## Table of contents
 
 ### Constructors
 
-* [constructor](unzipdecoderconstructor.md#constructor)
+- [constructor](UnzipDecoderConstructor.md#constructor)
 
 ### Properties
 
-* [compression](unzipdecoderconstructor.md#compression)
+- [compression](UnzipDecoderConstructor.md#compression)
 
 ## Constructors
 
 ### constructor
 
-\+ **new UnzipDecoderConstructor**(`filename`: string, `size?`: number, `originalSize?`: number): [UnzipDecoder](unzipdecoder.md)
+• **new UnzipDecoderConstructor**(`filename`, `size?`, `originalSize?`)
 
 Creates an instance of the decoder
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`filename` | string | The name of the file |
-`size?` | number | The compressed size of the file |
-`originalSize?` | number | The original size of the file  |
-
-**Returns:** [UnzipDecoder](unzipdecoder.md)
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `filename` | `string` | The name of the file |
+| `size?` | `number` | The compressed size of the file |
+| `originalSize?` | `number` | The original size of the file |
 
 ## Properties
 
 ### compression
 
-•  **compression**: number
+• **compression**: `number`
 
 The compression format for the data stream. This number is determined by
 the spec in PKZIP's APPNOTE.txt, section 4.4.5. For example, 0 = no

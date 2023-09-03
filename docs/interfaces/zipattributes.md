@@ -4,29 +4,29 @@ Attributes for files added to a ZIP archive object
 
 ## Hierarchy
 
-* **ZipAttributes**
+- **`ZipAttributes`**
 
-  ↳ [ZipOptions](zipoptions.md)
+  ↳ [`ZipOptions`](ZipOptions.md)
 
-  ↳ [AsyncZipOptions](asynczipoptions.md)
+  ↳ [`AsyncZipOptions`](AsyncZipOptions.md)
 
-  ↳ [ZipInputFile](zipinputfile.md)
+  ↳ [`ZipInputFile`](ZipInputFile.md)
 
-## Index
+## Table of contents
 
 ### Properties
 
-* [attrs](zipattributes.md#attrs)
-* [comment](zipattributes.md#comment)
-* [extra](zipattributes.md#extra)
-* [mtime](zipattributes.md#mtime)
-* [os](zipattributes.md#os)
+- [attrs](ZipAttributes.md#attrs)
+- [comment](ZipAttributes.md#comment)
+- [extra](ZipAttributes.md#extra)
+- [mtime](ZipAttributes.md#mtime)
+- [os](ZipAttributes.md#os)
 
 ## Properties
 
 ### attrs
 
-• `Optional` **attrs**: number
+• `Optional` **attrs**: `number`
 
 The file's attributes. These are traditionally somewhat complicated
 and platform-dependent, so using them is scarcely necessary. However,
@@ -52,7 +52,7 @@ ___
 
 ### comment
 
-• `Optional` **comment**: string
+• `Optional` **comment**: `string`
 
 The comment to attach to the file. This field is defined by PKZIP's APPNOTE.txt,
 section 4.4.26. The comment must be at most 65,535 bytes long UTF-8 encoded. This
@@ -62,7 +62,7 @@ ___
 
 ### extra
 
-• `Optional` **extra**: Record\<number, Uint8Array>
+• `Optional` **extra**: `Record`<`number`, `Uint8Array`\>
 
 Extra metadata to add to the file. This field is defined by PKZIP's APPNOTE.txt,
 section 4.4.28. At most 65,535 bytes may be used in each ID. The ID must be an
@@ -75,7 +75,7 @@ ___
 
 ### mtime
 
-• `Optional` **mtime**: GzipOptions[\"mtime\"]
+• `Optional` **mtime**: `string` \| `number` \| `Date`
 
 When the file was last modified. Defaults to the current time.
 
@@ -83,7 +83,7 @@ ___
 
 ### os
 
-• `Optional` **os**: number
+• `Optional` **os**: `number`
 
 The operating system of origin for this file. The value is defined
 by PKZIP's APPNOTE.txt, section 4.4.2.2. For example, 0 (the default)

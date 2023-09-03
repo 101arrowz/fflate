@@ -2,58 +2,50 @@
 
 Streaming DEFLATE compression
 
-## Hierarchy
-
-* **Deflate**
-
-## Index
+## Table of contents
 
 ### Constructors
 
-* [constructor](deflate.md#constructor)
+- [constructor](Deflate.md#constructor)
 
 ### Properties
 
-* [ondata](deflate.md#ondata)
+- [ondata](Deflate.md#ondata)
 
 ### Methods
 
-* [push](deflate.md#push)
+- [push](Deflate.md#push)
 
 ## Constructors
 
 ### constructor
 
-\+ **new Deflate**(`opts`: [DeflateOptions](../interfaces/deflateoptions.md), `cb?`: [FlateStreamHandler](../README.md#flatestreamhandler)): [Deflate](deflate.md)
+• **new Deflate**(`opts`, `cb?`)
 
 Creates a DEFLATE stream
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`opts` | [DeflateOptions](../interfaces/deflateoptions.md) | The compression options |
-`cb?` | [FlateStreamHandler](../README.md#flatestreamhandler) | The callback to call whenever data is deflated  |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `opts` | [`DeflateOptions`](../interfaces/DeflateOptions.md) | The compression options |
+| `cb?` | [`FlateStreamHandler`](../README.md#flatestreamhandler) | The callback to call whenever data is deflated |
 
-**Returns:** [Deflate](deflate.md)
-
-\+ **new Deflate**(`cb?`: [FlateStreamHandler](../README.md#flatestreamhandler)): [Deflate](deflate.md)
+• **new Deflate**(`cb?`)
 
 Creates a DEFLATE stream
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`cb?` | [FlateStreamHandler](../README.md#flatestreamhandler) | The callback to call whenever data is deflated  |
-
-**Returns:** [Deflate](deflate.md)
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `cb?` | [`FlateStreamHandler`](../README.md#flatestreamhandler) | The callback to call whenever data is deflated |
 
 ## Properties
 
 ### ondata
 
-•  **ondata**: [FlateStreamHandler](../README.md#flatestreamhandler)
+• **ondata**: [`FlateStreamHandler`](../README.md#flatestreamhandler)
 
 The handler to call whenever data is available
 
@@ -61,15 +53,17 @@ The handler to call whenever data is available
 
 ### push
 
-▸ **push**(`chunk`: Uint8Array, `final?`: boolean): void
+▸ **push**(`chunk`, `final?`): `void`
 
 Pushes a chunk to be deflated
 
-#### Parameters:
+#### Parameters
 
-Name | Type | Description |
------- | ------ | ------ |
-`chunk` | Uint8Array | The chunk to push |
-`final?` | boolean | Whether this is the last chunk  |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `chunk` | `Uint8Array` | The chunk to push |
+| `final?` | `boolean` | Whether this is the last chunk |
 
-**Returns:** void
+#### Returns
+
+`void`

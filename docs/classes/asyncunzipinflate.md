@@ -2,82 +2,91 @@
 
 Asynchronous streaming DEFLATE decompression for ZIP archives
 
-## Hierarchy
-
-* **AsyncUnzipInflate**
-
 ## Implements
 
-* [UnzipDecoder](../interfaces/unzipdecoder.md)
+- [`UnzipDecoder`](../interfaces/UnzipDecoder.md)
 
-## Index
+## Table of contents
 
 ### Constructors
 
-* [constructor](asyncunzipinflate.md#constructor)
+- [constructor](AsyncUnzipInflate.md#constructor)
 
 ### Properties
 
-* [ondata](asyncunzipinflate.md#ondata)
-* [terminate](asyncunzipinflate.md#terminate)
-* [compression](asyncunzipinflate.md#compression)
+- [ondata](AsyncUnzipInflate.md#ondata)
+- [terminate](AsyncUnzipInflate.md#terminate)
+- [compression](AsyncUnzipInflate.md#compression)
 
 ### Methods
 
-* [push](asyncunzipinflate.md#push)
+- [push](AsyncUnzipInflate.md#push)
 
 ## Constructors
 
 ### constructor
 
-\+ **new AsyncUnzipInflate**(`_`: string, `sz?`: number): [AsyncUnzipInflate](asyncunzipinflate.md)
+• **new AsyncUnzipInflate**(`_`, `sz?`)
 
 Creates a DEFLATE decompression that can be used in ZIP archives
 
-#### Parameters:
+#### Parameters
 
-Name | Type |
------- | ------ |
-`_` | string |
-`sz?` | number |
-
-**Returns:** [AsyncUnzipInflate](asyncunzipinflate.md)
+| Name | Type |
+| :------ | :------ |
+| `_` | `string` |
+| `sz?` | `number` |
 
 ## Properties
 
 ### ondata
 
-•  **ondata**: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)
+• **ondata**: [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler)
 
-*Implementation of [UnzipDecoder](../interfaces/unzipdecoder.md).[ondata](../interfaces/unzipdecoder.md#ondata)*
+The handler to call whenever data is available
+
+#### Implementation of
+
+[UnzipDecoder](../interfaces/UnzipDecoder.md).[ondata](../interfaces/UnzipDecoder.md#ondata)
 
 ___
 
 ### terminate
 
-•  **terminate**: [AsyncTerminable](../interfaces/asyncterminable.md)
+• **terminate**: [`AsyncTerminable`](../interfaces/AsyncTerminable.md)
 
-*Implementation of [UnzipDecoder](../interfaces/unzipdecoder.md).[terminate](../interfaces/unzipdecoder.md#terminate)*
+A method to terminate any internal workers used by the stream. Subsequent
+calls to push() should silently fail.
+
+#### Implementation of
+
+[UnzipDecoder](../interfaces/UnzipDecoder.md).[terminate](../interfaces/UnzipDecoder.md#terminate)
 
 ___
 
 ### compression
 
-▪ `Static` **compression**: number = 8
+▪ `Static` **compression**: `number` = `8`
 
 ## Methods
 
 ### push
 
-▸ **push**(`data`: Uint8Array, `final`: boolean): void
+▸ **push**(`data`, `final`): `void`
 
-*Implementation of [UnzipDecoder](../interfaces/unzipdecoder.md)*
+Pushes a chunk to be decompressed
 
-#### Parameters:
+#### Parameters
 
-Name | Type |
------- | ------ |
-`data` | Uint8Array |
-`final` | boolean |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `data` | `Uint8Array` | The data in this chunk. Do not consume (detach) this data. |
+| `final` | `boolean` | Whether this is the last chunk in the data stream |
 
-**Returns:** void
+#### Returns
+
+`void`
+
+#### Implementation of
+
+[UnzipDecoder](../interfaces/UnzipDecoder.md).[push](../interfaces/UnzipDecoder.md#push)

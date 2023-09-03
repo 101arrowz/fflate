@@ -4,34 +4,36 @@ Options for decompressing GZIP data
 
 ## Hierarchy
 
-* [InflateStreamOptions](inflatestreamoptions.md)
+- [`InflateStreamOptions`](InflateStreamOptions.md)
 
-  ↳ **GunzipOptions**
+  ↳ **`GunzipOptions`**
 
-## Index
+## Table of contents
 
 ### Properties
 
-* [dictionary](gunzipoptions.md#dictionary)
-* [out](gunzipoptions.md#out)
+- [dictionary](GunzipOptions.md#dictionary)
+- [out](GunzipOptions.md#out)
 
 ## Properties
 
 ### dictionary
 
-• `Optional` **dictionary**: Uint8Array
-
-*Inherited from [InflateStreamOptions](inflatestreamoptions.md).[dictionary](inflatestreamoptions.md#dictionary)*
+• `Optional` **dictionary**: `Uint8Array`
 
 The dictionary used to compress the original data. If no dictionary was used during compression, this option has no effect.
 
 Supplying the wrong dictionary during decompression usually yields corrupt output or causes an invalid distance error.
 
+#### Inherited from
+
+[InflateStreamOptions](InflateStreamOptions.md).[dictionary](InflateStreamOptions.md#dictionary)
+
 ___
 
 ### out
 
-• `Optional` **out**: Uint8Array
+• `Optional` **out**: `Uint8Array`
 
 The buffer into which to write the decompressed data. GZIP already encodes the output size, so providing this doesn't save memory.
 

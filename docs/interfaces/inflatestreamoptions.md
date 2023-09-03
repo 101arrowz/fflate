@@ -4,31 +4,31 @@ Options for decompressing a DEFLATE stream
 
 ## Hierarchy
 
-* **InflateStreamOptions**
+- **`InflateStreamOptions`**
 
-  ↳ [InflateOptions](inflateoptions.md)
+  ↳ [`InflateOptions`](InflateOptions.md)
 
-  ↳ [GunzipStreamOptions](gunzipstreamoptions.md)
+  ↳ [`GunzipStreamOptions`](GunzipStreamOptions.md)
 
-  ↳ [GunzipOptions](gunzipoptions.md)
+  ↳ [`GunzipOptions`](GunzipOptions.md)
 
-  ↳ [UnzlibStreamOptions](unzlibstreamoptions.md)
+  ↳ [`UnzlibStreamOptions`](UnzlibStreamOptions.md)
 
-  ↳ [AsyncInflateOptions](asyncinflateoptions.md)
+  ↳ [`AsyncInflateOptions`](AsyncInflateOptions.md)
 
-  ↳ [AsyncGunzipOptions](asyncgunzipoptions.md)
+  ↳ [`AsyncGunzipOptions`](AsyncGunzipOptions.md)
 
-## Index
+## Table of contents
 
 ### Properties
 
-* [dictionary](inflatestreamoptions.md#dictionary)
+- [dictionary](InflateStreamOptions.md#dictionary)
 
 ## Properties
 
 ### dictionary
 
-• `Optional` **dictionary**: Uint8Array
+• `Optional` **dictionary**: `Uint8Array`
 
 The dictionary used to compress the original data. If no dictionary was used during compression, this option has no effect.
 

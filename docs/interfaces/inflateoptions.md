@@ -4,36 +4,38 @@ Options for decompressing DEFLATE data
 
 ## Hierarchy
 
-* [InflateStreamOptions](inflatestreamoptions.md)
+- [`InflateStreamOptions`](InflateStreamOptions.md)
 
-  ↳ **InflateOptions**
+  ↳ **`InflateOptions`**
 
-  ↳↳ [UnzlibOptions](unzliboptions.md)
+  ↳↳ [`UnzlibOptions`](UnzlibOptions.md)
 
-## Index
+## Table of contents
 
 ### Properties
 
-* [dictionary](inflateoptions.md#dictionary)
-* [out](inflateoptions.md#out)
+- [dictionary](InflateOptions.md#dictionary)
+- [out](InflateOptions.md#out)
 
 ## Properties
 
 ### dictionary
 
-• `Optional` **dictionary**: Uint8Array
-
-*Inherited from [InflateStreamOptions](inflatestreamoptions.md).[dictionary](inflatestreamoptions.md#dictionary)*
+• `Optional` **dictionary**: `Uint8Array`
 
 The dictionary used to compress the original data. If no dictionary was used during compression, this option has no effect.
 
 Supplying the wrong dictionary during decompression usually yields corrupt output or causes an invalid distance error.
 
+#### Inherited from
+
+[InflateStreamOptions](InflateStreamOptions.md).[dictionary](InflateStreamOptions.md#dictionary)
+
 ___
 
 ### out
 
-• `Optional` **out**: Uint8Array
+• `Optional` **out**: `Uint8Array`
 
 The buffer into which to write the decompressed data. Saves memory if you know the decompressed size in advance.
 

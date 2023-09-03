@@ -2,52 +2,68 @@
 
 Streaming pass-through decompression for ZIP archives
 
-## Hierarchy
-
-* **UnzipPassThrough**
-
 ## Implements
 
-* [UnzipDecoder](../interfaces/unzipdecoder.md)
+- [`UnzipDecoder`](../interfaces/UnzipDecoder.md)
 
-## Index
+## Table of contents
+
+### Constructors
+
+- [constructor](UnzipPassThrough.md#constructor)
 
 ### Properties
 
-* [ondata](unzippassthrough.md#ondata)
-* [compression](unzippassthrough.md#compression)
+- [ondata](UnzipPassThrough.md#ondata)
+- [compression](UnzipPassThrough.md#compression)
 
 ### Methods
 
-* [push](unzippassthrough.md#push)
+- [push](UnzipPassThrough.md#push)
+
+## Constructors
+
+### constructor
+
+• **new UnzipPassThrough**()
 
 ## Properties
 
 ### ondata
 
-•  **ondata**: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)
+• **ondata**: [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler)
 
-*Implementation of [UnzipDecoder](../interfaces/unzipdecoder.md).[ondata](../interfaces/unzipdecoder.md#ondata)*
+The handler to call whenever data is available
+
+#### Implementation of
+
+[UnzipDecoder](../interfaces/UnzipDecoder.md).[ondata](../interfaces/UnzipDecoder.md#ondata)
 
 ___
 
 ### compression
 
-▪ `Static` **compression**: number = 0
+▪ `Static` **compression**: `number` = `0`
 
 ## Methods
 
 ### push
 
-▸ **push**(`data`: Uint8Array, `final`: boolean): void
+▸ **push**(`data`, `final`): `void`
 
-*Implementation of [UnzipDecoder](../interfaces/unzipdecoder.md)*
+Pushes a chunk to be decompressed
 
-#### Parameters:
+#### Parameters
 
-Name | Type |
------- | ------ |
-`data` | Uint8Array |
-`final` | boolean |
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `data` | `Uint8Array` | The data in this chunk. Do not consume (detach) this data. |
+| `final` | `boolean` | Whether this is the last chunk in the data stream |
 
-**Returns:** void
+#### Returns
+
+`void`
+
+#### Implementation of
+
+[UnzipDecoder](../interfaces/UnzipDecoder.md).[push](../interfaces/UnzipDecoder.md#push)

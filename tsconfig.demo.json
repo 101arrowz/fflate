@@ -2,6 +2,7 @@
   "compilerOptions": {
     "noEmit": true,
     "target": "ESNext",
+    "module": "ESNext",
     "jsx": "preserve",
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "node"

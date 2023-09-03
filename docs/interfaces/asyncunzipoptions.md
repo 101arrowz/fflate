@@ -4,22 +4,24 @@ Options for asynchronously expanding a ZIP archive
 
 ## Hierarchy
 
-* [UnzipOptions](unzipoptions.md)
+- [`UnzipOptions`](UnzipOptions.md)
 
-  ↳ **AsyncUnzipOptions**
+  ↳ **`AsyncUnzipOptions`**
 
-## Index
+## Table of contents
 
 ### Properties
 
-* [filter](asyncunzipoptions.md#filter)
+- [filter](AsyncUnzipOptions.md#filter)
 
 ## Properties
 
 ### filter
 
-• `Optional` **filter**: [UnzipFileFilter](../README.md#unzipfilefilter)
-
-*Inherited from [UnzipOptions](unzipoptions.md).[filter](unzipoptions.md#filter)*
+• `Optional` **filter**: [`UnzipFileFilter`](../README.md#unzipfilefilter)
 
 A filter function to extract only certain files from a ZIP archive
+
+#### Inherited from
+
+[UnzipOptions](UnzipOptions.md).[filter](UnzipOptions.md#filter)
