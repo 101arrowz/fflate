@@ -3,8 +3,8 @@
   "version": "0.8.0",
   "description": "High performance (de)compression in an 8kB package",
   "main": "./lib/index.cjs",
-  "module": "./esm/browser.mjs",
-  "types": "./lib/index.d.cts",
+  "module": "./esm/browser.js",
+  "types": "./lib/index.d.ts",
   "unpkg": "./umd/index.js",
   "jsdelivr": "./umd/index.js",
   "browser": {
@@ -13,19 +13,43 @@
   "exports": {
     ".": {
       "node": {
-        "import": "./esm/index.mjs",
-        "require": "./lib/node.cjs"
+        "import": {
+          "types": "./esm/index.d.mts",
+          "default": "./esm/index.mjs"
+        },
+        "require": {
+          "types": "./lib/node.d.cts",
+          "default": "./lib/node.cjs"
+        }
       },
-      "import": "./esm/browser.mjs",
-      "require": "./lib/index.cjs"
+      "import": {
+        "types": "./esm/browser.d.ts",
+        "default": "./esm/browser.js"
+      },
+      "require": {
+        "types": "./lib/browser.d.cts",
+        "default": "./lib/browser.cjs"
+      }
     },
     "./node": {
-      "import": "./esm/index.mjs",
-      "require": "./lib/node.cjs"
+      "import": {
+        "types": "./esm/index.d.mts",
+        "default": "./esm/index.mjs"
+      },
+      "require": {
+        "types": "./lib/node.d.cts",
+        "default": "./lib/node.cjs"
+      }
     },
     "./browser": {
-      "import": "./esm/browser.mjs",
-      "require": "./lib/browser.cjs"
+      "import": {
+        "types": "./esm/browser.d.ts",
+        "default": "./esm/browser.js"
+      },
+      "require": {
+        "types": "./lib/browser.d.cts",
+        "default": "./lib/browser.cjs"
+      }
     }
   },
   "targets": {
