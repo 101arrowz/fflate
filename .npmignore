@@ -1,6 +1,8 @@
-*/
-!esm/
-!lib/
-!umd/
-tsconfig*.json
-.parcelrc
+*
+!esm/**
+!lib/**
+!umd/**
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE
