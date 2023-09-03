@@ -531,9 +531,14 @@ Note that there exist some small libraries like [`tiny-inflate`](https://npmjs.c
 
 So what makes `fflate` different? It takes the brilliant innovations of `UZIP.js` and optimizes them while adding direct support for GZIP and Zlib data. And unlike all of the above libraries, it uses ES Modules to allow for partial builds through tree shaking, meaning that it can rival even `tiny-inflate` in size while maintaining excellent performance. The end result is a library that, in total, weighs 8kB minified for the core build (3kB for decompression only and 5kB for compression only), is about 15% faster than `UZIP.js` or up to 60% faster than `pako`, and achieves the same or better compression ratio than the rest.
 
-If you're willing to have 160 kB of extra weight and [much less browser support](https://caniuse.com/wasm), you could theoretically achieve more performance than `fflate` with a WASM build of Zlib like [`wasm-flate`](https://www.npmjs.com/package/wasm-flate). However, per some tests I conducted, the WASM interpreters of major browsers are not fast enough as of December 2020 for `wasm-flate` to be useful: `fflate` is around 2x faster.
-
 Before you decide that `fflate` is the end-all compression library, you should note that JavaScript simply cannot rival the performance of a native program. If you're only using Node.js, it's probably better to use the [native Zlib bindings](https://nodejs.org/api/zlib.html), which tend to offer the best performance. Though note that even against Zlib, `fflate` is only around 30% slower in decompression and 10% slower in compression, and can still achieve better compression ratios!
+
+## What about `CompressionStream`?
+Like `fflate`, the [Compression Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Compression_Streams_API) provides DEFLATE, GZIP, and Zlib compression and decompression support. It's a good option if you'd like to compress or decompress data without installing any third-party libraries, and it wraps native Zlib bindings to achieve better performance than what most JavaScript programs can achieve.
+
+However, browsers do not offer any native non-streaming compression API, and `CompressionStream` has surprisingly poor performance on data already loaded into memory; `fflate` tends to be faster even for files that are dozens of megabytes large. Similarly, `fflate` is much faster for files under a megabyte because it avoids marshalling overheads. Even when streaming hundreds of megabytes of data, the native API usually only performs between 5% slower and 10% faster than `fflate`. And Compression Streams have many other disadvantages - no ability to control compression level, poor support for older browsers, no ZIP support, etc.
+
+If you'd still prefer to depend upon a native browser API, you can use an `fflate`-based [Compression Streams ponyfill](https://github.com/101arrowz/compression-streams-polyfill) for a seamless transition to `CompressionStream` and `DecompressionStream` if ever they become substantially faster than `fflate`.
 
 ## Browser support
 `fflate` makes heavy use of typed arrays (`Uint8Array`, `Uint16Array`, etc.). Typed arrays can be polyfilled at the cost of performance, but the most recent browser that doesn't support them [is from 2011](https://caniuse.com/typedarrays), so I wouldn't bother.

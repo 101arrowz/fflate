@@ -199,18 +199,20 @@ for (var i = 0; i < files.length; ++i) {
 }`,
     pako: `var left = files.length;
 
-// Internally, this uses JSZip. Despite its clean API, it suffers from
-// abysmal performance and awful compression ratios, particularly in v3.2.0
-// and up.
-// If you choose JSZip, make sure to use v3.1.5 for adequate performance
-// (2-3x slower than fflate) instead of the latest version, which is 20-30x
-// slower than fflate.
+// Internally, this uses JSZip. This library used to be unusuably slow but
+// has recently improved. Still, it's 2-3x slower than fflate as of v3.10.1,
+// offers a convoluted API, and is several times larger in bundle size while
+// providing no useful features unavailable in similar ZIP libraries.
+
+// If you need a performant ZIP library with a wider API than fflate, try
+// @zip.js/zip.js instead. You can even use it
 
 var zipObj = pakoWorker.zip();
 var processFile = function(i) {
   var file = files[i];
   fileToU8(file, function(buf) {
-    // With JSZip, you cannot control the compression level of a file
+    // JSZip allows you to control per-file compression level. For this demo,
+    // the list of non-compressed files is the same as for fflate.
     zipObj.add(file.name, buf);
     if (!--left) {
       zipObj.ondata = function(err, out) {

@@ -47,6 +47,12 @@ const uzGzip = (d: Uint8Array) => {
   return concat([head, raw, tail]);
 }
 
+const ALREADY_COMPRESSED = [
+  'zip', 'gz', 'png', 'jpg', 'jpeg', 'pdf', 'doc', 'docx', 'ppt', 'pptx',
+  'xls', 'xlsx', 'heic', 'heif', '7z', 'bz2', 'rar', 'gif', 'webp', 'webm',
+  'mp4', 'mov', 'mp3', 'aifc'
+]
+
 onmessage = (ev: MessageEvent<[string, string]>) => {
   const [lib, type] = ev.data;
   if (lib == 'pako') {
@@ -54,7 +60,10 @@ onmessage = (ev: MessageEvent<[string, string]>) => {
       const zip = new JSZip();
       onmessage = (ev: MessageEvent<null | [string, Uint8Array]>) => {
         if (ev.data) {
-          zip.file(ev.data[0], ev.data[1]);
+          const ext = ev.data[0].slice(ev.data[0].lastIndexOf('.') + 1).toLowerCase()
+          zip.file(ev.data[0], ev.data[1], {
+            compression: ALREADY_COMPRESSED.includes(ext) ? 'STORE' : 'DEFLATE'
+          });
         } else zip.generateAsync({
           type: 'uint8array',
           compressionOptions: { level: 6 }
