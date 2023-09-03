@@ -24,7 +24,7 @@ Streaming GZIP, Zlib, or raw DEFLATE decompression
 
 ### constructor
 
-\+ **new Decompress**(`opts`: [InflateStreamOptions](../interfaces/inflatestreamoptions.md), `cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [Decompress](decompress.md)
+\+ **new Decompress**(`opts`: [InflateStreamOptions](../interfaces/inflatestreamoptions.md), `cb?`: [FlateStreamHandler](../README.md#flatestreamhandler)): [Decompress](decompress.md)
 
 Creates a decompression stream
 
@@ -33,11 +33,11 @@ Creates a decompression stream
 Name | Type | Description |
 ------ | ------ | ------ |
 `opts` | [InflateStreamOptions](../interfaces/inflatestreamoptions.md) | The decompression options |
-`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is decompressed  |
+`cb?` | [FlateStreamHandler](../README.md#flatestreamhandler) | The callback to call whenever data is decompressed  |
 
 **Returns:** [Decompress](decompress.md)
 
-\+ **new Decompress**(`cb?`: [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler)): [Decompress](decompress.md)
+\+ **new Decompress**(`cb?`: [FlateStreamHandler](../README.md#flatestreamhandler)): [Decompress](decompress.md)
 
 Creates a decompression stream
 
@@ -45,7 +45,7 @@ Creates a decompression stream
 
 Name | Type | Description |
 ------ | ------ | ------ |
-`cb?` | [AsyncFlateStreamHandler](../README.md#asyncflatestreamhandler) | The callback to call whenever data is decompressed  |
+`cb?` | [FlateStreamHandler](../README.md#flatestreamhandler) | The callback to call whenever data is decompressed  |
 
 **Returns:** [Decompress](decompress.md)
 

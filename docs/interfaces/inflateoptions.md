@@ -36,3 +36,5 @@ ___
 • `Optional` **out**: Uint8Array
 
 The buffer into which to write the decompressed data. Saves memory if you know the decompressed size in advance.
+
+Note that if the decompression result is larger than the size of this buffer, it will be truncated to fit.

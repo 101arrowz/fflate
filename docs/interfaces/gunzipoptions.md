@@ -34,3 +34,5 @@ ___
 • `Optional` **out**: Uint8Array
 
 The buffer into which to write the decompressed data. GZIP already encodes the output size, so providing this doesn't save memory.
+
+Note that if the decompression result is larger than the size of this buffer, it will be truncated to fit.

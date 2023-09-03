@@ -150,9 +150,7 @@ const slc = (v: Uint8Array, s: number, e?: number) => {
   if (s == null || s < 0) s = 0;
   if (e == null || e > v.length) e = v.length;
   // can't use .constructor in case user-supplied
-  const n = new u8(e - s);
-  n.set(v.subarray(s, e));
-  return n;
+  return new u8(v.subarray(s, e));
 }
 
 // inflate state
@@ -379,15 +377,13 @@ const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8
           if (shift + bt < 0) err(3);
           for (; bt < dend; ++bt) buf[bt] = dict[shift + bt];
         }
-        for (; bt < end; bt++) {
-          buf[bt] = buf[bt - dt];
-        }
+        for (; bt < end; ++bt) buf[bt] = buf[bt - dt];
       }
     }
     st.l = lm, st.p = lpos, st.b = bt, st.f = final;
     if (lm) final = 1, st.m = lbt, st.d = dm, st.n = dbt;
   } while (!final)
-  return bt == buf.length ? buf : slc(buf, 0, bt);
+  return bt == buf.length ? buf : noBuf ? slc(buf, 0, bt) : buf.subarray(0, bt);
 }
 
 // starting at p, write the minimum number of bits that can hold v to d
@@ -821,6 +817,8 @@ export interface InflateStreamOptions {
 export interface InflateOptions extends InflateStreamOptions {
   /**
    * The buffer into which to write the decompressed data. Saves memory if you know the decompressed size in advance.
+   * 
+   * Note that if the decompression result is larger than the size of this buffer, it will be truncated to fit.
    */
   out?: Uint8Array;
 }
@@ -836,6 +834,8 @@ export interface GunzipStreamOptions extends InflateStreamOptions {}
 export interface GunzipOptions extends InflateStreamOptions {
   /**
    * The buffer into which to write the decompressed data. GZIP already encodes the output size, so providing this doesn't save memory.
+   * 
+   * Note that if the decompression result is larger than the size of this buffer, it will be truncated to fit.
    */
   out?: Uint8Array;
 }
@@ -1431,7 +1431,7 @@ export class Inflate {
     const bts = this.s.b;
     const dt = inflt(this.p, this.s, this.o);
     this.ondata(slc(dt, bts, this.s.b), this.d);
-    this.o = slc(dt, this.s.b - 32768), this.s.b = this.o.length;
+    this.o = dt == this.o ? dt.subarray(this.s.b - 32768) : slc(dt, this.s.b - 32768), this.s.b = this.o.length;
     this.p = slc(this.p, (this.s.p / 8) | 0), this.s.p &= 7;
   }
 
@@ -2099,13 +2099,13 @@ export class Decompress {
    * @param opts The decompression options
    * @param cb The callback to call whenever data is decompressed
    */
-  constructor(opts: InflateStreamOptions, cb?: AsyncFlateStreamHandler);
+  constructor(opts: InflateStreamOptions, cb?: FlateStreamHandler);
   /**
    * Creates a decompression stream
    * @param cb The callback to call whenever data is decompressed
    */
-  constructor(cb?: AsyncFlateStreamHandler);
-  constructor(opts?: InflateStreamOptions | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler) {
+  constructor(cb?: FlateStreamHandler);
+  constructor(opts?: InflateStreamOptions | FlateStreamHandler, cb?: FlateStreamHandler) {
     this.o = StrmOpt.call(this, opts, cb) || {};
   }
 
