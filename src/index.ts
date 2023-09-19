@@ -236,12 +236,13 @@ const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8
   // source length       dict length
   const sl = dat.length, dl = dict ? dict.length : 0;
   if (!sl || st.f && !st.l) return buf || new u8(0);
+  const noBuf = !buf;
   // have to estimate size
-  const noBuf = !buf || st.i != 2;
+  const resize = noBuf || st.i != 2;
   // no state
   const noSt = st.i;
   // Assumes roughly 33% compression ratio average
-  if (!buf) buf = new u8(sl * 3);
+  if (noBuf) buf = new u8(sl * 3);
   // ensure buffer can fit at least l elements
   const cbuf = (l: number) => {
     let bl = buf.length;
@@ -272,7 +273,7 @@ const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8
           break;
         }
         // ensure size
-        if (noBuf) cbuf(bt + l);
+        if (resize) cbuf(bt + l);
         // Copy over uncompressed data
         buf.set(dat.subarray(s, t), bt);
         // Get new bitpos, update byte count
@@ -332,7 +333,7 @@ const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8
     }
     // Make sure the buffer can hold this + the largest possible addition
     // Maximum chunk size (practically, theoretically infinite) is 2^17
-    if (noBuf) cbuf(bt + 131072);
+    if (resize) cbuf(bt + 131072);
     const lms = (1 << lbt) - 1, dms = (1 << dbt) - 1;
     let lpos = pos;
     for (;; lpos = pos) {
@@ -370,7 +371,7 @@ const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8
           if (noSt) err(0);
           break;
         }
-        if (noBuf) cbuf(bt + 131072);
+        if (resize) cbuf(bt + 131072);
         const end = bt + add;
         if (bt < dt) {
           const shift = dl - dt, dend = Math.min(dt, end);
@@ -383,7 +384,8 @@ const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8
     st.l = lm, st.p = lpos, st.b = bt, st.f = final;
     if (lm) final = 1, st.m = lbt, st.d = dm, st.n = dbt;
   } while (!final)
-  return bt == buf.length ? buf : noBuf ? slc(buf, 0, bt) : buf.subarray(0, bt);
+  // don't reallocate for streams or user buffers
+  return bt != buf.length && noBuf ? slc(buf, 0, bt) : buf.subarray(0, bt);
 }
 
 // starting at p, write the minimum number of bits that can hold v to d
@@ -1431,7 +1433,7 @@ export class Inflate {
     const bts = this.s.b;
     const dt = inflt(this.p, this.s, this.o);
     this.ondata(slc(dt, bts, this.s.b), this.d);
-    this.o = dt == this.o ? dt.subarray(this.s.b - 32768) : slc(dt, this.s.b - 32768), this.s.b = this.o.length;
+    this.o = slc(dt, this.s.b - 32768), this.s.b = this.o.length;
     this.p = slc(this.p, (this.s.p / 8) | 0), this.s.p &= 7;
   }
 
