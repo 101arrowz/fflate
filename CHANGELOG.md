@@ -1,3 +1,6 @@
+## 0.8.1
+- Fixed reallocating on pre-supplied buffer in `inflateSync` and `unzlibSync`
+- Minor documentation fixes
 ## 0.8.0
 - BREAKING: synchronous decompression functions now take an options object rather than an output buffer as a second parameter
   - `inflateSync(compressed, outBuf)` is now `inflateSync(compressed, { out: outBuf })`

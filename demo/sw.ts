@@ -2,7 +2,9 @@
 import { manifest, version } from '@parcel/service-worker'
 
 const precacheVersion = version
-const precacheFiles = manifest.filter(u => /\.(ico)$/.test(u));
+const precacheFiles = manifest.filter(u => !/\.(ico)$/.test(u));
+
+const sw = self as unknown as ServiceWorkerGlobalScope
 
 const ch = () => caches.open(precacheVersion);
  
