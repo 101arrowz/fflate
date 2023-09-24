@@ -2806,9 +2806,10 @@ var _reactDefault = parcelHelpers.interopDefault(_react);
 var _app = require("./App");
 var _appDefault = parcelHelpers.interopDefault(_app);
 var _client = require("react-dom/client");
+console.log("hi");
 (0, _client.createRoot)(document.getElementById("app")).render(/*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)((0, _appDefault.default), {}, void 0, false, {
     fileName: "demo/index.tsx",
-    lineNumber: 11,
+    lineNumber: 13,
     columnNumber: 52
 }, undefined));
 
@@ -6258,12 +6259,13 @@ var inflt = function(dat, st, buf, dict) {
     // source length       dict length
     var sl = dat.length, dl = dict ? dict.length : 0;
     if (!sl || st.f && !st.l) return buf || new u8(0);
+    var noBuf = !buf;
     // have to estimate size
-    var noBuf = !buf || st.i != 2;
+    var resize = noBuf || st.i != 2;
     // no state
     var noSt = st.i;
     // Assumes roughly 33% compression ratio average
-    if (!buf) buf = new u8(sl * 3);
+    if (noBuf) buf = new u8(sl * 3);
     // ensure buffer can fit at least l elements
     var cbuf = function(l) {
         var bl = buf.length;
@@ -6294,7 +6296,7 @@ var inflt = function(dat, st, buf, dict) {
                     break;
                 }
                 // ensure size
-                if (noBuf) cbuf(bt + l);
+                if (resize) cbuf(bt + l);
                 // Copy over uncompressed data
                 buf.set(dat.subarray(s, t), bt);
                 // Get new bitpos, update byte count
@@ -6350,7 +6352,7 @@ var inflt = function(dat, st, buf, dict) {
         }
         // Make sure the buffer can hold this + the largest possible addition
         // Maximum chunk size (practically, theoretically infinite) is 2^17
-        if (noBuf) cbuf(bt + 131072);
+        if (resize) cbuf(bt + 131072);
         var lms = (1 << lbt) - 1, dms = (1 << dbt) - 1;
         var lpos = pos;
         for(;; lpos = pos){
@@ -6388,7 +6390,7 @@ var inflt = function(dat, st, buf, dict) {
                     if (noSt) err(0);
                     break;
                 }
-                if (noBuf) cbuf(bt + 131072);
+                if (resize) cbuf(bt + 131072);
                 var end = bt + add;
                 if (bt < dt) {
                     var shift = dl - dt, dend = Math.min(dt, end);
@@ -6401,7 +6403,8 @@ var inflt = function(dat, st, buf, dict) {
         st.l = lm, st.p = lpos, st.b = bt, st.f = final;
         if (lm) final = 1, st.m = lbt, st.d = dm, st.n = dbt;
     }while (!final);
-    return bt == buf.length ? buf : noBuf ? slc(buf, 0, bt) : buf.subarray(0, bt);
+    // don't reallocate for streams or user buffers
+    return bt != buf.length && noBuf ? slc(buf, 0, bt) : buf.subarray(0, bt);
 };
 // starting at p, write the minimum number of bits that can hold v to d
 var wbits = function(d, p, v) {
@@ -7232,7 +7235,7 @@ function deflateSync(data, opts) {
         var bts = this.s.b;
         var dt = inflt(this.p, this.s, this.o);
         this.ondata(slc(dt, bts, this.s.b), this.d);
-        this.o = dt == this.o ? dt.subarray(this.s.b - 32768) : slc(dt, this.s.b - 32768), this.s.b = this.o.length;
+        this.o = slc(dt, this.s.b - 32768), this.s.b = this.o.length;
         this.p = slc(this.p, this.s.p / 8 | 0), this.s.p &= 7;
     };
     /**
