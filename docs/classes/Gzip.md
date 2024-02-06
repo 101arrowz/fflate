@@ -14,6 +14,7 @@ Streaming GZIP compression
 
 ### Methods
 
+- [flush](Gzip.md#flush)
 - [push](Gzip.md#push)
 
 ## Constructors
@@ -50,6 +51,19 @@ Creates a GZIP stream
 The handler to call whenever data is available
 
 ## Methods
+
+### flush
+
+▸ **flush**(): `void`
+
+Flushes buffered uncompressed data. Useful to immediately retrieve the
+GZIPped output for small inputs.
+
+#### Returns
+
+`void`
+
+___
 
 ### push
 

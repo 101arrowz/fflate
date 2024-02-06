@@ -11,7 +11,9 @@ Asynchronous streaming single or multi-member GZIP decompression
 ### Properties
 
 - [ondata](AsyncGunzip.md#ondata)
+- [ondrain](AsyncGunzip.md#ondrain)
 - [onmember](AsyncGunzip.md#onmember)
+- [queuedSize](AsyncGunzip.md#queuedsize)
 - [terminate](AsyncGunzip.md#terminate)
 
 ### Methods
@@ -53,11 +55,27 @@ The handler to call whenever data is available
 
 ___
 
+### ondrain
+
+• `Optional` **ondrain**: [`AsyncFlateDrainHandler`](../README.md#asyncflatedrainhandler)
+
+The handler to call whenever buffered source data is processed (i.e. `queuedSize` updates)
+
+___
+
 ### onmember
 
 • `Optional` **onmember**: [`GunzipMemberHandler`](../README.md#gunzipmemberhandler)
 
 The handler to call whenever a new GZIP member is found
+
+___
+
+### queuedSize
+
+• **queuedSize**: `number`
+
+The number of compressed bytes buffered in the stream
 
 ___
 

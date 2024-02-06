@@ -1,3 +1,12 @@
+## 0.8.2
+- Fixed broken UMD build
+- Fixed edge-case causing skipped data during streaming compression
+- Fixed bug in GZIP streaming on member boundary
+- Improved streaming performance on inconsistent chunk sizes
+- Improved `unzip` performance on undercompressed archives
+- Added flushing support into streaming API
+- Added backpressure support into async streaming API
+  - Use new `ondrain` handler and `queuedSize`
 ## 0.8.1
 - Fixed reallocating on pre-supplied buffer in `inflateSync` and `unzlibSync`
 - Minor documentation fixes

@@ -71,6 +71,7 @@
 
 ### Type Aliases
 
+- [AsyncFlateDrainHandler](README.md#asyncflatedrainhandler)
 - [AsyncFlateStreamHandler](README.md#asyncflatestreamhandler)
 - [AsyncZippableFile](README.md#asynczippablefile)
 - [FlateCallback](README.md#flatecallback)
@@ -134,6 +135,28 @@ ___
 Renames and re-exports [gzipSync](README.md#gzipsync)
 
 ## Type Aliases
+
+### AsyncFlateDrainHandler
+
+Ƭ **AsyncFlateDrainHandler**: (`size`: `number`) => `void`
+
+#### Type declaration
+
+▸ (`size`): `void`
+
+Handler for the asynchronous completion of (de)compression for a data chunk
+
+##### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `size` | `number` | The number of bytes that were processed. This is measured in terms of the input (i.e. compressed bytes for decompression, uncompressed bytes for compression.) |
+
+##### Returns
+
+`void`
+
+___
 
 ### AsyncFlateStreamHandler
 

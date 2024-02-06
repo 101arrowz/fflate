@@ -14,6 +14,7 @@ Streaming DEFLATE compression
 
 ### Methods
 
+- [flush](Deflate.md#flush)
 - [push](Deflate.md#push)
 
 ## Constructors
@@ -50,6 +51,19 @@ Creates a DEFLATE stream
 The handler to call whenever data is available
 
 ## Methods
+
+### flush
+
+▸ **flush**(): `void`
+
+Flushes buffered uncompressed data. Useful to immediately retrieve the
+deflated output for small inputs.
+
+#### Returns
+
+`void`
+
+___
 
 ### push
 

@@ -11,10 +11,13 @@ Asynchronous streaming Zlib compression
 ### Properties
 
 - [ondata](AsyncZlib.md#ondata)
+- [ondrain](AsyncZlib.md#ondrain)
+- [queuedSize](AsyncZlib.md#queuedsize)
 - [terminate](AsyncZlib.md#terminate)
 
 ### Methods
 
+- [flush](AsyncZlib.md#flush)
 - [push](AsyncZlib.md#push)
 
 ## Constructors
@@ -52,6 +55,22 @@ The handler to call whenever data is available
 
 ___
 
+### ondrain
+
+• `Optional` **ondrain**: [`AsyncFlateDrainHandler`](../README.md#asyncflatedrainhandler)
+
+The handler to call whenever buffered source data is processed (i.e. `queuedSize` updates)
+
+___
+
+### queuedSize
+
+• **queuedSize**: `number`
+
+The number of uncompressed bytes buffered in the stream
+
+___
+
 ### terminate
 
 • **terminate**: [`AsyncTerminable`](../interfaces/AsyncTerminable.md)
@@ -60,6 +79,19 @@ A method to terminate the stream's internal worker. Subsequent calls to
 push() will silently fail.
 
 ## Methods
+
+### flush
+
+▸ **flush**(): `void`
+
+Flushes buffered uncompressed data. Useful to immediately retrieve the
+zlibbed output for small inputs.
+
+#### Returns
+
+`void`
+
+___
 
 ### push
 

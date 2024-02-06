@@ -11,6 +11,8 @@ Asynchronous streaming Zlib decompression
 ### Properties
 
 - [ondata](AsyncUnzlib.md#ondata)
+- [ondrain](AsyncUnzlib.md#ondrain)
+- [queuedSize](AsyncUnzlib.md#queuedsize)
 - [terminate](AsyncUnzlib.md#terminate)
 
 ### Methods
@@ -49,6 +51,22 @@ Creates an asynchronous Zlib decompression stream
 • **ondata**: [`AsyncFlateStreamHandler`](../README.md#asyncflatestreamhandler)
 
 The handler to call whenever data is available
+
+___
+
+### ondrain
+
+• `Optional` **ondrain**: [`AsyncFlateDrainHandler`](../README.md#asyncflatedrainhandler)
+
+The handler to call whenever buffered source data is processed (i.e. `queuedSize` updates)
+
+___
+
+### queuedSize
+
+• **queuedSize**: `number`
+
+The number of compressed bytes buffered in the stream
 
 ___
 

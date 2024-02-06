@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
 const atClass = /\/\*\* \@class \*\//g, pure = '/*#__PURE__*/';
-const esModule = /exports\.__esModule = true;\n/;
+const esModule = /(exports\.__esModule = true;|Object\.defineProperty\(exports, "__esModule", { value: true }\);)\n/;
 const libDir = join(__dirname, '..', 'lib');
 const libIndex = join(libDir, 'index.js');
 const lib = readFileSync(libIndex, 'utf-8')

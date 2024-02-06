@@ -14,6 +14,7 @@ Streaming Zlib compression
 
 ### Methods
 
+- [flush](Zlib.md#flush)
 - [push](Zlib.md#push)
 
 ## Constructors
@@ -50,6 +51,19 @@ Creates a Zlib stream
 The handler to call whenever data is available
 
 ## Methods
+
+### flush
+
+▸ **flush**(): `void`
+
+Flushes buffered uncompressed data. Useful to immediately retrieve the
+zlibbed output for small inputs.
+
+#### Returns
+
+`void`
+
+___
 
 ### push
 

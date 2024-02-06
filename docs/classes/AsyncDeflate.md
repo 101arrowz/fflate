@@ -11,10 +11,13 @@ Asynchronous streaming DEFLATE compression
 ### Properties
 
 - [ondata](AsyncDeflate.md#ondata)
+- [ondrain](AsyncDeflate.md#ondrain)
+- [queuedSize](AsyncDeflate.md#queuedsize)
 - [terminate](AsyncDeflate.md#terminate)
 
 ### Methods
 
+- [flush](AsyncDeflate.md#flush)
 - [push](AsyncDeflate.md#push)
 
 ## Constructors
@@ -52,6 +55,22 @@ The handler to call whenever data is available
 
 ___
 
+### ondrain
+
+• `Optional` **ondrain**: [`AsyncFlateDrainHandler`](../README.md#asyncflatedrainhandler)
+
+The handler to call whenever buffered source data is processed (i.e. `queuedSize` updates)
+
+___
+
+### queuedSize
+
+• **queuedSize**: `number`
+
+The number of uncompressed bytes buffered in the stream
+
+___
+
 ### terminate
 
 • **terminate**: [`AsyncTerminable`](../interfaces/AsyncTerminable.md)
@@ -60,6 +79,19 @@ A method to terminate the stream's internal worker. Subsequent calls to
 push() will silently fail.
 
 ## Methods
+
+### flush
+
+▸ **flush**(): `void`
+
+Flushes buffered uncompressed data. Useful to immediately retrieve the
+deflated output for small inputs.
+
+#### Returns
+
+`void`
+
+___
 
 ### push
 

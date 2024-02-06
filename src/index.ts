@@ -932,6 +932,13 @@ export type FlateStreamHandler = (data: Uint8Array, final: boolean) => void;
 export type AsyncFlateStreamHandler = (err: FlateError | null, data: Uint8Array, final: boolean) => void;
 
 /**
+ * Handler for the asynchronous completion of (de)compression for a data chunk
+ * @param size The number of bytes that were processed. This is measured in terms of the input
+ * (i.e. compressed bytes for decompression, uncompressed bytes for compression.)
+ */
+export type AsyncFlateDrainHandler = (size: number) => void;
+
+/**
  * Callback for asynchronous (de)compression methods
  * @param err Any error that occurred
  * @param data The resulting data. Only present if `err` is null
@@ -1007,7 +1014,7 @@ const dopt = (dat: Uint8Array, opt: DeflateOptions, pre: number, post: number, s
       st.w = dict.length;
     }
   }
-  return dflt(dat, opt.level == null ? 6 : opt.level, opt.mem == null ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : (12 + opt.mem), pre, post, st);
+  return dflt(dat, opt.level == null ? 6 : opt.level, opt.mem == null ? (st.l ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : 20) : (12 + opt.mem), pre, post, st);
 }
   
 
@@ -1125,34 +1132,47 @@ type CmpDecmpStrm = Inflate | Deflate | Gzip | Gunzip | Zlib | Unzlib;
 // auto stream
 const astrm = (strm: CmpDecmpStrm) => {
   strm.ondata = (dat, final) => (postMessage as Worker['postMessage'])([dat, final], [dat.buffer]);
-  return (ev: MessageEvent<[Uint8Array, boolean]>) => strm.push(ev.data[0], ev.data[1]);
+  return (ev: MessageEvent<[Uint8Array, boolean] | []>) => {
+    if (ev.data.length) {
+      strm.push(ev.data[0], ev.data[1]);
+      (postMessage as Worker['postMessage'])([ev.data[0].length]);
+    } else (strm as Deflate | Gzip | Zlib).flush()
+  }
 }
 
-type Astrm = { ondata: AsyncFlateStreamHandler; push: (d: Uint8Array, f?: boolean) => void; terminate: AsyncTerminable; };
+type Astrm = { ondata: AsyncFlateStreamHandler; push: (d: Uint8Array, f?: boolean) => void; terminate: AsyncTerminable; flush?: () => void; ondrain?: AsyncFlateDrainHandler; queuedSize: number; };
 
 // async stream attach
-const astrmify = <T>(fns: (() => unknown[])[], strm: Astrm, opts: T | 0, init: (ev: MessageEvent<T>) => void, id: number, ext?: (msg: unknown) => unknown) => {
+const astrmify = <T>(fns: (() => unknown[])[], strm: Astrm, opts: T | 0, init: (ev: MessageEvent<T>) => void, id: number, flush: 0 | 1, ext?: (msg: unknown) => unknown) => {
   let t: boolean;
-  const w = wrkr<T, [Uint8Array, boolean]>(
+  const w = wrkr<T, [number] | [Uint8Array, boolean]>(
     fns,
     init,
     id,
     (err, dat) => {
       if (err) w.terminate(), strm.ondata.call(strm, err);
       else if (!Array.isArray(dat)) ext(dat);
-      else {
+      else if (dat.length == 1) {
+        strm.queuedSize -= dat[0];
+        if (strm.ondrain) strm.ondrain(dat[0]);
+      } else {
         if (dat[1]) w.terminate();
         strm.ondata.call(strm, err, dat[0], dat[1]);
       }
     }
   )
   w.postMessage(opts);
+  strm.queuedSize = 0;
   strm.push = (d, f) => {
     if (!strm.ondata) err(5);
     if (t) strm.ondata(err(4, 0, 1), null, !!f);
+    strm.queuedSize += d.length;
     w.postMessage([d, t = f], [d.buffer]);
   };
   strm.terminate = () => { w.terminate(); };
+  if (flush) {
+    strm.flush = () => { w.postMessage([]); };
+  }
 }
 
 // read 2 bytes
@@ -1284,12 +1304,12 @@ export class Deflate {
         newBuf.set(this.b.subarray(0, this.s.z));
         this.b = newBuf;
       }
+
       const split = this.b.length - this.s.z;
-      if (split) {
-        this.b.set(chunk.subarray(0, split), this.s.z);
-        this.s.z = this.b.length;
-        this.p(this.b, false);
-      }
+      this.b.set(chunk.subarray(0, split), this.s.z);
+      this.s.z = this.b.length;
+      this.p(this.b, false);
+
       this.b.set(this.b.subarray(-32768));
       this.b.set(chunk.subarray(split), 32768);
       this.s.z = chunk.length - split + 32768;
@@ -1304,6 +1324,17 @@ export class Deflate {
       this.s.w = this.s.i, this.s.i -= 2;
     }
   }
+
+  /**
+   * Flushes buffered uncompressed data. Useful to immediately retrieve the
+   * deflated output for small inputs.
+   */
+  flush() {
+    if (!this.ondata) err(5);
+    if (this.s.l) err(4);
+    this.p(this.b, false);
+    this.s.w = this.s.i, this.s.i -= 2;
+  }
 }
 
 /**
@@ -1314,6 +1345,16 @@ export class AsyncDeflate {
    * The handler to call whenever data is available
    */
   ondata: AsyncFlateStreamHandler;
+
+  /**
+   * The handler to call whenever buffered source data is processed (i.e. `queuedSize` updates)
+   */
+  ondrain?: AsyncFlateDrainHandler;
+
+  /**
+   * The number of uncompressed bytes buffered in the stream
+   */
+  queuedSize: number;
 
   /**
    * Creates an asynchronous DEFLATE stream
@@ -1333,7 +1374,7 @@ export class AsyncDeflate {
     ], this as unknown as Astrm, StrmOpt.call(this, opts, cb), ev => {
       const strm = new Deflate(ev.data);
       onmessage = astrm(strm);
-    }, 6);
+    }, 6, 1);
   }
 
   /**
@@ -1343,6 +1384,13 @@ export class AsyncDeflate {
    */
   // @ts-ignore
   push(chunk: Uint8Array, final?: boolean): void;
+
+  /**
+   * Flushes buffered uncompressed data. Useful to immediately retrieve the
+   * deflated output for small inputs.
+   */
+  // @ts-ignore
+  flush(): void;
   
   /**
    * A method to terminate the stream's internal worker. Subsequent calls to
@@ -1457,6 +1505,16 @@ export class AsyncInflate {
   ondata: AsyncFlateStreamHandler;
 
   /**
+   * The handler to call whenever buffered source data is processed (i.e. `queuedSize` updates)
+   */
+  ondrain?: AsyncFlateDrainHandler;
+
+  /**
+   * The number of compressed bytes buffered in the stream
+   */
+  queuedSize: number;
+
+  /**
    * Creates an asynchronous DEFLATE decompression stream
    * @param opts The decompression options
    * @param cb The callback to call whenever data is inflated
@@ -1474,7 +1532,7 @@ export class AsyncInflate {
     ], this as unknown as Astrm, StrmOpt.call(this, opts, cb), ev => {
       const strm = new Inflate(ev.data);
       onmessage = astrm(strm);
-    }, 7);
+    }, 7, 0);
   }
 
   /**
@@ -1573,6 +1631,14 @@ export class Gzip {
     if (f) wbytes(raw, raw.length - 8, this.c.d()), wbytes(raw, raw.length - 4, this.l);
     this.ondata(raw, f);
   }
+
+  /**
+   * Flushes buffered uncompressed data. Useful to immediately retrieve the
+   * GZIPped output for small inputs.
+   */
+  flush() {
+    Deflate.prototype.flush.call(this);
+  }
 }
 
 /**
@@ -1583,6 +1649,16 @@ export class AsyncGzip {
    * The handler to call whenever data is available
    */
   ondata: AsyncFlateStreamHandler;
+
+  /**
+   * The handler to call whenever buffered source data is processed (i.e. `queuedSize` updates)
+   */
+  ondrain?: AsyncFlateDrainHandler;
+
+  /**
+   * The number of uncompressed bytes buffered in the stream
+   */
+  queuedSize: number;
 
   /**
    * Creates an asynchronous GZIP stream
@@ -1603,7 +1679,7 @@ export class AsyncGzip {
     ], this as unknown as Astrm, StrmOpt.call(this, opts, cb), ev => {
       const strm = new Gzip(ev.data);
       onmessage = astrm(strm);
-    }, 8);
+    }, 8, 1);
   }
 
   /**
@@ -1613,6 +1689,13 @@ export class AsyncGzip {
    */
   // @ts-ignore
   push(chunk: Uint8Array, final?: boolean): void;
+
+  /**
+   * Flushes buffered uncompressed data. Useful to immediately retrieve the
+   * GZIPped output for small inputs.
+   */
+  // @ts-ignore
+  flush(): void;
 
   /**
    * A method to terminate the stream's internal worker. Subsequent calls to
@@ -1721,11 +1804,11 @@ export class Gunzip {
     // This allows for workerization to function correctly
     (Inflate.prototype as unknown as { c: typeof Inflate.prototype['c'] }).c.call(this, final);
     // process concatenated GZIP
-    if (this.s.f && !this.s.l) {
+    if (this.s.f && !this.s.l && !final) {
       this.v = shft(this.s.p) + 9;
       this.s = { i: 0 };
       this.o = new u8(0);
-      if (this.p.length) this.push(new u8(0), final);
+      this.push(new u8(0), final);
     }
   }
 }
@@ -1738,6 +1821,17 @@ export class AsyncGunzip {
    * The handler to call whenever data is available
    */
   ondata: AsyncFlateStreamHandler;
+
+  /**
+   * The handler to call whenever buffered source data is processed (i.e. `queuedSize` updates)
+   */
+  ondrain?: AsyncFlateDrainHandler;
+
+  /**
+   * The number of compressed bytes buffered in the stream
+   */
+  queuedSize: number;
+
   /**
    * The handler to call whenever a new GZIP member is found
    */
@@ -1763,7 +1857,7 @@ export class AsyncGunzip {
       const strm = new Gunzip(ev.data);
       strm.onmember = (offset) => (postMessage as Worker['postMessage'])(offset);
       onmessage = astrm(strm);
-    }, 9, offset => this.onmember && this.onmember(offset as number));
+    }, 9, 0, offset => this.onmember && this.onmember(offset as number));
   }
 
   /**
@@ -1862,6 +1956,14 @@ export class Zlib {
     if (f) wbytes(raw, raw.length - 4, this.c.d());
     this.ondata(raw, f);
   }
+
+  /**
+   * Flushes buffered uncompressed data. Useful to immediately retrieve the
+   * zlibbed output for small inputs.
+   */
+  flush() {
+    Deflate.prototype.flush.call(this);
+  }
 }
 
 /**
@@ -1872,6 +1974,16 @@ export class AsyncZlib {
    * The handler to call whenever data is available
    */
   ondata: AsyncFlateStreamHandler;
+
+  /**
+   * The handler to call whenever buffered source data is processed (i.e. `queuedSize` updates)
+   */
+  ondrain?: AsyncFlateDrainHandler;
+
+  /**
+   * The number of uncompressed bytes buffered in the stream
+   */
+  queuedSize: number;
 
   /**
    * Creates an asynchronous Zlib stream
@@ -1892,7 +2004,7 @@ export class AsyncZlib {
     ], this as unknown as Astrm, StrmOpt.call(this, opts, cb), ev => {
       const strm = new Zlib(ev.data);
       onmessage = astrm(strm);
-    }, 10);
+    }, 10, 1);
   }
 
   /**
@@ -1902,6 +2014,13 @@ export class AsyncZlib {
    */
   // @ts-ignore
   push(chunk: Uint8Array, final?: boolean): void;
+
+  /**
+   * Flushes buffered uncompressed data. Useful to immediately retrieve the
+   * zlibbed output for small inputs.
+   */
+  // @ts-ignore
+  flush(): void;
 
   /**
    * A method to terminate the stream's internal worker. Subsequent calls to
@@ -2006,6 +2125,16 @@ export class AsyncUnzlib {
   ondata: AsyncFlateStreamHandler;
 
   /**
+   * The handler to call whenever buffered source data is processed (i.e. `queuedSize` updates)
+   */
+  ondrain?: AsyncFlateDrainHandler;
+
+  /**
+   * The number of compressed bytes buffered in the stream
+   */
+  queuedSize: number;
+
+  /**
    * Creates an asynchronous Zlib decompression stream
    * @param opts The decompression options
    * @param cb The callback to call whenever data is inflated
@@ -2024,7 +2153,7 @@ export class AsyncUnzlib {
     ], this as unknown as Astrm, StrmOpt.call(this, opts, cb), ev => {
       const strm = new Unzlib(ev.data);
       onmessage = astrm(strm);
-    }, 11);
+    }, 11, 0);
   }
 
   /**
@@ -2085,12 +2214,13 @@ export { gzipSync as compressSync, Gzip as Compress }
  * Streaming GZIP, Zlib, or raw DEFLATE decompression
  */
 export class Decompress {
-  private G = Gunzip;
-  private I = Inflate;
-  private Z = Unzlib;
+  private G: typeof Gunzip;
+  private I: typeof Inflate;
+  private Z: typeof Unzlib;
   private o: InflateOptions;
   private s: Inflate | Gunzip | Unzlib;
   private p: Uint8Array;
+
   /**
    * The handler to call whenever data is available
    */
@@ -2109,6 +2239,17 @@ export class Decompress {
   constructor(cb?: FlateStreamHandler);
   constructor(opts?: InflateStreamOptions | FlateStreamHandler, cb?: FlateStreamHandler) {
     this.o = StrmOpt.call(this, opts, cb) || {};
+    this.G = Gunzip;
+    this.I = Inflate;
+    this.Z = Unzlib;
+  }
+
+  // init substream
+  // overriden by AsyncDecompress
+  private i() {
+    this.s.ondata = (dat, final) => {
+      this.ondata(dat, final);
+    }
   }
 
   /**
@@ -2124,32 +2265,43 @@ export class Decompress {
         n.set(this.p), n.set(chunk, this.p.length);
       } else this.p = chunk;
       if (this.p.length > 2) {
-        const _this = this;
-        // enables reuse of this method by AsyncDecompress
-        const cb: FlateStreamHandler = function() { _this.ondata.apply(_this, arguments); }
         this.s = (this.p[0] == 31 && this.p[1] == 139 && this.p[2] == 8)
-          ? new this.G(this.o, cb)
+          ? new this.G(this.o)
           : ((this.p[0] & 15) != 8 || (this.p[0] >> 4) > 7 || ((this.p[0] << 8 | this.p[1]) % 31))
-            ? new this.I(this.o, cb)
-            : new this.Z(this.o, cb);
+            ? new this.I(this.o)
+            : new this.Z(this.o);
+        this.i();
         this.s.push(this.p, final);
         this.p = null;
       }
     } else this.s.push(chunk, final);
   }
+
+
 }
 
 /**
  * Asynchronous streaming GZIP, Zlib, or raw DEFLATE decompression
  */
 export class AsyncDecompress {
-  private G = AsyncGunzip;
-  private I = AsyncInflate;
-  private Z = AsyncUnzlib;
+  private G: typeof AsyncGunzip;
+  private I: typeof AsyncInflate;
+  private Z: typeof AsyncUnzlib;
+
   /**
    * The handler to call whenever data is available
    */
   ondata: AsyncFlateStreamHandler;
+
+  /**
+   * The handler to call whenever buffered source data is processed (i.e. `queuedSize` updates)
+   */
+  ondrain?: AsyncFlateDrainHandler;
+
+  /**
+   * The number of compressed bytes buffered in the stream
+   */
+  queuedSize: number;
 
   /**
    * Creates an asynchronous decompression stream
@@ -2164,6 +2316,20 @@ export class AsyncDecompress {
   constructor(cb?: AsyncFlateStreamHandler);
   constructor(opts?: InflateStreamOptions | AsyncFlateStreamHandler, cb?: AsyncFlateStreamHandler) {
     Decompress.call(this, opts, cb);
+    this.queuedSize = 0;
+    this.G = AsyncGunzip;
+    this.I = AsyncInflate;
+    this.Z = AsyncUnzlib;
+  }
+
+  private i() {
+    (this as unknown as { s: AsyncInflate }).s.ondata = (err, dat, final) => {
+      this.ondata(err, dat, final);
+    }
+    (this as unknown as { s: AsyncInflate }).s.ondrain = size => {
+      this.queuedSize -= size;
+      if (this.ondrain) this.ondrain(size);
+    }
   }
 
   /**
@@ -2172,6 +2338,7 @@ export class AsyncDecompress {
    * @param final Whether this is the last chunk
    */
   push(chunk: Uint8Array, final?: boolean) {
+    this.queuedSize += chunk.length;
     Decompress.prototype.push.call(this, chunk, final);
   }
 }
@@ -3549,7 +3716,8 @@ export function unzip(data: Uint8Array, opts: AsyncUnzipOptions | UnzipCallback,
         if (!c) cbl(null, slc(data, b, b + sc))
         else if (c == 8) {
           const infl = data.subarray(b, b + sc);
-          if (sc < 320000) {
+          // Synchronously decompress under 512KB, or barely-compressed data
+          if (su < 524288 || sc > 0.8 * su) {
             try {
               cbl(null, inflateSync(infl, { out: new u8(su) }));
             } catch(e) {
