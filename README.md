@@ -60,13 +60,13 @@ Note that tree shaking is completely unsupported from the CDN. If you want
 a small build without build tools, please ask me and I will make one manually
 with only the features you need. This build is about 31kB, or 11.5kB gzipped.
 -->
-<script src="https://unpkg.com/fflate@0.8.0"></script>
-<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.0/umd/index.js"></script>
+<script src="https://unpkg.com/fflate@0.8.2"></script>
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
 <!-- Now, the global variable fflate contains the library -->
 
 <!-- If you're going buildless but want ESM, import from Skypack -->
 <script type="module">
-  import * as fflate from 'https://cdn.skypack.dev/fflate@0.8.0?min';
+  import * as fflate from 'https://cdn.skypack.dev/fflate@0.8.2?min';
 </script>
 ```
 
@@ -75,8 +75,8 @@ If you are using Deno:
 // Don't use the ?dts Skypack flag; it isn't necessary for Deno support
 // The @deno-types comment adds TypeScript typings
 
-// @deno-types="https://cdn.skypack.dev/fflate@0.8.0/lib/index.d.ts"
-import * as fflate from 'https://cdn.skypack.dev/fflate@0.8.0?min';
+// @deno-types="https://cdn.skypack.dev/fflate@0.8.2/lib/index.d.ts"
+import * as fflate from 'https://cdn.skypack.dev/fflate@0.8.2?min';
 ```
 
 
@@ -376,9 +376,9 @@ unzipper.push(zipChunk2);
 unzipper.push(zipChunk3, true);
 ```
 
-As you may have guessed, there is an asynchronous version of every method as well. Unlike most libraries, this will cause the compression or decompression run in a separate thread entirely and automatically by using Web (or Node) Workers (as of now, Deno is unsupported). This means that the processing will not block the main thread at all. 
+As you may have guessed, there is an asynchronous version of every method as well. Unlike most libraries, this will cause the compression or decompression run in a separate thread entirely and automatically by using Web (or Node) Workers. This means that the processing will not block the main thread at all. 
 
-Note that there is a significant initial overhead to using workers of about 70ms for each asynchronous function. For instance, if you call `unzip` ten times, the overhead only applies for the first call, but if you call `unzip` and `zlib`, they will each cause the 70ms delay. Therefore, it's best to avoid the asynchronous API unless necessary. However, if you're compressing multiple large files at once, or the synchronous API causes the main thread to hang for too long, the callback APIs are an order of magnitude better.
+Note that there is a significant initial overhead to using workers of about 50ms for each asynchronous function. For instance, if you call `unzip` ten times, the overhead only applies for the first call, but if you call `unzip` and `zlib`, they will each cause the 50ms delay. For small (under about 50kB) payloads, the asynchronous APIs will be much slower. However, if you're compressing larger files/multiple files at once, or if the synchronous API causes the main thread to hang for too long, the callback APIs are an order of magnitude better.
 ```js
 import {
   gzip, zlib, AsyncGzip, zip, unzip, strFromU8,
@@ -386,9 +386,6 @@ import {
 } from 'fflate';
 
 // Workers will work in almost any browser (even IE11!)
-// However, they fail below Node v12 without the --experimental-worker
-// CLI flag, and will fail entirely on Node below v10.
-
 // All of the async APIs use a node-style callback as so:
 const terminate = gzip(aMassiveFile, (err, data) => {
   if (err) {
