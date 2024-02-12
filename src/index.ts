@@ -1802,13 +1802,15 @@ export class Gunzip {
     }
     // necessary to prevent TS from using the closure value
     // This allows for workerization to function correctly
-    (Inflate.prototype as unknown as { c: typeof Inflate.prototype['c'] }).c.call(this, final);
+    (Inflate.prototype as unknown as { c: typeof Inflate.prototype['c'] }).c.call(this, 0);
     // process concatenated GZIP
-    if (this.s.f && !this.s.l && !final) {
+    if (this.s.f && !this.s.l) {
       this.v = shft(this.s.p) + 9;
       this.s = { i: 0 };
       this.o = new u8(0);
       this.push(new u8(0), final);
+    } else if (final) {
+      (Inflate.prototype as unknown as { c: typeof Inflate.prototype['c'] }).c.call(this, final);
     }
   }
 }

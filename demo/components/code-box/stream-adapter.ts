@@ -5,17 +5,17 @@ export default (stream: AsyncDeflate, highWaterMark = 65536) => {
   let backpressure = false;
   let resolveBackpressure: () => void = () => {};
 
-  // fflate has built-in buffering; don't use WHATWG highWaterMark implementation
+  // use WHATWG buffering primarily, fflate buffering only to help keep worker message channel fed
   const writable = new WritableStream({
     async write(dat: Uint8Array) {
       stream.push(dat);
 
       const blockers: Promise<void>[] = [];
 
-      if (stream.queuedSize >= highWaterMark) {
+      if (stream.queuedSize >= 32768) {
         blockers.push(new Promise(resolve => {
           stream.ondrain = () => {
-            if (stream.queuedSize < highWaterMark) resolve();
+            if (stream.queuedSize < 32768) resolve();
           }
         }));
       }
@@ -31,6 +31,9 @@ export default (stream: AsyncDeflate, highWaterMark = 65536) => {
     close() {
       stream.push(new Uint8Array(0), true);
     }
+  }, {
+    highWaterMark,
+    size: chunk => chunk.length
   });
 
   const readable = new ReadableStream({
@@ -51,6 +54,9 @@ export default (stream: AsyncDeflate, highWaterMark = 65536) => {
       backpressure = false;
       resolveBackpressure();
     }
+  }, {
+    highWaterMark,
+    size: chunk => chunk.length
   });
 
   return { readable, writable };
