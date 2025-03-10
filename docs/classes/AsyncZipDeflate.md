@@ -26,6 +26,7 @@ Asynchronous streaming DEFLATE compression for ZIP archives
 - [os](AsyncZipDeflate.md#os)
 - [size](AsyncZipDeflate.md#size)
 - [terminate](AsyncZipDeflate.md#terminate)
+- [zip64](AsyncZipDeflate.md#zip64)
 
 ### Methods
 
@@ -248,6 +249,21 @@ processed if you have clean-up logic.
 #### Implementation of
 
 [ZipInputFile](../interfaces/ZipInputFile.md).[terminate](../interfaces/ZipInputFile.md#terminate)
+
+___
+
+### zip64
+
+• `Optional` **zip64**: `boolean`
+
+Flag used to enforce the Zip64 format for Data Descriptor as described
+in PKZIP's APPNOTE.txt, section 4.3.9.2.
+Set this flag to `true` if you suspect your file will be larger than 4GB
+before or after compression.
+
+#### Implementation of
+
+[ZipInputFile](../interfaces/ZipInputFile.md).[zip64](../interfaces/ZipInputFile.md#zip64)
 
 ## Methods
 

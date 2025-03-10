@@ -26,6 +26,7 @@ for better performance
 - [ondata](ZipDeflate.md#ondata)
 - [os](ZipDeflate.md#os)
 - [size](ZipDeflate.md#size)
+- [zip64](ZipDeflate.md#zip64)
 
 ### Methods
 
@@ -233,6 +234,21 @@ ZipDeflate or AsyncZipDeflate.
 #### Implementation of
 
 [ZipInputFile](../interfaces/ZipInputFile.md).[size](../interfaces/ZipInputFile.md#size)
+
+___
+
+### zip64
+
+• `Optional` **zip64**: `boolean`
+
+Flag used to enforce the Zip64 format for Data Descriptor as described
+in PKZIP's APPNOTE.txt, section 4.3.9.2.
+Set this flag to `true` if you suspect your file will be larger than 4GB
+before or after compression.
+
+#### Implementation of
+
+[ZipInputFile](../interfaces/ZipInputFile.md).[zip64](../interfaces/ZipInputFile.md#zip64)
 
 ## Methods
 
