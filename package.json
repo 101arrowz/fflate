@@ -67,6 +67,9 @@
   },
   "author": "Arjun Barrett <arjunbarrett@gmail.com>",
   "license": "MIT",
+  "engines": {
+    "node": "20.x"
+  },
   "keywords": [
     "gzip",
     "gunzip",
