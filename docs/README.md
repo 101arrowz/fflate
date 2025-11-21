@@ -74,6 +74,7 @@
 - [AsyncFlateDrainHandler](README.md#asyncflatedrainhandler)
 - [AsyncFlateStreamHandler](README.md#asyncflatestreamhandler)
 - [AsyncZippableFile](README.md#asynczippablefile)
+- [FilenameDecoder](README.md#filenamedecoder)
 - [FlateCallback](README.md#flatecallback)
 - [FlateStreamHandler](README.md#flatestreamhandler)
 - [GunzipMemberHandler](README.md#gunzipmemberhandler)
@@ -187,6 +188,30 @@ ___
 Ƭ **AsyncZippableFile**: `Uint8Array` \| [`AsyncZippable`](interfaces/AsyncZippable.md) \| [`Uint8Array` \| [`AsyncZippable`](interfaces/AsyncZippable.md), [`AsyncZipOptions`](interfaces/AsyncZipOptions.md)]
 
 A file that can be used to asynchronously create a ZIP archive
+
+___
+
+### FilenameDecoder
+
+Ƭ **FilenameDecoder**: (`data`: `Uint8Array`) => `string`
+
+#### Type declaration
+
+▸ (`data`): `string`
+
+A function to decode filenames in ZIP archives when UTF-8 flag is not set
+
+##### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `data` | `Uint8Array` | The raw filename bytes |
+
+##### Returns
+
+`string`
+
+The decoded filename string
 
 ___
 

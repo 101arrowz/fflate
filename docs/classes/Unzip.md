@@ -16,6 +16,7 @@ A ZIP archive decompression stream that emits files as they are discovered
 
 - [push](Unzip.md#push)
 - [register](Unzip.md#register)
+- [setFilenameDecoder](Unzip.md#setfilenamedecoder)
 
 ## Constructors
 
@@ -72,6 +73,24 @@ the compression type provided to be expanded correctly
 | Name | Type | Description |
 | :------ | :------ | :------ |
 | `decoder` | [`UnzipDecoderConstructor`](../interfaces/UnzipDecoderConstructor.md) | The decoder constructor |
+
+#### Returns
+
+`void`
+
+___
+
+### setFilenameDecoder
+
+▸ **setFilenameDecoder**(`decoder`): `void`
+
+Sets a custom decoder for filenames when UTF-8 flag is not set
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `decoder` | [`FilenameDecoder`](../README.md#filenamedecoder) | The decoder function |
 
 #### Returns
 
