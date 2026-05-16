@@ -3684,8 +3684,11 @@ export class Unzip {
           break;
         } else if (oc) {
           if (sig == 0x8074B50) {
-            is = i += 12 + (oc == -2 && 8), f = 3, this.c = 0;
-            break;
+            const _sc = oc == -2 ? b8(buf, i + 8) : b4(buf, i + 8);
+            if (_sc == i) {
+              is = i += 12 + (oc == -2 && 8), f = 3, this.c = 0;
+              break;
+            }
           } else if (sig == 0x2014B50) {
             is = i -= 4, f = 3, this.c = 0;
             break;
