@@ -626,6 +626,16 @@ type DeflateState = {
   r?: number;
   // last chunk
   l: number;
+  // first valid source offset in `dat`. Bytes before this offset are
+  // not legitimate prior data (e.g. the zero-init lookback region of
+  // the streaming Deflate's internal buffer on first push, before any
+  // real data has been shifted into it). LZ77 must not emit a back-
+  // reference whose distance reaches before this offset, otherwise
+  // the decoder will reject the stream with "invalid distance too far
+  // back." Undefined / 0 means "all of `dat` is valid prior data,"
+  // which is the case for the one-shot deflateSync path and for any
+  // streaming Deflate call after the first buffer-shift.
+  f?: number;
 };
 
 // compresses data into a raw DEFLATE buffer
@@ -674,7 +684,16 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
         let l = 2, d = 0, ch = c, dif = imod - pimod & 32767;
         if (rem > 2 && hv == hsh(i - dif)) {
           const maxn = Math.min(n, rem) - 1;
-          const maxd = Math.min(32767, i);
+          // Cap distance by both the spec maximum (32767) AND the
+          // bytes of real prior data behind position `i`. On the
+          // streaming Deflate's first push, `dat[0..st.f)` is the
+          // uninitialized lookback region (zero-filled by `new u8`),
+          // not legitimate prior output — a match there would emit a
+          // distance greater than the bytes the decoder has seen,
+          // failing RFC 1951 §3.2.5. For the sync path and for
+          // post-first-push streaming, `st.f` is undefined / 0 and
+          // this collapses back to `Math.min(32767, i)`.
+          const maxd = Math.min(32767, i - (st.f || 0));
           // max possible length
           // not capped at dif because decompressors implement "rolling" index population
           const ml = Math.min(258, rem);
@@ -1269,7 +1288,12 @@ export class Deflate {
     if (typeof opts == 'function') cb = opts as FlateStreamHandler, opts = {};
     this.ondata = cb;
     this.o = (opts as DeflateOptions) || {};
-    this.s = { l: 0, i: 32768, w: 32768, z: 32768 };
+    // `f` tracks the first valid source offset in `b`. The first
+    // 32768 bytes of `b` are reserved as an LZ77 lookback window
+    // but are zero-init on construction — they only become valid
+    // prior data after the first buffer-shift in push() (or are
+    // pre-populated by an optional dictionary, handled below).
+    this.s = { l: 0, i: 32768, w: 32768, z: 32768, f: 32768 };
     // Buffer length must always be 0 mod 32768 for index calculations to be correct when modifying head and prev
     // 98304 = 32768 (lookback) + 65536 (common chunk size)
     this.b = new u8(98304);
@@ -1277,6 +1301,9 @@ export class Deflate {
       const dict = this.o.dictionary.subarray(-32768);
       this.b.set(dict, 32768 - dict.length);
       this.s.i = 32768 - dict.length;
+      // Dictionary IS valid prior data, so the first-valid offset
+      // moves back to where the dictionary starts.
+      this.s.f = 32768 - dict.length;
     }
   }
   private b: Uint8Array;
@@ -1315,7 +1342,10 @@ export class Deflate {
       this.b.set(this.b.subarray(-32768));
       this.b.set(chunk.subarray(split), 32768);
       this.s.z = chunk.length - split + 32768;
-      this.s.i = 32766, this.s.w = 32768;
+      // After the shift, the lookback region is full of real data
+      // from the previous deflate call, so distances can now safely
+      // reach all the way back to offset 0.
+      this.s.i = 32766, this.s.w = 32768, this.s.f = 0;
     } else {
       this.b.set(chunk, this.s.z);
       this.s.z += chunk.length;
