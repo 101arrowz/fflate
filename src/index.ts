@@ -77,22 +77,14 @@ const hMap = ((cd: Uint8Array, mb: number, r: 0 | 1) => {
   if (r) {
     // u16 "map": index -> number of actual bits, symbol for code
     co = new u16(1 << mb);
-    // bits to remove for reverser
-    const rvb = 15 - mb;
     for (i = 0; i < s; ++i) {
       // ignore 0 lengths
       if (cd[i]) {
         // num encoding both symbol and bits read
-        const sv = (i << 4) | cd[i];
-        // free bits
-        const r = mb - cd[i];
-        // start value
-        let v = le[cd[i] - 1]++ << r;
-        // m is end value
-        for (const m = v | ((1 << r) - 1); v <= m; ++v) {
-          // every 16 bit value starting with the code yields the same result
-          co[rev[v] >> rvb] = sv;
-        }
+        const len = cd[i], sv = (i << 4) | len;
+        // every value with the same reversed prefix yields the same result
+        let v = rev[le[len - 1]++] >> (15 - len);
+        for (const m = 1 << mb, inc = 1 << len; v < m; v += inc) co[v] = sv;
       }
     }
   } else {
@@ -105,6 +97,70 @@ const hMap = ((cd: Uint8Array, mb: number, r: 0 | 1) => {
   }
   return co;
 });
+
+// create compact inflate table entries: bits, operation, value
+const zMap = (cd: Uint8Array, mb: number, r: 1 | 2) => {
+  const s = cd.length, cnt = new u16(16), off = new u16(16), work = new u16(s);
+  let i = 0, min = 0, max = 0;
+  for (; i < s; ++i) ++cnt[cd[i]];
+  for (i = 15; i > 0; --i) if (cnt[i]) break;
+  max = i;
+  if (!max) return { t: new i32([(1 << 24) | (64 << 16), (1 << 24) | (64 << 16)]), b: 1 };
+  for (i = 1; i < max; ++i) if (cnt[i]) break;
+  min = i, mb = mb < min ? min : (mb > max ? max : mb);
+  let left = 1;
+  for (i = 1; i < 16; ++i) {
+    left = (left << 1) - cnt[i];
+    if (left < 0) err(r == 1 ? 2 : 3);
+  }
+  if (left && max != 1) err(r == 1 ? 2 : 3);
+  off[1] = 0;
+  for (i = 1; i < 15; ++i) off[i + 1] = off[i] + cnt[i];
+  for (i = 0; i < s; ++i) if (cd[i]) work[off[cd[i]]++] = i;
+  const enough = r == 1 ? 852 : 592, tab = new i32(enough), mask = (1 << mb) - 1;
+  let huff = 0, sym = 0, len = min, next = 0, curr = mb, drop = 0, low = -1, used = 1 << mb;
+  for (;;) {
+    const ws = work[sym], b = len - drop;
+    let op = 0, val = ws;
+    if (r == 1) {
+      if (ws == 256) op = 96, val = 0;
+      else if (ws > 256) {
+        const w = ws - 257;
+        if (w > 28) op = 64, val = 0;
+        else op = 16 + fleb[w], val = fl[w];
+      }
+    } else if (ws > 29) op = 64, val = 0;
+    else op = 16 + fdeb[ws], val = fd[ws];
+    const here = (b << 24) | (op << 16) | val;
+    let incr = 1 << (len - drop), fill = 1 << curr;
+    const last = fill;
+    do tab[next + (huff >> drop) + (fill -= incr)] = here; while (fill);
+    incr = 1 << (len - 1);
+    while (huff & incr) incr >>= 1;
+    huff = incr ? (huff & (incr - 1)) + incr : 0;
+    ++sym;
+    if (!--cnt[len]) {
+      if (len == max) break;
+      len = cd[work[sym]];
+    }
+    if (len > mb && (huff & mask) != low) {
+      if (!drop) drop = mb;
+      next += last;
+      curr = len - drop, left = 1 << curr;
+      while (curr + drop < max) {
+        left -= cnt[curr + drop];
+        if (left <= 0) break;
+        ++curr, left <<= 1;
+      }
+      used += 1 << curr;
+      if (used > enough) err(r == 1 ? 2 : 3);
+      low = huff & mask;
+      tab[low] = (mb << 24) | (curr << 16) | next;
+    }
+  }
+  if (huff) tab[next + huff] = ((len - drop) << 24) | (64 << 16);
+  return { t: tab, b: mb };
+};
 
 // fixed length tree
 const flt = new u8(288);
@@ -255,7 +311,7 @@ const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8
     }
   };
   //  last chunk         bitpos           bytes
-  let final = st.f || 0, pos = st.p || 0, bt = st.b || 0, lm = st.l, dm = st.d, lbt = st.m, dbt = st.n;
+  let final = st.f || 0, pos = st.p || 0, bt = st.b || 0, lm: any = st.l, dm: any = st.d, lbt = st.m, dbt = st.n, zt = 0;
   // total bits
   const tbts = sl * 8;
   do {
@@ -280,7 +336,7 @@ const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8
         st.b = bt += l, st.p = pos = t * 8, st.f = final;
         continue;
       }
-      else if (type == 1) lm = flrm, dm = fdrm, lbt = 9, dbt = 5;
+      else if (type == 1) lm = flrm, dm = fdrm, lbt = 9, dbt = 5, zt = 0;
       else if (type == 2) {
         //  literal                            lengths
         const hLit = bits(dat, pos, 31) + 257, hcLen = bits(dat, pos + 10, 15) + 4;
@@ -323,8 +379,14 @@ const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8
         lbt = max(lt)
         // max dist bits
         dbt = max(dt);
-        lm = hMap(lt, lbt, 1);
-        dm = hMap(dt, dbt, 1);
+        if (noSt && !dl) {
+          const zlm = zMap(lt, 9, 1), zdm = zMap(dt, 6, 2);
+          lm = zlm.t, dm = zdm.t, lbt = zlm.b, dbt = zdm.b, zt = 1;
+        } else {
+          lm = hMap(lt, lbt, 1);
+          dm = hMap(dt, dbt, 1);
+          zt = 0;
+        }
       } else err(1);
       if (pos > tbts) {
         if (noSt) err(0);
@@ -336,56 +398,142 @@ const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8
     if (resize) cbuf(bt + 131072);
     const lms = (1 << lbt) - 1, dms = (1 << dbt) - 1;
     let lpos = pos;
-    for (;; lpos = pos) {
-      // bits read, code
-      const c = lm[bits16(dat, pos) & lms], sym = c >> 4;
-      pos += c & 15;
-      if (pos > tbts) {
-        if (noSt) err(0);
-        break;
+    if (zt) {
+      const input = dat, lcode = lm, dcode = dm;
+      let output = buf, ip = (pos / 8) | 0, hold = 0, hbits = 0, _out = bt;
+      if (pos & 7) hold = input[ip++] >> (pos & 7), hbits = 8 - (pos & 7);
+      fast: for (;;) {
+        lpos = ip * 8 - hbits;
+        if (hbits < 15) {
+          hold |= input[ip++] << hbits, hbits += 8;
+          hold |= input[ip++] << hbits, hbits += 8;
+        }
+        let here = lcode[hold & lms];
+        if (!here) err(2);
+        lens: for (;;) {
+          let b = here >>> 24, op = (here >>> 16) & 255;
+          hold >>>= b, hbits -= b;
+          if (!op) {
+            output[_out++] = here;
+            break;
+          }
+          if (op & 16) {
+            let add = here & 65535;
+            op &= 15;
+            if (op) {
+              if (hbits < op) hold |= input[ip++] << hbits, hbits += 8;
+              add += hold & ((1 << op) - 1);
+              hold >>>= op, hbits -= op;
+            }
+            if (hbits < 15) {
+              hold |= input[ip++] << hbits, hbits += 8;
+              hold |= input[ip++] << hbits, hbits += 8;
+            }
+            here = dcode[hold & dms];
+            if (!here) err(3);
+            dists: for (;;) {
+              b = here >>> 24, op = (here >>> 16) & 255;
+              hold >>>= b, hbits -= b;
+              if (op & 16) {
+                let dt = here & 65535;
+                op &= 15;
+                if (op) {
+                  if (hbits < op) {
+                    hold |= input[ip++] << hbits, hbits += 8;
+                    if (hbits < op) hold |= input[ip++] << hbits, hbits += 8;
+                  }
+                  dt += hold & ((1 << op) - 1);
+                  hold >>>= op, hbits -= op;
+                }
+                if (dt > _out) err(3);
+                let end = _out + add;
+                if (resize && end > output.length) bt = _out, cbuf(end), output = buf;
+                let from = _out - dt;
+                do {
+                  output[_out++] = output[from++];
+                  output[_out++] = output[from++];
+                  output[_out++] = output[from++];
+                  add -= 3;
+                } while (add > 2);
+                if (add) {
+                  output[_out++] = output[from++];
+                  if (add > 1) output[_out++] = output[from++];
+                }
+                break lens;
+              }
+              if (!(op & 64)) {
+                here = dcode[(here & 65535) + (hold & ((1 << op) - 1))];
+                if (!here) err(3);
+                continue dists;
+              }
+              err(3);
+            }
+          } else if (!(op & 64)) {
+            here = lcode[(here & 65535) + (hold & ((1 << op) - 1))];
+            if (!here) err(2);
+            continue lens;
+          } else if (op & 32) {
+            pos = ip * 8 - hbits;
+            if (pos > tbts) err(0);
+            lpos = pos, lm = null;
+            break fast;
+          } else err(2);
+        }
       }
-      if (!c) err(2);
-      if (sym < 256) buf[bt++] = sym;
-      else if (sym == 256) {
-        lpos = pos, lm = null;
-        break;
-      } else {
-        let add = sym - 254;
-        // no extra bits needed if less
-        if (sym > 264) {
-          // index
-          const i = sym - 257, b = fleb[i];
-          add = bits(dat, pos, (1 << b) - 1) + fl[i];
-          pos += b;
-        }
-        // dist
-        const d = dm[bits16(dat, pos) & dms], dsym = d >> 4;
-        if (!d) err(3);
-        pos += d & 15;
-        let dt = fd[dsym];
-        if (dsym > 3) {
-          const b = fdeb[dsym];
-          dt += bits16(dat, pos) & (1 << b) - 1, pos += b;
-        }
+      bt = _out, buf = output;
+    } else {
+      for (;; lpos = pos) {
+        // bits read, code
+        const p8 = (pos / 8) | 0, c = lm[((dat[p8] | (dat[p8 + 1] << 8) | (dat[p8 + 2] << 16)) >> (pos & 7)) & lms], sym = c >> 4;
+        pos += c & 15;
         if (pos > tbts) {
           if (noSt) err(0);
           break;
         }
-        if (resize) cbuf(bt + 131072);
-        const end = bt + add;
-        if (bt < dt) {
-          const shift = dl - dt, dend = Math.min(dt, end);
-          if (shift + bt < 0) err(3);
-          for (; bt < dend; ++bt) buf[bt] = dict[shift + bt];
+        if (!c) err(2);
+        if (sym < 256) buf[bt++] = sym;
+        else if (sym == 256) {
+          lpos = pos, lm = null;
+          break;
+        } else {
+          let add = sym - 254;
+          // no extra bits needed if less
+          if (sym > 264) {
+            // index
+            const i = sym - 257, b = fleb[i];
+            add = bits(dat, pos, (1 << b) - 1) + fl[i];
+            pos += b;
+          }
+          // dist
+          const p8d = (pos / 8) | 0, d = dm[((dat[p8d] | (dat[p8d + 1] << 8) | (dat[p8d + 2] << 16)) >> (pos & 7)) & dms], dsym = d >> 4;
+          if (!d) err(3);
+          pos += d & 15;
+          let dt = fd[dsym];
+          if (dsym > 3) {
+            const b = fdeb[dsym];
+            const p8e = (pos / 8) | 0;
+            dt += ((dat[p8e] | (dat[p8e + 1] << 8) | (dat[p8e + 2] << 16)) >> (pos & 7)) & (1 << b) - 1, pos += b;
+          }
+          if (pos > tbts) {
+            if (noSt) err(0);
+            break;
+          }
+          if (resize) cbuf(bt + 131072);
+          const end = bt + add;
+          if (bt < dt) {
+            const shift = dl - dt, dend = Math.min(dt, end);
+            if (shift + bt < 0) err(3);
+            for (; bt < dend; ++bt) buf[bt] = dict[shift + bt];
+          }
+          for (; bt < end; ++bt) buf[bt] = buf[bt - dt];
         }
-        for (; bt < end; ++bt) buf[bt] = buf[bt - dt];
       }
     }
     st.l = lm, st.p = lpos, st.b = bt, st.f = final;
     if (lm) final = 1, st.m = lbt, st.d = dm, st.n = dbt;
   } while (!final)
   // don't reallocate for streams or user buffers
-  return bt != buf.length && noBuf ? slc(buf, 0, bt) : buf.subarray(0, bt);
+  return bt != buf.length && noBuf && bt * 4 < buf.length * 3 ? slc(buf, 0, bt) : buf.subarray(0, bt);
 }
 
 // starting at p, write the minimum number of bits that can hold v to d
@@ -1091,7 +1239,7 @@ const wrkr = <T, R>(fns: (() => unknown[])[], init: (ev: MessageEvent<T>) => voi
 }
 
 // base async inflate fn
-const bInflt = () => [u8, u16, i32, fleb, fdeb, clim, fl, fd, flrm, fdrm, rev, ec, hMap, max, bits, bits16, shft, slc, err, inflt, inflateSync, pbf, gopt];
+const bInflt = () => [u8, u16, i32, fleb, fdeb, clim, fl, fd, flrm, fdrm, rev, ec, hMap, zMap, max, bits, bits16, shft, slc, err, inflt, inflateSync, pbf, gopt];
 const bDflt = () => [u8, u16, i32, fleb, fdeb, clim, revfl, revfd, flm, flt, fdm, fdt, rev, deo, et, hMap, wbits, wbits16, hTree, ln, lc, clen, wfblk, wblk, shft, slc, dflt, dopt, deflateSync, pbf];
 
 // gzip extra
