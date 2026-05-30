@@ -16,7 +16,6 @@ In addition to the base decompression and compression APIs, `fflate` supports hi
 | ZIP support                 | ❌     | ❌                      | ✅                    | ✅                             |
 | Streaming support           | ✅     | ❌                      | ❌                    | ✅                             |
 | GZIP support                | ✅     | ❌                      | ❌                    | ✅                             |
-| Supports files up to 4GB    | ✅     | ❌                      | ❌                    | ✅                             |
 | Doesn't hang on error       | ✅     | ❌                      | ❌                    | ✅                             |
 | Dictionary support          | ✅     | ❌                      | ❌                    | ✅                             |
 | Multi-thread/Asynchronous   | ❌     | ❌                      | ❌                    | ✅                             |
