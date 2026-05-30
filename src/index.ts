@@ -3601,6 +3601,8 @@ export class Unzip {
   private p: Uint8Array;
   private k: Uint8Array[][];
   private o: Record<number, UnzipDecoderConstructor>;
+  // compressed bytes flushed so far for the current data-descriptor entry
+  private b: number;
 
   /**
    * Creates a ZIP decompression stream
@@ -3632,18 +3634,39 @@ export class Unzip {
       chunk = chunk.subarray(len);
       if (chunk.length) return this.push(chunk, final);
     } else {
-      let f = 0, i = 0, is: number, buf: Uint8Array;
+      let f = 0, i = 0, de = 0, buf: Uint8Array;
       if (!this.p.length) buf = chunk;
       else if (!chunk.length) buf = this.p;
       else {
         buf = new u8(this.p.length + chunk.length)
         buf.set(this.p), buf.set(chunk, this.p.length);
       }
-      const l = buf.length, oc = this.c, add = oc && this.d;
+      const l = buf.length, oc = this.c, add = oc && this.d, z = oc == -2 && 8;
       for (; i < l - 4; ++i) {
         const sig = b4(buf, i);
-        if (sig == 0x4034B50) {
-          f = 1, is = i;
+        // When inside a data-descriptor entry (oc < 0) the compressed size is unknown,
+        // so the entry's end must be found by scanning. A real boundary is preceded by
+        // a data descriptor whose stored compressed size equals the number of compressed
+        // bytes seen so far. Signature-like bytes that occur naturally inside the
+        // compressed stream do not satisfy this check, so they are skipped instead of
+        // being mistaken for the next entry (see #243). `ok` records validation and `de`
+        // the resulting end of the file's data within `buf`.
+        let ok = !(oc < 0);
+        if (oc < 0) {
+          if (sig == 0x8074B50) {
+            // data descriptor signature: csize follows the 4-byte sig + 4-byte CRC
+            if (this.b + i == (z ? b8(buf, i + 8) : b4(buf, i + 8))) ok = true, de = i;
+          } else if (sig == 0x4034B50 || sig == 0x2014B50) {
+            // next local header / central directory: a descriptor (optionally prefixed
+            // by its signature) sits immediately before this position. csize is the
+            // field before the trailing usize, regardless of the optional signature.
+            const cs = z ? b8(buf, i - 16) : b4(buf, i - 8), d0 = i - 12 - z;
+            if (d0 >= 0 && this.b + d0 == cs) ok = true, de = d0;
+            else if (d0 - 4 >= 0 && this.b + d0 - 4 == cs) ok = true, de = d0 - 4;
+          }
+        }
+        if (sig == 0x4034B50 && ok) {
+          f = 1;
           this.d = null;
           this.c = 0;
           const bf = b2(buf, i + 6), cmp = b2(buf, i + 8), u = bf & 2048, dd = bf & 8, fnl = b2(buf, i + 26), es = b2(buf, i + 28);
@@ -3657,6 +3680,7 @@ export class Unzip {
             if (dd) sc = -1 - z64;
             i += es;
             this.c = sc;
+            if (sc < 0) this.b = 0;
             let d: UnzipDecoder;
             const file = {
               name: fn,
@@ -3683,23 +3707,28 @@ export class Unzip {
           }
           break;
         } else if (oc) {
-          if (sig == 0x8074B50) {
-            is = i += 12 + (oc == -2 && 8), f = 3, this.c = 0;
+          if (sig == 0x8074B50 && ok) {
+            i += 12 + z, f = 3, this.c = 0;
             break;
-          } else if (sig == 0x2014B50) {
-            is = i -= 4, f = 3, this.c = 0;
+          } else if (sig == 0x2014B50 && ok) {
+            f = 3, this.c = 0;
             break;
           }
         }
       }
       this.p = et
       if (oc < 0) {
-        const dat = f ? buf.subarray(0, is - 12 - (oc == -2 && 8) - (b4(buf, is - 16) == 0x8074B50 && 4)) : buf.subarray(0, i);
+        // retain a margin so a data descriptor split across chunk boundaries is never
+        // flushed as file data; the validated end `de` is used once a boundary is found
+        const end = f ? de : (l > 24 ? l - 24 : 0);
+        const dat = buf.subarray(0, end);
+        this.b += end;
         if (add) add.push(dat, !!f);
         else this.k[+(f == 2)].push(dat);
+        if (!f) this.p = buf.subarray(end);
       }
       if (f & 2) return this.push(buf.subarray(i), final);
-      this.p = buf.subarray(i);
+      if (!(oc < 0) || f) this.p = buf.subarray(i);
     }
     if (final) {
       if (this.c) err(13);
