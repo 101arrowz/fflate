@@ -11,6 +11,7 @@
 // is better for memory in most engines (I *think*).
 
 import wk from './node-worker';
+import { bzip2Decode } from './bzip2';
 
 // aliases for shorter compressed code (most minifers don't do this)
 const u8 = Uint8Array, u16 = Uint16Array, i32 = Int32Array;
@@ -1102,6 +1103,8 @@ const guze = () => [gzs, gzl];
 const zle = () => [zlh, wbytes, adler];
 // unzlib extra
 const zule = () => [zls];
+// bzip2 extra
+const bze = () => [bzip2Decode];
 
 // post buf
 const pbf = (msg: Uint8Array) => (postMessage as Worker['postMessage'])(msg, [msg.buffer]);
@@ -2512,7 +2515,17 @@ export interface UnzipOptions {
    * A filter function to extract only certain files from a ZIP archive
    */
   filter?: UnzipFileFilter;
+  /**
+   * Custom decoders keyed by ZIP compression method ID.
+   * Use this to add support for additional methods (e.g. 12 = BZIP2).
+   */
+  decompress?: Record<number, (data: Uint8Array, info: UnzipFileInfo) => Uint8Array>;
 }
+
+/**
+ * A synchronous decoder function for ZIP entries using a specific method ID.
+ */
+export type UnzipSyncDecoder = (data: Uint8Array, info: UnzipFileInfo) => Uint8Array;
 
 /**
  * Options for asynchronously creating a ZIP archive
@@ -2523,6 +2536,30 @@ export interface AsyncZipOptions extends AsyncDeflateOptions, ZipAttributes {}
  * Options for asynchronously expanding a ZIP archive
  */
 export interface AsyncUnzipOptions extends UnzipOptions {}
+
+const ucd: Record<number, UnzipSyncDecoder> = {};
+
+/**
+ * Registers a global synchronous decoder used by both `unzipSync` and `unzip`.
+ * Useful for adding support for additional ZIP method IDs.
+ * @param compression The ZIP compression method ID
+ * @param decoder The decoder implementation
+ */
+export function registerUnzipDecoder(compression: number, decoder: UnzipSyncDecoder) {
+  ucd[compression] = decoder;
+}
+
+/**
+ * Unregisters a global synchronous decoder previously registered via
+ * `registerUnzipDecoder`.
+ * @param compression The ZIP compression method ID
+ */
+export function unregisterUnzipDecoder(compression: number) {
+  delete ucd[compression];
+}
+
+// Built-in ZIP method 12 (BZIP2) decoder
+registerUnzipDecoder(12, (data) => bzip2Decode(data));
 
 /**
  * A file that can be used to create a ZIP archive
@@ -3461,8 +3498,7 @@ export interface UnzipFileInfo {
   /**
    * The compression format for the data stream. This number is determined by
    * the spec in PKZIP's APPNOTE.txt, section 4.4.5. For example, 0 = no
-   * compression, 8 = deflate, 14 = LZMA. If the filter function returns true
-   * but this value is not 8, the unzip function will throw.
+   * compression, 8 = deflate, 14 = LZMA.
    */
   compression: number;
 }
@@ -3773,6 +3809,7 @@ export function unzip(data: Uint8Array, opts: AsyncUnzipOptions | UnzipCallback,
       }
     }
     const fltr = opts && (opts as AsyncUnzipOptions).filter;
+    const dcmp = opts && (opts as AsyncUnzipOptions).decompress;
     for (let i = 0; i < c; ++i) {
       const [c, sc, su, fn, no, off] = zh(data, o, z), b = slzh(data, off);
       o = no
@@ -3785,12 +3822,13 @@ export function unzip(data: Uint8Array, opts: AsyncUnzipOptions | UnzipCallback,
           if (!--lft) cbd(null, files);
         }
       }
-      if (!fltr || fltr({
+      const file = {
         name: fn,
         size: sc,
         originalSize: su,
         compression: c
-      })) {
+      };
+      if (!fltr || fltr(file)) {
         if (!c) cbl(null, slc(data, b, b + sc))
         else if (c == 8) {
           const infl = data.subarray(b, b + sc);
@@ -3803,6 +3841,26 @@ export function unzip(data: Uint8Array, opts: AsyncUnzipOptions | UnzipCallback,
             }
           }
           else term.push(inflate(infl, { size: su }, cbl));
+        } else if (c == 12 && !(dcmp && dcmp[c])) {
+          const infl = data.subarray(b, b + sc);
+          // Keep tiny BZIP2 entries sync; offload larger ones to a worker.
+          if (su < 262144) {
+            try {
+              cbl(null, bzip2Decode(infl));
+            } catch (e) {
+              cbl(e, null);
+            }
+          } else {
+            term.push(cbify(infl, {}, [
+              bze
+            ], ev => pbf(bzip2Decode(ev.data[0])), 6, cbl));
+          }
+        } else if ((dcmp && dcmp[c]) || ucd[c]) {
+          try {
+            cbl(null, (dcmp && dcmp[c] || ucd[c])(data.subarray(b, b + sc), file));
+          } catch(e) {
+            cbl(e, null);
+          }
         } else cbl(err(14, 'unknown compression type ' + c, 1), null);
       } else cbl(null, null);
     }
@@ -3836,17 +3894,20 @@ export function unzipSync(data: Uint8Array, opts?: UnzipOptions) {
     }
   }
   const fltr = opts && opts.filter;
+  const dcmp = opts && opts.decompress;
   for (let i = 0; i < c; ++i) {
     const [c, sc, su, fn, no, off] = zh(data, o, z), b = slzh(data, off);
     o = no;
-    if (!fltr || fltr({
+    const file = {
       name: fn,
       size: sc,
       originalSize: su,
       compression: c
-    })) {
+    };
+    if (!fltr || fltr(file)) {
       if (!c) files[fn] = slc(data, b, b + sc);
       else if (c == 8) files[fn] = inflateSync(data.subarray(b, b + sc), { out: new u8(su) });
+      else if ((dcmp && dcmp[c]) || ucd[c]) files[fn] = (dcmp && dcmp[c] || ucd[c])(data.subarray(b, b + sc), file);
       else err(14, 'unknown compression type ' + c);
     }
   }
