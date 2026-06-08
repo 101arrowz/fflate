@@ -94,7 +94,9 @@
     "build:rewrite": "SC=rewriteBuilds npm run script",
     "build:demo": "tsc --project tsconfig.demo.json && parcel build demo/index.html --no-cache --public-url \"./\" && SC=cpGHPages npm run script",
     "build:docs": "typedoc --plugin typedoc-plugin-markdown --hideBreadcrumbs --readme none --disableSources --excludePrivate --excludeProtected --expandParameters --githubPages false --out docs/ src/index.ts",
-    "test": "TS_NODE_PROJECT=test/tsconfig.json uvu -b -r ts-node/register test",
+    "test": "node scripts/run-tests.cjs",
+    "test:zip": "node scripts/run-test-file.cjs test/3-zip.ts",
+    "test:bzip2": "node scripts/run-test-file.cjs test/7-bzip2.ts",
     "prepack": "npm run build && npm run test"
   },
   "devDependencies": {

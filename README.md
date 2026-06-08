@@ -500,6 +500,25 @@ unzip.push(data, true);
 
 See the [documentation](https://github.com/101arrowz/fflate/blob/master/docs/README.md) for more detailed information about the API.
 
+## Raw BZIP2 (.bz2)
+
+`fflate` can also decompress raw `.bz2` files directly, outside of ZIP archives.
+
+```js
+const bz2Data = await fetch('/file.bz2').then(res => res.arrayBuffer());
+const textData = fflate.bunzip2Sync(new Uint8Array(bz2Data));
+const text = fflate.strFromU8(textData);
+```
+
+If you prefer the asynchronous API:
+
+```js
+fflate.bunzip2(new Uint8Array(bz2Data), (err, data) => {
+  if (err) throw err;
+  console.log(fflate.strFromU8(data));
+});
+```
+
 ## Bundle size estimates
 
 The bundle size measurements for `fflate` on sites like Bundlephobia include every feature of the library and should be seen as an upper bound. As long as you are using tree shaking or dead code elimination, this table should give you a general idea of `fflate`'s bundle size for the features you need.
