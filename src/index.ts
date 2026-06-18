@@ -1042,7 +1042,7 @@ const wcln = (fn: () => unknown[], fnStr: string, td: Record<string, unknown>) =
   for (let i = 0; i < dt.length; ++i) {
     let v = dt[i], k = ks[i];
     if (typeof v == 'function') {
-      fnStr += ';' + k + '=';
+      fnStr += ';var ' + k + '=';
       const st = v.toString();
       if (v.prototype) {
         // for global objects
