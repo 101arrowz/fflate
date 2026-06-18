@@ -5,7 +5,7 @@ export default <T>(c: string, id: number, msg: unknown, transfer: ArrayBuffer[],
     new Blob([
       c + ';addEventListener("error",function(e){e=e.error;postMessage({$e$:[e.message,e.code,e.stack]})})'
     ], { type: 'text/javascript' })
-  ));
+  ), 'Deno' in globalThis ? { type: 'module' } : {});
   w.onmessage = e => {
     const d = e.data, ed = d.$e$;
     if (ed) {
