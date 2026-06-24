@@ -1351,7 +1351,7 @@ export class Deflate {
       const c = new u8(6);
       c[0] = this.s.r >> 3;
       // write empty, non-final type-0 block
-      const ep = wfblk(c, this.s.r, et);
+      const ep = wfblk(c, (this.s.r & 7) + 1, et);
       this.s.r = 0;
       this.ondata(c.subarray(0, ep >> 3), false);
     }
