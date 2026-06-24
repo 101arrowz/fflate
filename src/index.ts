@@ -2761,11 +2761,23 @@ const dbf = (l: number) => l == 1 ? 3 : l < 6 ? 2 : l == 9 ? 1 : 0;
 // skip local zip header
 const slzh = (d: Uint8Array, b: number) => b + 30 + b2(d, b + 26) + b2(d, b + 28);
 
+// read DOS date/time to Date
+const ddt = (v: number) => {
+  return new Date(
+    ((v >> 25) & 127) + 1980,
+    ((v >> 21) & 15) - 1,
+    (v >> 16) & 31,
+    (v >> 11) & 31,
+    (v >> 5) & 63,
+    (v & 31) << 1
+  );
+}
+
 // read zip header
 const zh = (d: Uint8Array, b: number, z: boolean) => {
   const fnl = b2(d, b + 28), efl = b2(d, b + 30), fn = strFromU8(d.subarray(b + 46, b + 46 + fnl), !(b2(d, b + 8) & 2048)), es = b + 46 + fnl;
   const [sc, su, off] = z64hs(d, es, efl, z, b4(d, b + 20), b4(d, b + 24), b4(d, b + 42));
-  return [b2(d, b + 10), sc, su, fn, es + efl + b2(d, b + 32), off] as const;
+  return [b2(d, b + 10), sc, su, fn, es + efl + b2(d, b + 32), off, ddt(b4(d, b + 12))] as const;
 }
 
 // read zip64 header sizes
@@ -3465,6 +3477,11 @@ export interface UnzipFileInfo {
    * but this value is not 8, the unzip function will throw.
    */
   compression: number;
+
+  /**
+   * The last modified date of the file
+   */
+  mtime: Date;
 }
 
 /**
@@ -3507,6 +3524,11 @@ export interface UnzipFile {
    * in a streaming fashion.
    */
   originalSize?: number;
+
+  /**
+   * The last modified date of the file
+   */
+  mtime: Date;
 
   /**
    * Starts reading from the stream. Calling this function will always enable
@@ -3652,6 +3674,7 @@ export class Unzip {
             this.k.unshift(chks);
             f = 2;
             let lsc = b4(buf, i + 18), lsu = b4(buf, i + 22);
+            const mt = ddt(b4(buf, i + 10));
             const fn = strFromU8(buf.subarray(i + 30, i += 30 + fnl), !u);
             let [sc, su,, z64] = z64hs(buf, i, es, 2, lsc, lsu, 0);
             if (dd) sc = -1 - z64;
@@ -3661,6 +3684,7 @@ export class Unzip {
             const file = {
               name: fn,
               compression: cmp,
+              mtime: mt,
               start: () => {
                 if (!file.ondata) err(5);
                 if (!sc) file.ondata(null, et, true);
@@ -3774,7 +3798,7 @@ export function unzip(data: Uint8Array, opts: AsyncUnzipOptions | UnzipCallback,
     }
     const fltr = opts && (opts as AsyncUnzipOptions).filter;
     for (let i = 0; i < c; ++i) {
-      const [c, sc, su, fn, no, off] = zh(data, o, z), b = slzh(data, off);
+      const [c, sc, su, fn, no, off, mt] = zh(data, o, z), b = slzh(data, off);
       o = no
       const cbl: FlateCallback = (e, d) => {
         if (e) {
@@ -3789,7 +3813,8 @@ export function unzip(data: Uint8Array, opts: AsyncUnzipOptions | UnzipCallback,
         name: fn,
         size: sc,
         originalSize: su,
-        compression: c
+        compression: c,
+        mtime: mt
       })) {
         if (!c) cbl(null, slc(data, b, b + sc))
         else if (c == 8) {
@@ -3837,13 +3862,14 @@ export function unzipSync(data: Uint8Array, opts?: UnzipOptions) {
   }
   const fltr = opts && opts.filter;
   for (let i = 0; i < c; ++i) {
-    const [c, sc, su, fn, no, off] = zh(data, o, z), b = slzh(data, off);
+    const [c, sc, su, fn, no, off, mt] = zh(data, o, z), b = slzh(data, off);
     o = no;
     if (!fltr || fltr({
       name: fn,
       size: sc,
       originalSize: su,
-      compression: c
+      compression: c,
+      mtime: mt
     })) {
       if (!c) files[fn] = slc(data, b, b + sc);
       else if (c == 8) files[fn] = inflateSync(data.subarray(b, b + sc), { out: new u8(su) });
