@@ -1954,9 +1954,34 @@ export function gunzipSync(data: Uint8Array): Uint8Array<ArrayBuffer>;
  */
 export function gunzipSync<TArrayBuffer extends ArrayBufferLike = ArrayBuffer>(data: Uint8Array, opts?: GunzipOptions<TArrayBuffer>): Uint8Array<TArrayBuffer>;
 export function gunzipSync(data: Uint8Array, opts?: GunzipOptions) {
-  const st = gzs(data);
+  let st = gzs(data);
   if (st + 8 > data.length) err(6, 'invalid gzip data');
-  return inflt(data.subarray(st, -8), { i: 2 }, opts && opts.out || new u8(gzl(data)), opts && opts.dictionary);
+  const dict = opts && opts.dictionary;
+  // RFC 1952 2.2: a gzip stream is a series of members, all of which must be
+  // decoded and concatenated. Decode each member in turn, advancing past its
+  // header, DEFLATE data, and 8-byte trailer. inflt stops at the member's
+  // BFINAL, leaving ist.p at the end of its DEFLATE data, which locates the
+  // member boundary. Per-member output sizes are not known ahead of time (the
+  // trailing ISIZE only describes the last member), so let inflt size each
+  // member itself, then concatenate.
+  const members: Uint8Array[] = [];
+  let total = 0, end: number;
+  for (;;) {
+    const ist: InflateState = { i: 2 };
+    const mem = inflt(data.subarray(st, -8), ist, undefined, dict) as Uint8Array;
+    end = st + shft(ist.p as number) + 8;
+    members.push(mem), total += mem.length;
+    if (end + 8 > data.length) break;
+    st = gzs(data.subarray(end)) + end;
+    if (st + 8 > data.length) err(6, 'invalid gzip data');
+  }
+  // Single member: hand back its buffer directly (unless a target was given).
+  if (members.length == 1 && !(opts && opts.out)) return members[0] as Uint8Array<ArrayBuffer>;
+  const out = opts && opts.out || new u8(total);
+  for (let i = 0, off = 0; i < members.length; off += members[i++].length) {
+    out.set(members[i], off);
+  }
+  return out as Uint8Array<ArrayBuffer>;
 }
 
 /**
