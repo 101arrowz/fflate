@@ -15,7 +15,15 @@ export default Worker ? <T>(c: string, _: number, msg: unknown, transfer: ArrayB
     .on('exit', c => {
       if (c && !done) cb(new Error('exited with code ' + c), null);
     });
-  if (isMarkedAsUntransferable) transfer = transfer.filter(t => !isMarkedAsUntransferable(t));
+  if (isMarkedAsUntransferable) {
+    // Pooled Node Buffers share an ArrayBuffer that is marked untransferable;
+    // transferring it throws DataCloneError. Wrap postMessage so the transfer
+    // list is filtered on every message (streaming pushes reuse it too, not
+    // just this first send) and such buffers fall back to a structured clone.
+    const pm = w.postMessage.bind(w) as typeof w.postMessage;
+    w.postMessage = (m: unknown, t?: ArrayBuffer[]) =>
+      pm(m, t && t.filter(b => !isMarkedAsUntransferable(b)));
+  }
   w.postMessage(msg, transfer);
   w.terminate = () => {
     done = true;
