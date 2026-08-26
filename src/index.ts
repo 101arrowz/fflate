@@ -345,7 +345,11 @@ const inflt = (dat: Uint8Array, st: InflateState, buf?: Uint8Array, dict?: Uint8
         break;
       }
       if (!c) err(2);
-      if (sym < 256) buf[bt++] = sym;
+      // matches grow the buffer, but a long literal run can outrun the reservation
+      if (sym < 256) {
+        if (resize && bt == buf.length) cbuf(bt + 131072);
+        buf[bt++] = sym;
+      }
       else if (sym == 256) {
         lpos = pos, lm = null;
         break;
