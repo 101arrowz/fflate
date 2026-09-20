@@ -425,7 +425,8 @@ const hTree = (d: Uint16Array, mb: number) => {
   }
   const s = t.length;
   const t2 = t.slice();
-  if (!s) return { t: et, l: 0 };
+  // Some ZIP decoders reject an empty distance tree, even for all-literal blocks.
+  if (!s) return { t: new u8([1]), l: 1 };
   if (s == 1) {
     const v = new u8(t[0].s + 1);
     v[t[0].s] = 1;
