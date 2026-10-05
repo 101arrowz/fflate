@@ -622,6 +622,8 @@ type DeflateState = {
   z?: number;
   // wait index
   w?: number;
+  // lowest buffer index holding stream (or dictionary) bytes; streaming only
+  m?: number;
   // remainder byte info
   r?: number;
   // last chunk
@@ -674,7 +676,9 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
         let l = 2, d = 0, ch = c, dif = imod - pimod & 32767;
         if (rem > 2 && hv == hsh(i - dif)) {
           const maxn = Math.min(n, rem) - 1;
-          const maxd = Math.min(32767, i);
+          // never reach before the stream's first byte: until a streaming
+          // buffer first shifts, its 32 KiB lookback prefix is unwritten
+          const maxd = Math.min(32767, i - (st.m || 0));
           // max possible length
           // not capped at dif because decompressors implement "rolling" index population
           const ml = Math.min(258, rem);
@@ -1269,14 +1273,14 @@ export class Deflate {
     if (typeof opts == 'function') cb = opts as FlateStreamHandler, opts = {};
     this.ondata = cb;
     this.o = (opts as DeflateOptions) || {};
-    this.s = { l: 0, i: 32768, w: 32768, z: 32768 };
+    this.s = { l: 0, i: 32768, w: 32768, z: 32768, m: 32768 };
     // Buffer length must always be 0 mod 32768 for index calculations to be correct when modifying head and prev
     // 98304 = 32768 (lookback) + 65536 (common chunk size)
     this.b = new u8(98304);
     if (this.o.dictionary) {
       const dict = this.o.dictionary.subarray(-32768);
       this.b.set(dict, 32768 - dict.length);
-      this.s.i = 32768 - dict.length;
+      this.s.i = this.s.m = 32768 - dict.length;
     }
   }
   private b: Uint8Array;
@@ -1315,7 +1319,7 @@ export class Deflate {
       this.b.set(this.b.subarray(-32768));
       this.b.set(chunk.subarray(split), 32768);
       this.s.z = chunk.length - split + 32768;
-      this.s.i = 32766, this.s.w = 32768;
+      this.s.i = 32766, this.s.w = 32768, this.s.m = 0;
     } else {
       this.b.set(chunk, this.s.z);
       this.s.z += chunk.length;
