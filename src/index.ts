@@ -2772,7 +2772,7 @@ const zh = (d: Uint8Array, b: number, z: boolean) => {
 const z64hs = (d: Uint8Array, b: number, l: number, z: boolean | number, sc: number, su: number, off: number) => {
   const nsc = sc == 4294967295, nsu = su == 4294967295, noff = off == 4294967295, e = b + l;
   const nf = (nsc as unknown as number) + (nsu as unknown as number) + (noff as unknown as number);
-  if (z && nf) {
+  if (nf) {
     for (; b + 4 < e; b += 4 + b2(d, b + 2)) {
       if (b2(d, b) == 1) {
         return [
