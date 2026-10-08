@@ -1506,7 +1506,16 @@ export class Inflate {
     const bts = this.s.b;
     const dt = inflt(this.p, this.s, this.o);
     this.ondata(slc(dt, bts, this.s.b), this.d);
-    this.o = slc(dt, this.s.b - 32768), this.s.b = this.o.length;
+    // keep the output buffer while it has room for another push; otherwise move the
+    // 32kB lookback window into a fresh one. Avoids reallocating on every push.
+    let o = new u8(dt.buffer);
+    const b = this.s.b;
+    if (o.length - b < 196608) {
+      const w = o.subarray(Math.max(b - 32768, 0), b);
+      if (o.length < 327680 || o.length > 1048576) o = new u8(327680);
+      o.set(w), this.s.b = w.length;
+    }
+    this.o = o;
     this.p = slc(this.p, (this.s.p / 8) | 0), this.s.p &= 7;
   }
 
