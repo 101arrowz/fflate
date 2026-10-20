@@ -1087,7 +1087,8 @@ const wrkr = <T, R>(fns: (() => unknown[])[], init: (ev: MessageEvent<T>) => voi
     ch[id] = { c: wcln(fns[m], fnStr, td), e: td };
   }
   const td = mrg({}, ch[id].e);
-  return wk(ch[id].c + ';onmessage=function(e){for(var k in e.data)self[k]=e.data[k];onmessage=' + init.toString() + '}', id, td, cbfs(td), cb);
+  // Create init outside the bootstrap scope so its globals cannot capture e or k.
+  return wk(ch[id].c + ';onmessage=(function(init){return function(e){for(var k in e.data)self[k]=e.data[k];onmessage=init}})(' + init.toString() + ')', id, td, cbfs(td), cb);
 }
 
 // base async inflate fn
