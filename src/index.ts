@@ -3271,7 +3271,7 @@ export function zip(data: AsyncZippable, cb: FlateCallback): AsyncTerminable;
 export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, cb?: FlateCallback) {
   if (!cb) cb = opts as FlateCallback, opts = {};
   if (typeof cb != 'function') err(7);
-  const r: FlatZippable<true> = {};
+  const r: FlatZippable<true> = Object.create(null);
   fltn(data, '', r, opts as AsyncZipOptions);
   const k = Object.keys(r);
   let lft = k.length, o = 0, tot = 0;
@@ -3356,7 +3356,7 @@ export function zip(data: AsyncZippable, opts: AsyncZipOptions | FlateCallback, 
  */
 export function zipSync(data: Zippable, opts?: ZipOptions) {
   if (!opts) opts = {};
-  const r: FlatZippable<false> = {};
+  const r: FlatZippable<false> = Object.create(null);
   const files: ZipDat[] = [];
   fltn(data, '', r, opts);
   let o = 0;
@@ -3781,7 +3781,10 @@ export function unzip(data: Uint8Array, opts: AsyncUnzipOptions | UnzipCallback,
           tAll();
           cbd(e, null);
         } else {
-          if (d) files[fn] = d;
+          if (d) {
+            if (fn == '__proto__') Object.defineProperty(files, fn, { writable: true, enumerable: true, configurable: true });
+            files[fn] = d;
+          }
           if (!--lft) cbd(null, files);
         }
       }
@@ -3845,6 +3848,7 @@ export function unzipSync(data: Uint8Array, opts?: UnzipOptions) {
       originalSize: su,
       compression: c
     })) {
+      if (fn == '__proto__') Object.defineProperty(files, fn, { writable: true, enumerable: true, configurable: true });
       if (!c) files[fn] = slc(data, b, b + sc);
       else if (c == 8) files[fn] = inflateSync(data.subarray(b, b + sc), { out: new u8(su) });
       else err(14, 'unknown compression type ' + c);
