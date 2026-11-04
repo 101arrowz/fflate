@@ -2726,7 +2726,7 @@ export function strToU8(str: string, latin1?: boolean) {
     if (c < 128 || latin1) w(c);
     else if (c < 2048) w(192 | (c >> 6)), w(128 | (c & 63));
     else if (c > 55295 && c < 57344)
-      c = 65536 + (c & 1023 << 10) | (str.charCodeAt(++i) & 1023),
+      c = 65536 + ((c & 1023) << 10) | (str.charCodeAt(++i) & 1023),
       w(240 | (c >> 18)), w(128 | ((c >> 12) & 63)), w(128 | ((c >> 6) & 63)), w(128 | (c & 63));
     else w(224 | (c >> 12)), w(128 | ((c >> 6) & 63)), w(128 | (c & 63));
   }
