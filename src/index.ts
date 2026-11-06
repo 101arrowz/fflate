@@ -2768,11 +2768,18 @@ const zh = (d: Uint8Array, b: number, z: boolean) => {
   return [b2(d, b + 10), sc, su, fn, es + efl + b2(d, b + 32), off] as const;
 }
 
+// check that the sizes declared for an entry are possible for the archive
+// before allocating anything based on them: the compressed data must lie
+// within the archive, and DEFLATE cannot expand data by more than 1032x
+const vzs = (d: Uint8Array, b: number, c: number, sc: number, su: number) =>
+  b + sc <= d.length && (c != 8 || su <= sc * 1032 + 1032);
+
 // read zip64 header sizes
 const z64hs = (d: Uint8Array, b: number, l: number, z: boolean | number, sc: number, su: number, off: number) => {
   const nsc = sc == 4294967295, nsu = su == 4294967295, noff = off == 4294967295, e = b + l;
   const nf = (nsc as unknown as number) + (nsu as unknown as number) + (noff as unknown as number);
-  if (z && nf) {
+  // sentinel values always require a ZIP64 extra field, even if the archive has no ZIP64 EOCD record
+  if (nf) {
     for (; b + 4 < e; b += 4 + b2(d, b + 2)) {
       if (b2(d, b) == 1) {
         return [
@@ -3791,7 +3798,8 @@ export function unzip(data: Uint8Array, opts: AsyncUnzipOptions | UnzipCallback,
         originalSize: su,
         compression: c
       })) {
-        if (!c) cbl(null, slc(data, b, b + sc))
+        if (!vzs(data, b, c, sc, su)) cbl(err(13, 0, 1), null);
+        else if (!c) cbl(null, slc(data, b, b + sc))
         else if (c == 8) {
           const infl = data.subarray(b, b + sc);
           // Synchronously decompress under 512KB, or barely-compressed data
@@ -3845,6 +3853,7 @@ export function unzipSync(data: Uint8Array, opts?: UnzipOptions) {
       originalSize: su,
       compression: c
     })) {
+      if (!vzs(data, b, c, sc, su)) err(13);
       if (!c) files[fn] = slc(data, b, b + sc);
       else if (c == 8) files[fn] = inflateSync(data.subarray(b, b + sc), { out: new u8(su) });
       else err(14, 'unknown compression type ' + c);
