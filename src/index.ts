@@ -742,6 +742,7 @@ const dflt = (dat: Uint8Array, lvl: number, plvl: number, pre: number, post: num
         e = s;
       }
       pos = wfblk(w, pos + 1, dat.subarray(i, e));
+      if (e == s) break;
     }
     st.i = s;
   }
