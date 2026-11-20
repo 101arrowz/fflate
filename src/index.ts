@@ -2305,7 +2305,7 @@ export class Decompress {
   }
 
   // init substream
-  // overriden by AsyncDecompress
+  // overridden by AsyncDecompress
   private i() {
     this.s.ondata = (dat, final) => {
       this.ondata(dat, final);
